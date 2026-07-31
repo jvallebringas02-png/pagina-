@@ -823,6 +823,65 @@ function cargarSesionUsuario() {
 }
 
 // ============================================
+// PUENTE ÚNICO: conecta cualquier sesión de Supabase Auth
+// (login por correo, Google, etc.) con el panel de usuario.
+// Si el usuario entra por primera vez (ej. con Google) y no
+// existe fila en 'usuarios', la crea automáticamente.
+// ============================================
+async function procesarSesionSupabaseAuth(authUser) {
+    if (!authUser) return;
+    try {
+        var { data: usuarioExistente, error: buscarError } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('id', authUser.id)
+            .maybeSingle();
+        if (buscarError) throw buscarError;
+
+        var usuarioFinal = usuarioExistente;
+
+        if (!usuarioFinal) {
+            var meta = authUser.user_metadata || {};
+            var nombreCompleto = meta.full_name || meta.name || (authUser.email ? authUser.email.split('@')[0] : 'Usuario');
+            var nombrePartes = separarNombreCompleto(nombreCompleto);
+            var idioma = detectarIdiomaNavegador() || 'es';
+            var geoInfo = {};
+            try { geoInfo = GeoService.obtenerInfoCompleta(); } catch (ge) {}
+
+            var { data: usuarioCreado, error: crearError } = await supabase
+                .from('usuarios')
+                .insert({
+                    id: authUser.id,
+                    nombres: nombrePartes.nombres,
+                    apellidos: nombrePartes.apellidos,
+                    correo_electronico: authUser.email,
+                    edad: 18,
+                    idioma_preferido: idioma,
+                    categoria: 'General',
+                    estado: 'activo',
+                    rol_id: 2,
+                    ip_registro: geoInfo.ip || null
+                })
+                .select()
+                .single();
+            if (crearError) throw crearError;
+            usuarioFinal = usuarioCreado;
+            await logAccess('registro_social_exitoso', authUser.email, 'Cuenta creada automáticamente vía proveedor externo');
+            showAuthAlert('✅ ¡Bienvenido! Completa tu perfil (edad, ciudad) en Configuración cuando puedas.', 'info');
+        }
+
+        guardarSesionUsuario(usuarioFinal);
+        await logAccess('login_exitoso', authUser.email, 'Vía procesarSesionSupabaseAuth');
+        updateUIForUser(usuarioFinal);
+        toggleAuthModal(false);
+        showAssistantProactive('¡Bienvenido ' + (usuarioFinal.nombres || (authUser.email ? authUser.email.split('@')[0] : 'Usuario')) + '! 🎉 Tu sesión está activa. ¿En qué puedo ayudarte hoy?');
+        irAlFeed();
+    } catch (e) {
+        console.warn('No se pudo procesar la sesión de autenticación:', e);
+    }
+}
+
+// ============================================
 // PANEL DE USUARIO (3 columnas)
 // ============================================
 var PanelUsuario = {
@@ -1059,34 +1118,21 @@ async function logAccess(accion, email, detalle) {
 
 async function loginWithEmail() {
     var email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    if (!email) { showAuthAlert('Ingresa tu correo electrónico', 'error'); return; }
+    var password = document.getElementById('loginPassword').value;
+    if (!email || !password) { showAuthAlert('Ingresa tu correo y contraseña', 'error'); return; }
     var btn = document.querySelector('#loginForm .btn-auth-primary');
     var textoOriginal = btn.textContent;
     btn.textContent = '⏳ Verificando...';
     btn.disabled = true;
     try {
-        var { data, error } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('correo_electronico', email)
-            .eq('estado', 'activo')
-            .maybeSingle();
+        var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
         if (error) throw error;
-        if (!data) {
-            loginAttempts++;
-            await logAccess('login_fallido', email, 'Usuario no encontrado o inactivo');
-            showAuthAlert('Usuario no encontrado o inactivo', 'error');
-            return;
-        }
         loginAttempts = 0;
-        guardarSesionUsuario(data);
-        await logAccess('login_exitoso', email);
-        updateUIForUser(data);
-        toggleAuthModal(false);
-        showAssistantProactive('¡Bienvenido ' + (data.nombres || email.split('@')[0]) + '! 🎉 Tu sesión está activa. ¿En qué puedo ayudarte hoy?');
-        irAlFeed();
+        await procesarSesionSupabaseAuth(data.user);
     } catch (e) {
-        showAuthAlert('Error al iniciar sesión: ' + (e.message || 'Intenta de nuevo'), 'error');
+        loginAttempts++;
+        await logAccess('login_fallido', email, e.message || 'Credenciales inválidas');
+        showAuthAlert('Correo o contraseña incorrectos', 'error');
     } finally {
         btn.textContent = textoOriginal;
         btn.disabled = false;
@@ -1131,12 +1177,16 @@ async function registerUser() {
             }, 1500);
             return;
         }
+        var { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email: email, password: password });
+        if (signUpError) throw signUpError;
+
         await GeoService.detectarUbicacion();
         var geoInfo = GeoService.obtenerInfoCompleta();
         var nombrePartes = separarNombreCompleto(name);
         var celular = phone ? (phoneCode + ' ' + phone) : null;
         var idioma = detectarIdiomaNavegador() || 'es';
         var { error: insertError } = await supabase.from('usuarios').insert({
+            id: signUpData.user.id,
             nombres: nombrePartes.nombres,
             apellidos: nombrePartes.apellidos,
             correo_electronico: email,
@@ -1150,13 +1200,20 @@ async function registerUser() {
         });
         if (insertError) throw insertError;
         await logAccess('registro_exitoso', email, 'IP: ' + geoInfo.ip + ' | ' + geoInfo.ciudad + ', ' + geoInfo.pais);
-        showAuthAlert('✅ Cuenta creada. Ahora inicia sesión', 'success');
-        limpiarFormularioRegistro();
-        setTimeout(function() {
-            switchAuthTab('login');
-            document.getElementById('loginEmail').value = email;
-            document.getElementById('loginPassword').focus();
-        }, 2000);
+
+        if (signUpData.session) {
+            showAuthAlert('✅ Cuenta creada. ¡Bienvenido!', 'success');
+            limpiarFormularioRegistro();
+            await procesarSesionSupabaseAuth(signUpData.user);
+        } else {
+            showAuthAlert('✅ Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión', 'success');
+            limpiarFormularioRegistro();
+            setTimeout(function() {
+                switchAuthTab('login');
+                document.getElementById('loginEmail').value = email;
+                document.getElementById('loginPassword').focus();
+            }, 2000);
+        }
     } catch (e) {
         await logAccess('registro_fallido', email, e.message);
         showAuthAlert('Error al registrar: ' + (e.message || 'Intenta de nuevo'), 'error');
@@ -1316,9 +1373,27 @@ document.addEventListener("DOMContentLoaded", async function() {
     document.getElementById('qrModalCloseBtn').addEventListener('click', function() { UIController.cerrarQRModal(); });
     window.onclick = function(e) { if (e.target === UIController.elementos.modal) UIController.cerrarModal(); if (e.target === document.getElementById('qrModal')) UIController.cerrarQRModal(); };
     
-    if (!cargarSesionUsuario()) {
-        document.getElementById('accountBtn').onclick = function() { toggleAuthModal(true); };
+    var sesionLocalRestaurada = cargarSesionUsuario();
+    try {
+        var { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+            await procesarSesionSupabaseAuth(session.user);
+        } else if (!sesionLocalRestaurada) {
+            document.getElementById('accountBtn').onclick = function() { toggleAuthModal(true); };
+        }
+    } catch (e) {
+        console.warn('No se pudo verificar la sesión de Supabase Auth:', e);
+        if (!sesionLocalRestaurada) {
+            document.getElementById('accountBtn').onclick = function() { toggleAuthModal(true); };
+        }
     }
+
+    // Escucha cambios de sesión (por ejemplo, cuando Google redirige de vuelta)
+    supabase.auth.onAuthStateChange(function(event, session) {
+        if (event === 'SIGNED_IN' && session && session.user) {
+            procesarSesionSupabaseAuth(session.user);
+        }
+    });
 
     var feedSearch = document.getElementById('feedSearchInput');
     if (feedSearch) {
