@@ -285,6 +285,13 @@ select.form-input { cursor: pointer; }
 .profile-header-stats div { text-align: center; }
 .profile-header-stats strong { display: block; font-size: 18px; color: var(--purpura-ia, #8B5CF6); }
 .profile-header-stats span { font-size: 12px; color: var(--texto-terciario, #9CA3AF); }
+.autor-menu-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--texto-terciario, #9CA3AF); padding: 4px 8px; border-radius: 50%; }
+.autor-menu-btn:hover { background: var(--fondo-terciario, #F3F4F6); }
+.autor-menu-dropdown { display: none; position: absolute; top: 100%; right: 0; background: #fff; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); min-width: 190px; overflow: hidden; z-index: 50; }
+.autor-menu-dropdown.abierto { display: block; }
+.autor-menu-dropdown button { width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: var(--texto-principal, #111827); }
+.autor-menu-dropdown button:hover { background: var(--fondo-terciario, #F3F4F6); }
+.autor-menu-dropdown button.logout-item { color: var(--coral-elegante, #EF4444); }
 </style>
 <!-- ✅ Supabase conectado - remarket-db -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1131,11 +1138,23 @@ var PanelUsuario = {
         var comentariosCount = item.comentarios_count || 0;
         var precio = item.precio != null ? 'S/ ' + item.precio : (item.precio_oferta != null ? 'S/ ' + item.precio_oferta : 'Consultar');
         var id = this.escHtml(item.id);
-        return '<article class="feed-post" data-id="' + id + '">' +
+        var autorUid = this.escHtml(item.usuario_id || '');
+        var esPropio = usuarioActual && item.usuario_id === usuarioActual.id;
+        var menuAutorHtml = '';
+        if (autorUid && !esPropio) {
+            menuAutorHtml = '<div class="autor-menu-wrapper" style="margin-left:auto;position:relative;">' +
+                '<button class="autor-menu-btn" onclick="PanelUsuario.toggleMenuAutor(\'' + id + '\')">⋯</button>' +
+                '<div class="autor-menu-dropdown" id="autorMenu-' + id + '">' +
+                '<button onclick="PanelUsuario.toggleSeguir(\'' + autorUid + '\', \'' + id + '\')" id="seguirBtn-' + id + '">➕ Seguir</button>' +
+                '<button onclick="PanelUsuario.toggleFavoritoUsuario(\'' + autorUid + '\', \'' + id + '\')" id="prefBtn-' + id + '">⭐ Marcar preferido</button>' +
+                '<button onclick="PanelUsuario.toggleBloqueado(\'' + autorUid + '\', \'' + id + '\')" class="logout-item">🚫 Bloquear usuario</button>' +
+                '</div></div>';
+        }
+        return '<article class="feed-post" data-id="' + id + '" data-autor="' + autorUid + '">' +
             '<div class="feed-post-header"><div class="feed-post-avatar">' + inicial + '</div>' +
             '<div class="feed-post-meta"><div class="feed-post-name">' + this.escHtml(nombre) + '</div>' +
             '<div class="feed-post-time">' + this.tiempoRelativo(item.created_at || item.fecha_creacion) + '</div>' +
-            (ciudad ? '<div class="feed-post-location">📍 ' + this.escHtml(ciudad) + '</div>' : '') + '</div></div>' +
+            (ciudad ? '<div class="feed-post-location">📍 ' + this.escHtml(ciudad) + '</div>' : '') + '</div>' + menuAutorHtml + '</div>' +
             imgHtml +
             '<div class="feed-post-body"><div class="feed-post-title">' + this.escHtml(item.titulo || item.nombre || 'Sin título') + '</div>' +
             '<div class="feed-post-desc">' + this.escHtml((item.descripcion || item.detalle || '').substring(0, 300)) + '</div>' +
@@ -1204,10 +1223,11 @@ var PanelUsuario = {
     obtenerFeedCombinado: async function(desde, tamano) {
         var limiteBusqueda = desde + tamano + 20;
         var items = [];
+        var bloqueados = await this.obtenerBloqueados();
         try {
             var { data: productos, error: errProd } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(limiteBusqueda);
             if (errProd) throw errProd;
-            (productos || []).forEach(function(p) { items.push({ tipo: 'original', fecha: p.created_at, producto: p }); });
+            (productos || []).forEach(function(p) { if (bloqueados.indexOf(p.usuario_id) === -1) items.push({ tipo: 'original', fecha: p.created_at, producto: p }); });
         } catch (e) { console.warn('No se pudieron cargar productos:', e); }
         try {
             var { data: reposts, error: errRep } = await supabase.from('reposts').select('id, usuario_id, producto_id, created_at, comentario').order('created_at', { ascending: false }).limit(limiteBusqueda);
@@ -1220,7 +1240,7 @@ var PanelUsuario = {
                     (productosRepost || []).forEach(function(p) { mapaProductos[p.id] = p; });
                     reposts.forEach(function(r) {
                         var prod = mapaProductos[r.producto_id];
-                        if (prod) items.push({ tipo: 'repost', fecha: r.created_at, producto: prod, resharerUid: r.usuario_id, comentario: r.comentario });
+                        if (prod && bloqueados.indexOf(r.usuario_id) === -1 && bloqueados.indexOf(prod.usuario_id) === -1) items.push({ tipo: 'repost', fecha: r.created_at, producto: prod, resharerUid: r.usuario_id, comentario: r.comentario });
                     });
                 }
             }
@@ -1601,6 +1621,74 @@ var PanelUsuario = {
             mostrarErr('Error al enviar: ' + (e.message || 'intenta de nuevo'));
         }
     },
+    toggleMenuAutor: function(postId) {
+        var el = document.getElementById('autorMenu-' + postId);
+        if (!el) return;
+        var abrir = !el.classList.contains('abierto');
+        document.querySelectorAll('.autor-menu-dropdown.abierto').forEach(function(d) { d.classList.remove('abierto'); });
+        if (abrir) el.classList.add('abierto');
+    },
+    toggleSeguir: async function(autorUid, postId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        if (autorUid === usuarioActual.id) { this.mostrarToast('No puedes seguirte a ti mismo'); return; }
+        var btn = document.getElementById('seguirBtn-' + postId);
+        try {
+            var { data: existente } = await supabase.from('seguidores').select('id').eq('seguidor_id', usuarioActual.id).eq('seguido_id', autorUid).maybeSingle();
+            if (existente) {
+                await supabase.from('seguidores').delete().eq('id', existente.id);
+                if (btn) btn.textContent = '➕ Seguir';
+                this.mostrarToast('Dejaste de seguir a este usuario');
+            } else {
+                await supabase.from('seguidores').insert({ seguidor_id: usuarioActual.id, seguido_id: autorUid });
+                if (btn) btn.textContent = '✅ Siguiendo';
+                this.mostrarToast('👤 Ahora sigues a este usuario');
+            }
+        } catch (e) {
+            this.mostrarToast('Error al seguir');
+        }
+        this.toggleMenuAutor(postId);
+    },
+    toggleFavoritoUsuario: async function(autorUid, postId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var btn = document.getElementById('prefBtn-' + postId);
+        try {
+            var { data: existente } = await supabase.from('usuarios_preferidos').select('id').eq('usuario_id', usuarioActual.id).eq('favorito_id', autorUid).maybeSingle();
+            if (existente) {
+                await supabase.from('usuarios_preferidos').delete().eq('id', existente.id);
+                if (btn) btn.textContent = '⭐ Marcar preferido';
+                this.mostrarToast('Quitado de preferidos');
+            } else {
+                await supabase.from('usuarios_preferidos').insert({ usuario_id: usuarioActual.id, favorito_id: autorUid });
+                if (btn) btn.textContent = '✅ Es preferido';
+                this.mostrarToast('⭐ Usuario marcado como preferido');
+            }
+        } catch (e) {
+            this.mostrarToast('Error al marcar preferido');
+        }
+        this.toggleMenuAutor(postId);
+    },
+    toggleBloqueado: async function(autorUid, postId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        if (!confirm('¿Bloquear a este usuario? Ya no verás sus publicaciones en tu feed.')) return;
+        try {
+            await supabase.from('bloqueados').insert({ bloqueador_id: usuarioActual.id, bloqueado_id: autorUid });
+            this._bloqueadosCache = null;
+            this.mostrarToast('🚫 Usuario bloqueado');
+            this.toggleMenuAutor(postId);
+            this.cargarFeed();
+        } catch (e) {
+            this.mostrarToast('Error al bloquear');
+        }
+    },
+    obtenerBloqueados: async function() {
+        if (!usuarioActual) return [];
+        if (this._bloqueadosCache) return this._bloqueadosCache;
+        try {
+            var { data } = await supabase.from('bloqueados').select('bloqueado_id').eq('bloqueador_id', usuarioActual.id);
+            this._bloqueadosCache = (data || []).map(function(b) { return b.bloqueado_id; });
+        } catch (e) { this._bloqueadosCache = []; }
+        return this._bloqueadosCache;
+    },
     toggleFavorito: async function(productoId) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         var btn = document.getElementById('saveBtn-' + productoId);
@@ -1880,6 +1968,7 @@ function updateUIForUser(usuario) {
         usuarioActual = null;
         window.usuarioActual = null;
         try { sessionStorage.removeItem('remarket_usuario'); } catch (e) {}
+        PanelUsuario._bloqueadosCache = null;
         toggleVistaUsuario(false);
         btn.innerHTML = '';
         btn.textContent = 'Mi Cuenta';
@@ -2017,6 +2106,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         var dropdown = document.getElementById('userMenuDropdown');
         var wrapper = document.getElementById('userMenuDropdownWrapper');
         if (dropdown && dropdown.classList.contains('abierto') && wrapper && !wrapper.contains(e.target)) { PanelUsuario.cerrarMenuPerfil(); }
+        if (!e.target.closest('.autor-menu-wrapper')) { document.querySelectorAll('.autor-menu-dropdown.abierto').forEach(function(d) { d.classList.remove('abierto'); }); }
     };
     
     var sesionLocalRestaurada = cargarSesionUsuario();
