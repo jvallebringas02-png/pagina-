@@ -268,6 +268,10 @@ footer{ background: linear-gradient(135deg,#1F2937 0%,#111827 100%); padding: 40
 @media (max-width: 900px) {
   .floating-chat-btn { bottom: 16px; right: 16px; width: 52px; height: 52px; font-size: 22px; }
 }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--texto-secundario, #687280); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--borde-suave, #E5E7EB); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: var(--texto-principal, #111827); box-sizing: border-box; }
+.form-input:focus { outline: none; border-color: var(--purpura-ia, #8B5CF6); }
+select.form-input { cursor: pointer; }
 </style>
 <!-- ✅ Supabase conectado - remarket-db -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -473,6 +477,84 @@ footer{ background: linear-gradient(135deg,#1F2937 0%,#111827 100%); padding: 40
 <h3 style="color: var(--purpura-ia); margin-bottom: 15px;">📱 Escanea este producto</h3>
 <div id="qrImageContainer" class="qr-container"></div>
 <p class="qr-hint">Escanea con tu cámara para ver este producto en tu celular</p>
+</div>
+</div>
+
+<div id="modalPublicar" class="modal-overlay">
+<div class="modal-content" style="max-width: 560px; padding: 30px; max-height: 85vh; overflow-y: auto;">
+<button class="modal-close-btn" onclick="PanelUsuario.cerrarModalPublicar()">&times;</button>
+<h2 style="text-align:center;margin-bottom:5px;color:var(--purpura-ia);">📦 Publicar</h2>
+<p style="text-align:center;color:var(--texto-secundario);margin-bottom:20px;font-size:14px;">Completa los datos de tu publicación</p>
+<div id="publicarAlert" class="alert"></div>
+
+<label class="form-label">Tipo de publicación *</label>
+<select id="pubTipo" class="form-input" onchange="PanelUsuario.onTipoPublicacionChange()">
+    <option value="producto">📦 Vender / Truequear / Donar un producto</option>
+    <option value="servicio">🔧 Ofrecer un servicio</option>
+    <option value="otro">➕ Otro</option>
+</select>
+<div id="pubTipoOtroWrap" style="display:none;margin-top:8px;">
+    <input type="text" id="pubTipoOtro" class="form-input" placeholder="Especifica qué tipo de publicación es">
+</div>
+
+<label class="form-label" style="margin-top:14px;">Título *</label>
+<input type="text" id="pubTitulo" class="form-input" placeholder="Ej: iPhone 13 Pro 128GB" oninput="PanelUsuario.sugerirCategoria()">
+
+<label class="form-label" style="margin-top:14px;">Descripción</label>
+<textarea id="pubDescripcion" class="form-input" rows="3" placeholder="Describe el estado, características, etc." oninput="PanelUsuario.sugerirCategoria()"></textarea>
+
+<label class="form-label" style="margin-top:14px;">Categoría <span id="pubCategoriaSugerida" style="font-weight:400;font-size:12px;color:var(--purpura-ia);"></span></label>
+<select id="pubCategoria" class="form-input">
+    <option value="Tecnología">Tecnología</option>
+    <option value="Hogar">Hogar</option>
+    <option value="Ropa">Ropa</option>
+    <option value="Deportes">Deportes</option>
+    <option value="Vehículos">Vehículos</option>
+    <option value="Agro">Agro / Alimentos</option>
+    <option value="Servicios">Servicios</option>
+    <option value="Libros">Libros</option>
+    <option value="Otros">Otros</option>
+</select>
+
+<div id="pubModalidadWrap">
+<label class="form-label" style="margin-top:14px;">Modalidad *</label>
+<select id="pubModalidad" class="form-input" onchange="PanelUsuario.onModalidadChange(); PanelUsuario.sugerirAlcance();">
+    <option value="venta">💰 Venta</option>
+    <option value="trueque">🔄 Trueque</option>
+    <option value="donacion">🎁 Donación</option>
+</select>
+</div>
+
+<div id="pubPrecioWrap" style="margin-top:14px;">
+<label class="form-label">Precio (S/) *</label>
+<input type="number" id="pubPrecio" class="form-input" placeholder="0.00" min="0" step="0.01" oninput="PanelUsuario.sugerirAlcance()">
+</div>
+
+<div id="pubTruequeWrap" style="display:none;margin-top:14px;">
+<label class="form-label">¿Qué buscas a cambio?</label>
+<input type="text" id="pubBuscaCambio" class="form-input" placeholder="Ej: semillas, herramientas...">
+</div>
+
+<label class="form-label" style="margin-top:14px;">Cantidad / Volumen</label>
+<input type="text" id="pubCantidad" class="form-input" placeholder="Ej: 1 unidad, 500 unidades, 1 tonelada" oninput="PanelUsuario.sugerirAlcance()">
+
+<label class="form-label" style="margin-top:14px;">Fotos (pega hasta 5 URLs de imágenes, separadas por coma)</label>
+<input type="text" id="pubFotos" class="form-input" placeholder="https://.../foto1.jpg, https://.../foto2.jpg">
+<p style="font-size:12px;color:var(--texto-terciario);margin-top:4px;">Próximamente: subida directa de fotos desde tu celular/computadora.</p>
+
+<label class="form-label" style="margin-top:14px;">Alcance <span id="pubAlcanceSugerido" style="font-weight:400;font-size:12px;color:var(--purpura-ia);"></span></label>
+<div style="display:flex;gap:10px;margin-top:6px;">
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;"><input type="radio" name="pubAlcance" value="local" checked> Local</label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;"><input type="radio" name="pubAlcance" value="regional"> Regional</label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;"><input type="radio" name="pubAlcance" value="mundial"> Mundial</label>
+</div>
+
+<label style="display:flex;align-items:flex-start;gap:8px;margin-top:18px;font-size:13px;color:var(--texto-secundario);line-height:1.5;">
+<input type="checkbox" id="pubDeclaracionJurada" style="margin-top:3px;">
+<span>Declaro, bajo Declaración Jurada, que <strong>soy el legítimo propietario</strong> de lo que publico (o estoy autorizado a ofrecerlo), que la información es veraz, y que <strong>me hago responsable legal</strong> de todo el contenido publicado (texto, fotos y mensajes), confirmando que no contiene material político, ofensivo, discriminatorio, difamatorio ni pornográfico.</span>
+</label>
+
+<button class="btn-auth btn-auth-primary" style="margin-top:20px;" onclick="PanelUsuario.enviarPublicacion()">Publicar</button>
 </div>
 </div>
 
@@ -1116,7 +1198,147 @@ var PanelUsuario = {
         else if (action === 'favoritos') alert('❤️ Favoritos — próximo paso');
         else if (action === 'config') alert('⚙️ Configuración — próximo paso');
     },
-    abrirModalPublicar: function() { alert('📦 Modal de creación de publicación — próximo paso'); },
+    abrirModalPublicar: function() {
+        document.getElementById('modalPublicar').style.display = 'flex';
+        document.getElementById('publicarAlert').className = 'alert';
+        document.getElementById('publicarAlert').style.display = 'none';
+    },
+    cerrarModalPublicar: function() {
+        document.getElementById('modalPublicar').style.display = 'none';
+    },
+    onTipoPublicacionChange: function() {
+        var tipo = document.getElementById('pubTipo').value;
+        document.getElementById('pubTipoOtroWrap').style.display = tipo === 'otro' ? 'block' : 'none';
+        var esServicio = tipo === 'servicio';
+        document.getElementById('pubModalidadWrap').style.display = esServicio ? 'none' : 'block';
+        if (esServicio) {
+            document.querySelector('input[name="pubAlcance"][value="local"]').checked = true;
+            document.getElementById('pubAlcanceSugerido').textContent = '✨ Es un servicio: se recomienda Local (requiere presencia física)';
+            document.getElementById('pubTruequeWrap').style.display = 'none';
+        } else {
+            this.onModalidadChange();
+        }
+        this.sugerirCategoria();
+        this.sugerirAlcance();
+    },
+    onModalidadChange: function() {
+        var modalidad = document.getElementById('pubModalidad').value;
+        document.getElementById('pubPrecioWrap').style.display = modalidad === 'venta' ? 'block' : 'none';
+        document.getElementById('pubTruequeWrap').style.display = modalidad === 'trueque' ? 'block' : 'none';
+    },
+    MAPA_CATEGORIAS: {
+        'Tecnología': ['celular','iphone','android','laptop','computadora','tablet','audifono','tv','televisor','consola','playstation','xbox'],
+        'Hogar': ['mueble','sofa','mesa','silla','refrigeradora','cocina','lavadora','microondas','decoracion'],
+        'Ropa': ['camisa','polo','pantalon','zapato','zapatilla','casaca','vestido','chompa','ropa'],
+        'Deportes': ['bicicleta','pesas','balon','pelota','raqueta','patines','gimnasio'],
+        'Vehículos': ['auto','carro','moto','camioneta','vehiculo','placa'],
+        'Agro': ['papa','uva','semilla','fruta','verdura','cosecha','ganado','abono'],
+        'Servicios': ['reparacion','gasfitero','electricista','clases','asesoria','instalacion','mantenimiento'],
+        'Libros': ['libro','novela','texto escolar','cuaderno']
+    },
+    sugerirCategoria: function() {
+        var texto = ((document.getElementById('pubTitulo').value || '') + ' ' + (document.getElementById('pubDescripcion').value || '')).toLowerCase();
+        if (!texto.trim()) { document.getElementById('pubCategoriaSugerida').textContent = ''; return; }
+        var mejorCategoria = null;
+        for (var cat in this.MAPA_CATEGORIAS) {
+            var palabras = this.MAPA_CATEGORIAS[cat];
+            for (var i = 0; i < palabras.length; i++) {
+                if (texto.indexOf(palabras[i]) !== -1) { mejorCategoria = cat; break; }
+            }
+            if (mejorCategoria) break;
+        }
+        if (mejorCategoria) {
+            document.getElementById('pubCategoria').value = mejorCategoria;
+            document.getElementById('pubCategoriaSugerida').textContent = '✨ Categoría detectada: ' + mejorCategoria;
+        } else {
+            document.getElementById('pubCategoriaSugerida').textContent = '';
+        }
+    },
+    sugerirAlcance: function() {
+        var tipo = document.getElementById('pubTipo').value;
+        if (tipo === 'servicio') return;
+        var precio = parseFloat(document.getElementById('pubPrecio').value) || 0;
+        var cantidadTexto = (document.getElementById('pubCantidad').value || '').toLowerCase();
+        var esMayor = /contenedor|mayor|lote|tonelada|\d{3,}\s*unidades/.test(cantidadTexto);
+        var sugeridoEl = document.getElementById('pubAlcanceSugerido');
+        var valor = 'local', motivo = 'bajo valor o poco práctico de enviar lejos';
+        if (esMayor) { valor = 'mundial'; motivo = 'venta al por mayor / alto volumen'; }
+        else if (precio > 3000) { valor = 'mundial'; motivo = 'producto de alto valor'; }
+        else if (precio > 500) { valor = 'regional'; motivo = 'valor medio, fácil de enviar'; }
+        var radio = document.querySelector('input[name="pubAlcance"][value="' + valor + '"]');
+        if (radio) radio.checked = true;
+        sugeridoEl.textContent = '✨ La IA recomienda: ' + valor.charAt(0).toUpperCase() + valor.slice(1) + ' (' + motivo + ')';
+    },
+    enviarPublicacion: async function() {
+        var alertEl = document.getElementById('publicarAlert');
+        function mostrarError(msg) { alertEl.className = 'alert alert-error'; alertEl.textContent = msg; alertEl.style.display = 'block'; }
+        if (!usuarioActual) { mostrarError('Debes iniciar sesión'); return; }
+        var tipo = document.getElementById('pubTipo').value;
+        var titulo = document.getElementById('pubTitulo').value.trim();
+        var descripcion = document.getElementById('pubDescripcion').value.trim();
+        var categoria = document.getElementById('pubCategoria').value;
+        var esServicio = tipo === 'servicio';
+        var modalidad = esServicio ? 'servicio' : document.getElementById('pubModalidad').value;
+        var precio = document.getElementById('pubPrecio').value ? parseFloat(document.getElementById('pubPrecio').value) : null;
+        var cantidad = document.getElementById('pubCantidad').value.trim();
+        var fotosTexto = document.getElementById('pubFotos').value.trim();
+        var fotos = fotosTexto ? fotosTexto.split(',').map(function(f) { return f.trim(); }).filter(Boolean).slice(0, 5) : [];
+        var alcanceRadio = document.querySelector('input[name="pubAlcance"]:checked');
+        var alcance = alcanceRadio ? alcanceRadio.value : 'local';
+        var declaracion = document.getElementById('pubDeclaracionJurada').checked;
+
+        if (!titulo) { mostrarError('El título es obligatorio'); return; }
+        if (!esServicio && modalidad === 'venta' && !precio) { mostrarError('Ingresa un precio para la venta'); return; }
+        if (!declaracion) { mostrarError('Debes aceptar la Declaración Jurada para publicar'); return; }
+
+        var descripcionFinal = descripcion;
+        if (tipo === 'otro') {
+            var tipoOtro = document.getElementById('pubTipoOtro').value.trim();
+            if (tipoOtro) descripcionFinal = '[' + tipoOtro + '] ' + descripcionFinal;
+        }
+        if (cantidad) descripcionFinal += (descripcionFinal ? '\n\n' : '') + 'Cantidad/Volumen: ' + cantidad;
+        if (!esServicio && modalidad === 'trueque') {
+            var buscaCambio = document.getElementById('pubBuscaCambio').value.trim();
+            if (buscaCambio) descripcionFinal += (descripcionFinal ? '\n' : '') + 'Busca a cambio: ' + buscaCambio;
+        }
+
+        var btn = document.querySelector('#modalPublicar .btn-auth-primary');
+        var textoOriginal = btn.textContent;
+        btn.textContent = '⏳ Publicando...';
+        btn.disabled = true;
+        try {
+            var { error } = await supabase.from('productos').insert({
+                usuario_id: usuarioActual.id,
+                titulo: titulo,
+                descripcion: descripcionFinal,
+                categoria: categoria,
+                modalidad: modalidad,
+                precio: precio,
+                moneda: 'PEN',
+                ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
+                pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
+                alcance: alcance,
+                fotos: fotos,
+                estado: 'pendiente',
+                ia_scan_status: 'pendiente',
+                acepto_declaracion_jurada: true,
+                fecha_aceptacion_jurada: new Date().toISOString()
+            });
+            if (error) throw error;
+            alertEl.className = 'alert alert-success';
+            alertEl.textContent = '✅ ¡Publicado! Tu artículo está en revisión y aparecerá en el feed cuando sea aprobado.';
+            alertEl.style.display = 'block';
+            setTimeout(function() {
+                PanelUsuario.cerrarModalPublicar();
+                PanelUsuario.cargarFeed();
+            }, 1800);
+        } catch (e) {
+            mostrarError('Error al publicar: ' + (e.message || 'Intenta de nuevo'));
+        } finally {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+    },
     accionFeed: function(tipo) {
         var msgs = { like: '👍 ¡Te gusta!', comment: '💬 Comentarios — próximo paso', share: '🔗 Enlace copiado', save: '🔖 Guardado en favoritos' };
         if (tipo === 'share' && navigator.clipboard) navigator.clipboard.writeText(window.location.href);
@@ -1350,7 +1572,7 @@ var BuscadorMotor = {
 
 var Database = { articulos: [ { titulo: "iPhone 13 Pro 128GB", categoria: "Tecnología", descripcion: "Excelente estado, batería 90%, caja original.", icono: "📱", precio: 3200, modalidad: "venta", pais: "Perú", ciudad: "Lima", distancia_km: 2.3 }, { titulo: "Bicicleta de Montaña Trek", categoria: "Transporte", descripcion: "Frenos de disco, 21 velocidades, poco uso.", icono: "🚲", precio: 850, modalidad: "trueque", pais: "Perú", ciudad: "Callao", distancia_km: 1.5 }, { titulo: "Carpintería El Callao", categoria: "Servicios", descripcion: "Construcción de muebles a medida. Calificación: 4.5/5", icono: "🪚", precio: 50, modalidad: "servicio", pais: "Perú", ciudad: "Callao", distancia_km: 2.0 }, { titulo: "Camisa Polo Ralph Lauren", categoria: "Ropa", descripcion: "Talla M, color azul marino, original con etiqueta.", icono: "👔", precio: 120, modalidad: "venta", pais: "Perú", ciudad: "Lima", distancia_km: 2.5 }, { titulo: "MacBook Pro M1 2020", categoria: "Tecnología", descripcion: "Perfecto estado, 8GB RAM, 256GB SSD.", icono: "💻", precio: 950, modalidad: "venta", pais: "España", ciudad: "Madrid", distancia_km: 1.2 }, { titulo: "Toyota Corolla 2019", categoria: "Transporte", descripcion: "Auto sedan, 40,000 km, único dueño, impecable.", icono: "🚗", precio: 45000, modalidad: "venta", pais: "Perú", ciudad: "Lima", distancia_km: 3.5 } ] };
 
-async function cargarProductosSupabase() { try { var result = await supabase.from('productos').select('*').eq('activo', true).limit(100); if (result.error) throw result.error; return result.data.map(function(p) { return { titulo: p.titulo, categoria: p.categoria, descripcion: p.descripcion, precio: p.precio, modalidad: p.modalidad, pais: p.pais, ciudad: p.ciudad, distancia_km: p.distancia_km, icono: p.icono, imagen_url: p.imagen_url, _es_supabase: true }; }); } catch (e) { return []; } }
+async function cargarProductosSupabase() { try { var result = await supabase.from('productos').select('*').eq('estado', 'aprobado').order('created_at', { ascending: false }).limit(100); if (result.error) throw result.error; return result.data.map(function(p) { var primeraFoto = (p.fotos && p.fotos.length) ? p.fotos[0] : null; return { id: p.id, titulo: p.titulo, categoria: p.categoria, descripcion: p.descripcion, precio: p.precio, modalidad: p.modalidad, pais: p.pais, ciudad: p.ciudad, distancia_km: p.distancia_km, icono: p.icono, imagen_url: primeraFoto, _es_supabase: true }; }); } catch (e) { console.warn('No se pudieron cargar productos reales:', e); return []; } }
 async function cargarProductosAPI() { try { var res = await fetch('https://dummyjson.com/products?limit=100&skip=0'); var data = await res.json(); var modalidades = ['venta', 'trueque', 'donacion']; var paises_api = ['Estados Unidos', 'Reino Unido', 'Alemania', 'Francia', 'Japón', 'Canadá', 'Italia']; return data.products.map(function(p) { return { titulo: p.title, categoria: p.category.charAt(0).toUpperCase() + p.category.slice(1), descripcion: p.description, precio: Math.round(p.price * 3.7), modalidad: modalidades[Math.floor(Math.random() * modalidades.length)], pais: paises_api[Math.floor(Math.random() * paises_api.length)], ciudad: 'Internacional', distancia_km: (Math.random() * 500 + 50).toFixed(1), imagen_url: p.thumbnail, icono: null }; }); } catch (e) { return []; } }
 
 var AIService = {
