@@ -273,6 +273,9 @@ footer{ background: linear-gradient(135deg,#1F2937 0%,#111827 100%); padding: 40
 .form-input:focus { outline: none; border-color: var(--purpura-ia, #8B5CF6); }
 select.form-input { cursor: pointer; }
 .feed-action-btn.active-like { color: var(--verde-esmeralda, #10B981); font-weight: 700; }
+.feed-repost-wrapper { background: var(--fondo-secundario, #F9FAFB); border-radius: 14px; padding: 10px; margin-bottom: 16px; border: 1px solid var(--borde-suave, #E5E7EB); }
+.feed-repost-header { font-size: 13px; color: var(--texto-secundario, #687280); padding: 4px 8px 10px; }
+.feed-repost-wrapper .feed-post { margin-bottom: 0; box-shadow: none; border: 1px solid var(--borde-suave, #E5E7EB); }
 </style>
 <!-- ✅ Supabase conectado - remarket-db -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1133,17 +1136,14 @@ var PanelUsuario = {
         var container = document.getElementById('userFeedContainer');
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>';
         try {
-            var desde = 0, hasta = this.feedTamanoPagina - 1;
-            var { data: productos, error: errProd } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).range(desde, hasta);
-            if (errProd) throw errProd;
-            if (!productos || !productos.length) {
+            var combinado = await this.obtenerFeedCombinado(0, this.feedTamanoPagina);
+            if (!combinado.length) {
                 container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">📭</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">No hay publicaciones aún</h3><p>Sé el primero en publicar en tu zona.</p><button class="btn-publicar" style="margin-top:16px;" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar ahora</button></div>';
                 return;
             }
-            var html = await this.renderPosts(productos);
+            var html = await this.renderItemsFeed(combinado);
             container.innerHTML = html + '<div id="feedScrollSentinel" style="height:1px;"></div>';
             this.feedPagina = 1;
-            this.registrarVistas(productos);
             this.activarScrollInfinito();
         } catch (e) {
             console.warn('Error cargando feed:', e);
@@ -1154,25 +1154,33 @@ var PanelUsuario = {
         if (this.feedCargandoMas || this.feedSinMasResultados) return;
         this.feedCargandoMas = true;
         var desde = this.feedPagina * this.feedTamanoPagina;
-        var hasta = desde + this.feedTamanoPagina - 1;
         try {
-            var { data: productos, error } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).range(desde, hasta);
-            if (error) throw error;
+            var combinado = await this.obtenerFeedCombinado(desde, this.feedTamanoPagina);
             var sentinel = document.getElementById('feedScrollSentinel');
-            if (!productos || !productos.length) {
+            if (!combinado.length) {
                 this.feedSinMasResultados = true;
                 if (sentinel) sentinel.outerHTML = '<div style="text-align:center;padding:20px;color:var(--texto-terciario);font-size:13px;">— No hay más publicaciones —</div>';
                 return;
             }
-            var html = await this.renderPosts(productos);
+            var html = await this.renderItemsFeed(combinado);
             if (sentinel) sentinel.insertAdjacentHTML('beforebegin', html);
             this.feedPagina++;
-            this.registrarVistas(productos);
         } catch (e) {
             console.warn('Error cargando más publicaciones:', e);
         } finally {
             this.feedCargandoMas = false;
         }
+    },
+    // Combina publicaciones originales + reposts ("compartidos") en un solo feed cronológico
+    obtenerFeedCombinado: async function(desde, tamano) {
+        var limiteBusqueda = desde + tamano + 20;
+        var { data: productos } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(limiteBusqueda);
+        var { data: reposts } = await supabase.from('reposts').select('id, usuario_id, created_at, producto:productos(*)').order('created_at', { ascending: false }).limit(limiteBusqueda);
+        var items = [];
+        (productos || []).forEach(function(p) { items.push({ tipo: 'original', fecha: p.created_at, producto: p }); });
+        (reposts || []).forEach(function(r) { if (r.producto) items.push({ tipo: 'repost', fecha: r.created_at, producto: r.producto, resharerUid: r.usuario_id }); });
+        items.sort(function(a, b) { return new Date(b.fecha) - new Date(a.fecha); });
+        return items.slice(desde, desde + tamano);
     },
     activarScrollInfinito: function() {
         if (this._scrollObserver) this._scrollObserver.disconnect();
@@ -1184,23 +1192,31 @@ var PanelUsuario = {
         }, { rootMargin: '200px' });
         this._scrollObserver.observe(sentinel);
     },
-    renderPosts: async function(items) {
-        var autoresCache = {};
+    autoresCacheGlobal: {},
+    obtenerAutor: async function(uid) {
+        if (!uid) return null;
+        if (this.autoresCacheGlobal[uid]) return this.autoresCacheGlobal[uid];
+        if (usuarioActual && usuarioActual.id === uid) { this.autoresCacheGlobal[uid] = usuarioActual; return usuarioActual; }
+        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico').eq('id', uid).maybeSingle();
+        if (u) this.autoresCacheGlobal[uid] = u;
+        return u;
+    },
+    renderItemsFeed: async function(items) {
         var html = '';
+        var idsVistos = [];
         for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            var autor = null;
-            var uid = item.usuario_id;
-            if (uid) {
-                if (autoresCache[uid]) autor = autoresCache[uid];
-                else {
-                    var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico').eq('id', uid).maybeSingle();
-                    if (u) { autor = u; autoresCache[uid] = u; }
-                }
+            var entry = items[i];
+            var autor = await this.obtenerAutor(entry.producto.usuario_id);
+            if (entry.producto.id) idsVistos.push(entry.producto.id);
+            if (entry.tipo === 'repost') {
+                var resharer = await this.obtenerAutor(entry.resharerUid);
+                var nombreResharer = resharer ? ((resharer.nombres || '') + ' ' + (resharer.apellidos || '')).trim() : 'Alguien';
+                html += '<div class="feed-repost-wrapper"><div class="feed-repost-header">🔄 <strong>' + this.escHtml(nombreResharer) + '</strong> compartió esto · ' + this.tiempoRelativo(entry.fecha) + '</div>' + this.renderPost(entry.producto, autor) + '</div>';
+            } else {
+                html += this.renderPost(entry.producto, autor);
             }
-            if (!autor && usuarioActual && usuarioActual.id === uid) autor = usuarioActual;
-            html += this.renderPost(item, autor);
         }
+        if (idsVistos.length) this.registrarVistas(items.map(function(it) { return it.producto; }));
         return html;
     },
     registrarVistas: function(items) {
@@ -1261,7 +1277,8 @@ var PanelUsuario = {
                 container.innerHTML = '<div class="feed-empty"><p>No se encontraron los productos guardados.</p></div>';
                 return;
             }
-            var html = await this.renderPosts(productos);
+            var items = productos.map(function(p) { return { tipo: 'original', fecha: p.created_at, producto: p }; });
+            var html = await this.renderItemsFeed(items);
             container.innerHTML = html;
         } catch (e) {
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus favoritos.</p></div>';
@@ -1410,11 +1427,25 @@ var PanelUsuario = {
     },
     accionFeed: function(tipo, productoId) {
         if (tipo === 'share') {
-            var url = window.location.origin + '?producto=' + encodeURIComponent(productoId || '');
-            if (navigator.clipboard) navigator.clipboard.writeText(url);
-            this.mostrarToast('🔗 Enlace copiado');
+            this.compartirPublicacion(productoId);
         } else if (tipo === 'save') {
             this.toggleFavorito(productoId);
+        }
+    },
+    compartirPublicacion: async function(productoId) {
+        var url = window.location.origin + '?producto=' + encodeURIComponent(productoId || '');
+        if (navigator.clipboard) navigator.clipboard.writeText(url);
+        if (!usuarioActual) { this.mostrarToast('🔗 Enlace copiado'); return; }
+        try {
+            var { data: existente } = await supabase.from('reposts').select('id').eq('usuario_id', usuarioActual.id).eq('producto_id', productoId).maybeSingle();
+            if (existente) {
+                this.mostrarToast('🔗 Enlace copiado (ya lo habías compartido)');
+            } else {
+                await supabase.from('reposts').insert({ usuario_id: usuarioActual.id, producto_id: productoId });
+                this.mostrarToast('🔄 ¡Compartido en tu perfil! Y el enlace se copió también');
+            }
+        } catch (e) {
+            this.mostrarToast('🔗 Enlace copiado');
         }
     },
     toggleFavorito: async function(productoId) {
