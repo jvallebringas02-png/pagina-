@@ -1174,11 +1174,28 @@ var PanelUsuario = {
     // Combina publicaciones originales + reposts ("compartidos") en un solo feed cronológico
     obtenerFeedCombinado: async function(desde, tamano) {
         var limiteBusqueda = desde + tamano + 20;
-        var { data: productos } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(limiteBusqueda);
-        var { data: reposts } = await supabase.from('reposts').select('id, usuario_id, created_at, producto:productos(*)').order('created_at', { ascending: false }).limit(limiteBusqueda);
         var items = [];
-        (productos || []).forEach(function(p) { items.push({ tipo: 'original', fecha: p.created_at, producto: p }); });
-        (reposts || []).forEach(function(r) { if (r.producto) items.push({ tipo: 'repost', fecha: r.created_at, producto: r.producto, resharerUid: r.usuario_id }); });
+        try {
+            var { data: productos, error: errProd } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(limiteBusqueda);
+            if (errProd) throw errProd;
+            (productos || []).forEach(function(p) { items.push({ tipo: 'original', fecha: p.created_at, producto: p }); });
+        } catch (e) { console.warn('No se pudieron cargar productos:', e); }
+        try {
+            var { data: reposts, error: errRep } = await supabase.from('reposts').select('id, usuario_id, producto_id, created_at').order('created_at', { ascending: false }).limit(limiteBusqueda);
+            if (errRep) throw errRep;
+            if (reposts && reposts.length) {
+                var idsProductos = reposts.map(function(r) { return r.producto_id; }).filter(Boolean);
+                if (idsProductos.length) {
+                    var { data: productosRepost } = await supabase.from('productos').select('*').in('id', idsProductos);
+                    var mapaProductos = {};
+                    (productosRepost || []).forEach(function(p) { mapaProductos[p.id] = p; });
+                    reposts.forEach(function(r) {
+                        var prod = mapaProductos[r.producto_id];
+                        if (prod) items.push({ tipo: 'repost', fecha: r.created_at, producto: prod, resharerUid: r.usuario_id });
+                    });
+                }
+            }
+        } catch (e) { console.warn('No se pudieron cargar los compartidos:', e); }
         items.sort(function(a, b) { return new Date(b.fecha) - new Date(a.fecha); });
         return items.slice(desde, desde + tamano);
     },
