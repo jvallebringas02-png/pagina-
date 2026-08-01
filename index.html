@@ -272,6 +272,7 @@ footer{ background: linear-gradient(135deg,#1F2937 0%,#111827 100%); padding: 40
 .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--borde-suave, #E5E7EB); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: var(--texto-principal, #111827); box-sizing: border-box; }
 .form-input:focus { outline: none; border-color: var(--purpura-ia, #8B5CF6); }
 select.form-input { cursor: pointer; }
+.feed-action-btn.active-like { color: var(--verde-esmeralda, #10B981); font-weight: 700; }
 </style>
 <!-- ✅ Supabase conectado - remarket-db -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1093,9 +1094,12 @@ var PanelUsuario = {
         var nombre = autor ? ((autor.nombres || '') + ' ' + (autor.apellidos || '')).trim() : 'Usuario';
         var inicial = nombre.charAt(0).toUpperCase() || 'U';
         var ciudad = item.ciudad || item.localidad || UbicacionUsuario.ciudad || '';
-        var vistas = item.vistas || item.num_vistas || item.views || 0;
+        var vistas = item.vistas || 0;
+        var likesCount = item.likes_count || 0;
+        var comentariosCount = item.comentarios_count || 0;
         var precio = item.precio != null ? 'S/ ' + item.precio : (item.precio_oferta != null ? 'S/ ' + item.precio_oferta : 'Consultar');
-        return '<article class="feed-post" data-id="' + this.escHtml(item.id) + '">' +
+        var id = this.escHtml(item.id);
+        return '<article class="feed-post" data-id="' + id + '">' +
             '<div class="feed-post-header"><div class="feed-post-avatar">' + inicial + '</div>' +
             '<div class="feed-post-meta"><div class="feed-post-name">' + this.escHtml(nombre) + '</div>' +
             '<div class="feed-post-time">' + this.tiempoRelativo(item.created_at || item.fecha_creacion) + '</div>' +
@@ -1104,65 +1108,106 @@ var PanelUsuario = {
             '<div class="feed-post-body"><div class="feed-post-title">' + this.escHtml(item.titulo || item.nombre || 'Sin título') + '</div>' +
             '<div class="feed-post-desc">' + this.escHtml((item.descripcion || item.detalle || '').substring(0, 300)) + '</div>' +
             '<div class="feed-post-price">' + precio + '</div></div>' +
-            '<div class="feed-post-stats">👁️ ' + vistas + ' vistas</div>' +
+            '<div class="feed-post-stats">👁️ ' + vistas + ' vistas · <span id="likesCount-' + id + '">' + likesCount + '</span> me gusta · <span id="commentsCount-' + id + '">' + comentariosCount + '</span> comentarios</div>' +
             '<div class="feed-post-actions">' +
-            '<button class="feed-action-btn" onclick="PanelUsuario.accionFeed(\'like\')">👍 Me gusta</button>' +
-            '<button class="feed-action-btn" onclick="PanelUsuario.accionFeed(\'comment\')">💬 Comentar</button>' +
-            '<button class="feed-action-btn" onclick="PanelUsuario.accionFeed(\'share\')">🔗 Compartir</button>' +
-            '<button class="feed-action-btn" onclick="PanelUsuario.accionFeed(\'save\')">🔖 Guardar</button>' +
-            '</div></article>';
+            '<button class="feed-action-btn" id="likeBtn-' + id + '" onclick="PanelUsuario.toggleLike(\'' + id + '\')">👍 Me gusta</button>' +
+            '<button class="feed-action-btn" onclick="PanelUsuario.toggleComentarios(\'' + id + '\')">💬 Comentar</button>' +
+            '<button class="feed-action-btn" onclick="PanelUsuario.accionFeed(\'share\',\'' + id + '\')">🔗 Compartir</button>' +
+            '<button class="feed-action-btn" id="saveBtn-' + id + '" onclick="PanelUsuario.accionFeed(\'save\',\'' + id + '\')">🔖 Guardar</button>' +
+            '</div>' +
+            '<div class="feed-comments-box" id="commentsBox-' + id + '" style="display:none;padding:12px;border-top:1px solid var(--borde-suave);">' +
+            '<div id="commentsList-' + id + '" style="font-size:13px;margin-bottom:8px;"></div>' +
+            '<div style="display:flex;gap:8px;">' +
+            '<input type="text" class="form-input" id="commentInput-' + id + '" placeholder="Escribe un comentario...">' +
+            '<button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.enviarComentario(\'' + id + '\')">Enviar</button>' +
+            '</div></div>' +
+            '</article>';
     },
+    feedPagina: 0,
+    feedTamanoPagina: 10,
+    feedCargandoMas: false,
+    feedSinMasResultados: false,
     cargarFeed: async function() {
+        this.feedPagina = 0;
+        this.feedSinMasResultados = false;
         var container = document.getElementById('userFeedContainer');
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>';
         try {
-            var items = [];
-            var query = supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(20);
-            try { query = query.eq('activo', true); } catch (e) {}
-            if (usuarioActual && usuarioActual.localidad_id) query = query.eq('localidad_id', usuarioActual.localidad_id);
-            var { data: productos, error: errProd } = await query;
-            if (errProd) {
-                var q2 = supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(20);
-                if (usuarioActual && usuarioActual.localidad_id) q2 = q2.eq('localidad_id', usuarioActual.localidad_id);
-                var res2 = await q2;
-                productos = res2.data;
-            }
-            if (productos && productos.length) items = productos;
-            if (!items.length) {
-                var qAnuncios = supabase.from('anuncios').select('*').order('created_at', { ascending: false }).limit(20);
-                if (usuarioActual && usuarioActual.localidad_id) qAnuncios = qAnuncios.eq('localidad_id', usuarioActual.localidad_id);
-                var { data: anuncios } = await qAnuncios;
-                if (anuncios && anuncios.length) items = anuncios;
-            }
-            if (!items.length) {
-                var { data: todos } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(10);
-                if (todos && todos.length) items = todos;
-            }
-            if (!items.length) {
+            var desde = 0, hasta = this.feedTamanoPagina - 1;
+            var { data: productos, error: errProd } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).range(desde, hasta);
+            if (errProd) throw errProd;
+            if (!productos || !productos.length) {
                 container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">📭</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">No hay publicaciones aún</h3><p>Sé el primero en publicar en tu zona.</p><button class="btn-publicar" style="margin-top:16px;" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar ahora</button></div>';
                 return;
             }
-            var autoresCache = {};
-            var html = '';
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-                var autor = null;
-                var uid = item.usuario_id || item.vendedor_id || item.user_id;
-                if (uid) {
-                    if (autoresCache[uid]) autor = autoresCache[uid];
-                    else {
-                        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico').eq('id', uid).maybeSingle();
-                        if (u) { autor = u; autoresCache[uid] = u; }
-                    }
-                }
-                if (!autor && usuarioActual) autor = usuarioActual;
-                html += this.renderPost(item, autor);
-            }
-            container.innerHTML = html;
+            var html = await this.renderPosts(productos);
+            container.innerHTML = html + '<div id="feedScrollSentinel" style="height:1px;"></div>';
+            this.feedPagina = 1;
+            this.registrarVistas(productos);
+            this.activarScrollInfinito();
         } catch (e) {
             console.warn('Error cargando feed:', e);
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar las publicaciones.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Reintentar</button></div>';
         }
+    },
+    cargarMasFeed: async function() {
+        if (this.feedCargandoMas || this.feedSinMasResultados) return;
+        this.feedCargandoMas = true;
+        var desde = this.feedPagina * this.feedTamanoPagina;
+        var hasta = desde + this.feedTamanoPagina - 1;
+        try {
+            var { data: productos, error } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).range(desde, hasta);
+            if (error) throw error;
+            var sentinel = document.getElementById('feedScrollSentinel');
+            if (!productos || !productos.length) {
+                this.feedSinMasResultados = true;
+                if (sentinel) sentinel.outerHTML = '<div style="text-align:center;padding:20px;color:var(--texto-terciario);font-size:13px;">— No hay más publicaciones —</div>';
+                return;
+            }
+            var html = await this.renderPosts(productos);
+            if (sentinel) sentinel.insertAdjacentHTML('beforebegin', html);
+            this.feedPagina++;
+            this.registrarVistas(productos);
+        } catch (e) {
+            console.warn('Error cargando más publicaciones:', e);
+        } finally {
+            this.feedCargandoMas = false;
+        }
+    },
+    activarScrollInfinito: function() {
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        var sentinel = document.getElementById('feedScrollSentinel');
+        if (!sentinel || !('IntersectionObserver' in window)) return;
+        var self = this;
+        this._scrollObserver = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting) self.cargarMasFeed();
+        }, { rootMargin: '200px' });
+        this._scrollObserver.observe(sentinel);
+    },
+    renderPosts: async function(items) {
+        var autoresCache = {};
+        var html = '';
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var autor = null;
+            var uid = item.usuario_id;
+            if (uid) {
+                if (autoresCache[uid]) autor = autoresCache[uid];
+                else {
+                    var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico').eq('id', uid).maybeSingle();
+                    if (u) { autor = u; autoresCache[uid] = u; }
+                }
+            }
+            if (!autor && usuarioActual && usuarioActual.id === uid) autor = usuarioActual;
+            html += this.renderPost(item, autor);
+        }
+        return html;
+    },
+    registrarVistas: function(items) {
+        items.forEach(function(item) {
+            if (!item.id) return;
+            supabase.from('productos').update({ vistas: (item.vistas || 0) + 1 }).eq('id', item.id).then(function() {}, function() {});
+        });
     },
     cargarTendencias: async function() {
         var el = document.getElementById('tendenciasContent');
@@ -1195,8 +1240,32 @@ var PanelUsuario = {
         else if (action === 'publicaciones') alert('📦 Mis Publicaciones — próximo paso');
         else if (action === 'blog') alert('✍️ Mi Blog — próximo paso');
         else if (action === 'mensajes') alert('💬 Mensajes — próximo paso');
-        else if (action === 'favoritos') alert('❤️ Favoritos — próximo paso');
+        else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') alert('⚙️ Configuración — próximo paso');
+    },
+    cargarFavoritos: async function() {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var container = document.getElementById('userFeedContainer');
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando tus favoritos...</p></div>';
+        try {
+            var { data: favs, error } = await supabase.from('favoritos').select('producto_id').eq('usuario_id', usuarioActual.id).order('created_at', { ascending: false });
+            if (error) throw error;
+            if (!favs || !favs.length) {
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">❤️</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">Aún no tienes favoritos</h3><p>Guarda publicaciones desde el feed con el botón "🔖 Guardar".</p></div>';
+                return;
+            }
+            var ids = favs.map(function(f) { return f.producto_id; });
+            var { data: productos } = await supabase.from('productos').select('*').in('id', ids);
+            if (!productos || !productos.length) {
+                container.innerHTML = '<div class="feed-empty"><p>No se encontraron los productos guardados.</p></div>';
+                return;
+            }
+            var html = await this.renderPosts(productos);
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus favoritos.</p></div>';
+        }
     },
     abrirModalPublicar: function() {
         document.getElementById('modalPublicar').style.display = 'flex';
@@ -1339,9 +1408,121 @@ var PanelUsuario = {
             btn.disabled = false;
         }
     },
-    accionFeed: function(tipo) {
-        var msgs = { like: '👍 ¡Te gusta!', comment: '💬 Comentarios — próximo paso', share: '🔗 Enlace copiado', save: '🔖 Guardado en favoritos' };
-        if (tipo === 'share' && navigator.clipboard) navigator.clipboard.writeText(window.location.href);
+    accionFeed: function(tipo, productoId) {
+        if (tipo === 'share') {
+            var url = window.location.origin + '?producto=' + encodeURIComponent(productoId || '');
+            if (navigator.clipboard) navigator.clipboard.writeText(url);
+            this.mostrarToast('🔗 Enlace copiado');
+        } else if (tipo === 'save') {
+            this.toggleFavorito(productoId);
+        }
+    },
+    toggleFavorito: async function(productoId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var btn = document.getElementById('saveBtn-' + productoId);
+        if (btn) btn.disabled = true;
+        try {
+            var { data: existente } = await supabase.from('favoritos').select('id').eq('usuario_id', usuarioActual.id).eq('producto_id', productoId).maybeSingle();
+            if (existente) {
+                await supabase.from('favoritos').delete().eq('id', existente.id);
+                if (btn) { btn.classList.remove('active-like'); btn.innerHTML = '🔖 Guardar'; }
+                this.mostrarToast('Quitado de favoritos');
+            } else {
+                await supabase.from('favoritos').insert({ usuario_id: usuarioActual.id, producto_id: productoId });
+                if (btn) { btn.classList.add('active-like'); btn.innerHTML = '✅ Guardado'; }
+                this.mostrarToast('🔖 Guardado en favoritos');
+            }
+        } catch (e) {
+            this.mostrarToast('Error al guardar');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    },
+    mostrarToast: function(msg) {
+        var t = document.createElement('div');
+        t.textContent = msg;
+        t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:900;box-shadow:0 4px 15px rgba(0,0,0,0.2);';
+        document.body.appendChild(t);
+        setTimeout(function() { t.remove(); }, 2200);
+    },
+    toggleLike: async function(productoId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var btn = document.getElementById('likeBtn-' + productoId);
+        var countEl = document.getElementById('likesCount-' + productoId);
+        if (btn) btn.disabled = true;
+        try {
+            var { data: existente } = await supabase.from('likes').select('id').eq('usuario_id', usuarioActual.id).eq('producto_id', productoId).maybeSingle();
+            var count = parseInt((countEl && countEl.textContent) || '0', 10);
+            if (existente) {
+                await supabase.from('likes').delete().eq('id', existente.id);
+                count = Math.max(0, count - 1);
+                if (btn) btn.classList.remove('active-like');
+            } else {
+                await supabase.from('likes').insert({ usuario_id: usuarioActual.id, producto_id: productoId });
+                count = count + 1;
+                if (btn) btn.classList.add('active-like');
+            }
+            if (countEl) countEl.textContent = count;
+            supabase.from('productos').update({ likes_count: count }).eq('id', productoId).then(function(){}, function(){});
+        } catch (e) {
+            console.warn('Error al dar like:', e);
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    },
+    toggleComentarios: async function(productoId) {
+        var box = document.getElementById('commentsBox-' + productoId);
+        if (!box) return;
+        var abrir = box.style.display === 'none';
+        box.style.display = abrir ? 'block' : 'none';
+        if (abrir) await this.cargarComentarios(productoId);
+    },
+    cargarComentarios: async function(productoId) {
+        var lista = document.getElementById('commentsList-' + productoId);
+        if (!lista) return;
+        lista.innerHTML = '<span style="color:var(--texto-terciario);">Cargando comentarios...</span>';
+        try {
+            var { data: comentarios, error } = await supabase.from('comentarios').select('*').eq('producto_id', productoId).order('created_at', { ascending: true }).limit(50);
+            if (error) throw error;
+            if (!comentarios || !comentarios.length) { lista.innerHTML = '<span style="color:var(--texto-terciario);">Sé el primero en comentar.</span>'; return; }
+            var autoresCache = {};
+            var html = '';
+            for (var i = 0; i < comentarios.length; i++) {
+                var c = comentarios[i];
+                var nombre = 'Usuario';
+                if (c.usuario_id) {
+                    if (autoresCache[c.usuario_id]) nombre = autoresCache[c.usuario_id];
+                    else {
+                        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos').eq('id', c.usuario_id).maybeSingle();
+                        if (u) { nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario'; autoresCache[c.usuario_id] = nombre; }
+                    }
+                }
+                html += '<div style="margin-bottom:6px;"><strong>' + this.escHtml(nombre) + ':</strong> ' + this.escHtml(c.texto) + '</div>';
+            }
+            lista.innerHTML = html;
+        } catch (e) {
+            lista.innerHTML = '<span style="color:var(--texto-terciario);">No se pudieron cargar los comentarios.</span>';
+        }
+    },
+    enviarComentario: async function(productoId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var input = document.getElementById('commentInput-' + productoId);
+        var texto = input ? input.value.trim() : '';
+        if (!texto) return;
+        try {
+            var { error } = await supabase.from('comentarios').insert({ usuario_id: usuarioActual.id, producto_id: productoId, texto: texto });
+            if (error) throw error;
+            if (input) input.value = '';
+            await this.cargarComentarios(productoId);
+            var countEl = document.getElementById('commentsCount-' + productoId);
+            if (countEl) countEl.textContent = parseInt(countEl.textContent || '0', 10) + 1;
+            supabase.from('productos').select('comentarios_count').eq('id', productoId).maybeSingle().then(function(res) {
+                var actual = (res.data && res.data.comentarios_count) || 0;
+                supabase.from('productos').update({ comentarios_count: actual + 1 }).eq('id', productoId).then(function(){}, function(){});
+            });
+        } catch (e) {
+            this.mostrarToast('Error al comentar');
+        }
     },
     toggleMenuMobile: function() {
         document.getElementById('userPanelLeft').classList.toggle('mobile-open');
