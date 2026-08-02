@@ -389,7 +389,7 @@ select.form-input { cursor: pointer; }
 .preview-compartir-titulo { font-weight: 600; font-size: 14px; color: var(--texto-principal); margin-bottom: 4px; }
 .preview-compartir-desc { font-size: 13px; color: var(--texto-secundario); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .preview-compartir-imagen { background: var(--fondo-terciario); min-height: 120px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--texto-terciario); overflow: hidden; }
-.preview-compartir-imagen img { width: 100%; max-height: 200px; object-fit: cover; }
+.preview-compartir-imagen img { max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto; }
 
 .modal-fb-botones { display: flex; gap: 10px; margin-top: 16px; }
 .modal-fb-botones button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
@@ -767,6 +767,7 @@ select.form-input { cursor: pointer; }
         <!-- OPCIÓN 1: Enviar por Mensaje Privado (prioritaria) -->
         <div style="margin-top:16px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
             <div style="font-weight:600;font-size:14px;margin-bottom:10px;">✉️ Enviar por Mensaje Privado</div>
+            <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
             <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
             <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar persona por nombre..." autocomplete="off"
                 oninput="PanelUsuario.buscarPersonaPicker(this.value, 'compartir')">
@@ -1905,6 +1906,7 @@ var PanelUsuario = {
         document.getElementById('compartirTexto').value = '';
         document.getElementById('compartirBuscarPersona').value = '';
         document.getElementById('compartirResultadosPersona').innerHTML = '';
+        document.getElementById('compartirSugerenciasIA').innerHTML = '';
         document.getElementById('compartirAlert').style.display = 'none';
         this._destinatariosSeleccionados = [];
         this.renderChipsSeleccionados();
@@ -1946,8 +1948,49 @@ var PanelUsuario = {
             } else {
                 imgContainer.innerHTML = '📷';
             }
+
+            this._categoriaProductoCompartiendo = producto.categoria || null;
+            this.sugerirPersonasInteresadas(producto.categoria);
         } catch (e) {
             console.warn('Error cargando vista previa:', e);
+        }
+    },
+
+    // Sugerencia de IA: busca usuarios cuyos intereses coinciden con la categoría del producto
+    sugerirPersonasInteresadas: async function(categoria) {
+        var cont = document.getElementById('compartirSugerenciasIA');
+        if (!cont) return;
+        if (!categoria) { cont.innerHTML = ''; return; }
+        cont.innerHTML = '<div class="user-picker-empty">🤖 Buscando personas interesadas...</div>';
+        try {
+            var bloqueados = await this.obtenerBloqueados();
+            var { data, error } = await supabase
+                .from('usuarios')
+                .select('id, nombres, apellidos, foto_perfil, categoria')
+                .ilike('categoria', '%' + categoria + '%')
+                .neq('id', usuarioActual.id)
+                .limit(5);
+            if (error) throw error;
+            var candidatos = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
+            if (!candidatos.length) {
+                cont.innerHTML = '<div class="user-picker-empty">🤖 Aún no hay personas con interés registrado en "' + this.escHtml(categoria) + '". Prueba buscando por nombre arriba.</div>';
+                return;
+            }
+            var self = this;
+            cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:</div>' +
+                candidatos.map(function(u) {
+                    var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                    var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                    var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:36px;height:36px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+                    return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                        fotoHtml +
+                        '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div>' +
+                        '<div class="user-picker-email">✨ Interesado en ' + self.escHtml(u.categoria || categoria) + '</div></div></div>';
+                }).join('');
+        } catch (e) {
+            cont.innerHTML = '';
+            console.warn('No se pudo cargar sugerencias de IA:', e);
         }
     },
 
