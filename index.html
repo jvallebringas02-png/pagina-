@@ -292,6 +292,25 @@ select.form-input { cursor: pointer; }
 .autor-menu-dropdown button { width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: var(--texto-principal, #111827); }
 .autor-menu-dropdown button:hover { background: var(--fondo-terciario, #F3F4F6); }
 .autor-menu-dropdown button.logout-item { color: var(--coral-elegante, #EF4444); }
+.conv-list { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.conv-item { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--borde-suave, #E5E7EB); cursor: pointer; align-items: center; }
+.conv-item:hover { background: var(--fondo-terciario, #F3F4F6); }
+.conv-item:last-child { border-bottom: none; }
+.conv-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--purpura-ia, #8B5CF6), var(--azul-confianza, #3B82F6)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+.conv-info { flex: 1; min-width: 0; }
+.conv-name { font-weight: 600; font-size: 14px; color: var(--texto-principal, #111827); }
+.conv-producto { font-size: 12px; color: var(--purpura-ia, #8B5CF6); }
+.conv-preview { font-size: 13px; color: var(--texto-secundario, #687280); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-badge { background: var(--coral-elegante, #EF4444); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 8px; }
+.chat-header { display: flex; align-items: center; gap: 12px; background: #fff; padding: 14px 16px; border-radius: 14px 14px 0 0; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.chat-back-btn { background: none; border: none; font-size: 14px; color: var(--purpura-ia, #8B5CF6); cursor: pointer; font-weight: 600; }
+.chat-messages { background: var(--fondo-secundario, #F9FAFB); padding: 16px; height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.chat-bubble-row { display: flex; }
+.chat-bubble-row.mio { justify-content: flex-end; }
+.chat-bubble { max-width: 70%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.chat-bubble-row.mio .chat-bubble { background: var(--purpura-ia, #8B5CF6); color: #fff; }
+.chat-input-row { display: flex; gap: 8px; background: #fff; padding: 12px 16px; border-radius: 0 0 14px 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.chat-input-row input { flex: 1; }
 </style>
 <!-- ✅ Supabase conectado - remarket-db -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1263,7 +1282,7 @@ var PanelUsuario = {
         if (!uid) return null;
         if (this.autoresCacheGlobal[uid]) return this.autoresCacheGlobal[uid];
         if (usuarioActual && usuarioActual.id === uid) { this.autoresCacheGlobal[uid] = usuarioActual; return usuarioActual; }
-        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico').eq('id', uid).maybeSingle();
+        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico, idioma_preferido').eq('id', uid).maybeSingle();
         if (u) this.autoresCacheGlobal[uid] = u;
         return u;
     },
@@ -1321,7 +1340,7 @@ var PanelUsuario = {
         else if (action === 'perfil') this.cargarMiPerfil();
         else if (action === 'publicaciones') alert('📦 Mis Publicaciones — próximo paso');
         else if (action === 'blog') alert('✍️ Mi Blog — próximo paso');
-        else if (action === 'mensajes') alert('💬 Mensajes — próximo paso');
+        else if (action === 'mensajes') this.cargarConversaciones();
         else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') alert('⚙️ Configuración — próximo paso');
     },
@@ -1689,6 +1708,149 @@ var PanelUsuario = {
         } catch (e) { this._bloqueadosCache = []; }
         return this._bloqueadosCache;
     },
+    // ============================================
+    // PASO 6: CHAT CON MODERACIÓN Y TRADUCCIÓN
+    // ============================================
+    cargarConversaciones: async function() {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var container = document.getElementById('userFeedContainer');
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando tus mensajes...</p></div>';
+        try {
+            var { data: convs, error } = await supabase.from('conversaciones').select('*').or('comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + usuarioActual.id).order('updated_at', { ascending: false });
+            if (error) throw error;
+            if (!convs || !convs.length) {
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">💬</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">Sin conversaciones todavía</h3><p>Cuando compartas o te escriban sobre una publicación, aparecerá aquí.</p></div>';
+                return;
+            }
+            var html = '<div class="conv-list">';
+            for (var i = 0; i < convs.length; i++) {
+                var c = convs[i];
+                var otroId = c.comprador_id === usuarioActual.id ? c.vendedor_id : c.comprador_id;
+                var otro = await this.obtenerAutor(otroId);
+                var nombreOtro = otro ? ((otro.nombres || '') + ' ' + (otro.apellidos || '')).trim() : 'Usuario';
+                var { data: producto } = await supabase.from('productos').select('titulo').eq('id', c.producto_id).maybeSingle();
+                var { data: ultimosMsjs } = await supabase.from('mensajes').select('*').eq('conversacion_id', c.id).order('created_at', { ascending: false }).limit(1);
+                var ultimo = ultimosMsjs && ultimosMsjs[0];
+                var { count: noLeidos } = await supabase.from('mensajes').select('id', { count: 'exact', head: true }).eq('conversacion_id', c.id).eq('leido', false).neq('emisor_id', usuarioActual.id);
+                html += '<div class="conv-item" onclick="PanelUsuario.abrirConversacion(\'' + c.id + '\')">' +
+                    '<div class="conv-avatar">' + (nombreOtro.charAt(0).toUpperCase() || 'U') + '</div>' +
+                    '<div class="conv-info"><div class="conv-name">' + this.escHtml(nombreOtro) + (noLeidos ? ' <span class="conv-badge">' + noLeidos + '</span>' : '') + '</div>' +
+                    '<div class="conv-producto">' + this.escHtml(producto ? producto.titulo : '') + '</div>' +
+                    '<div class="conv-preview">' + (ultimo ? this.escHtml((ultimo.texto_original || '').substring(0, 60)) : 'Sin mensajes aún') + '</div></div></div>';
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            console.warn('Error cargando conversaciones:', e);
+            container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus mensajes.</p></div>';
+        }
+    },
+    abrirConversacion: async function(convId) {
+        var container = document.getElementById('userFeedContainer');
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando conversación...</p></div>';
+        try {
+            var { data: conv } = await supabase.from('conversaciones').select('*').eq('id', convId).maybeSingle();
+            if (!conv) { container.innerHTML = '<div class="feed-empty"><p>Conversación no encontrada.</p></div>'; return; }
+            var otroId = conv.comprador_id === usuarioActual.id ? conv.vendedor_id : conv.comprador_id;
+            var otro = await this.obtenerAutor(otroId);
+            var nombreOtro = otro ? ((otro.nombres || '') + ' ' + (otro.apellidos || '')).trim() : 'Usuario';
+            var { data: producto } = await supabase.from('productos').select('titulo').eq('id', conv.producto_id).maybeSingle();
+
+            await supabase.from('mensajes').update({ leido: true }).eq('conversacion_id', convId).neq('emisor_id', usuarioActual.id).eq('leido', false);
+            this.actualizarBadgesMensajes();
+
+            var { data: mensajes } = await supabase.from('mensajes').select('*').eq('conversacion_id', convId).order('created_at', { ascending: true });
+            var self = this;
+            var msgsHtml = '';
+            (mensajes || []).forEach(function(m) {
+                var esMio = m.emisor_id === usuarioActual.id;
+                var textoMostrar = m.texto_original;
+                if (!esMio && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
+                msgsHtml += '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '"><div class="chat-bubble">' + self.escHtml(textoMostrar) + '</div></div>';
+            });
+
+            container.innerHTML = '<div class="chat-header"><button class="chat-back-btn" onclick="PanelUsuario.cargarConversaciones()">← Volver</button>' +
+                '<div><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);">' + this.escHtml(producto ? producto.titulo : '') + '</div></div></div>' +
+                '<div class="chat-messages" id="chatMessages">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
+                '<div id="chatModAlert" class="alert" style="margin:0 12px;"></div>' +
+                '<div class="chat-input-row"><input type="text" id="chatInput" class="form-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\')}"><button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\')">Enviar</button></div>';
+
+            var msgsBox = document.getElementById('chatMessages');
+            if (msgsBox) msgsBox.scrollTop = msgsBox.scrollHeight;
+        } catch (e) {
+            console.warn('Error cargando conversación:', e);
+            container.innerHTML = '<div class="feed-empty"><p>No se pudo cargar la conversación.</p></div>';
+        }
+    },
+    FILTRO_PALABRAS_PROHIBIDAS: ['whatsapp', 'wsp', 'yape', 'plin', 'deposito', 'depósito', 'numero de cuenta', 'número de cuenta', 'cuenta bancaria', 'fuera de la plataforma', 'tarjeta de credito', 'tarjeta de crédito', 'transferencia'],
+    moderarMensaje: function(texto) {
+        var t = texto.toLowerCase();
+        for (var i = 0; i < this.FILTRO_PALABRAS_PROHIBIDAS.length; i++) {
+            if (t.indexOf(this.FILTRO_PALABRAS_PROHIBIDAS[i]) !== -1) return { permitido: false, motivo: '⚠️ Por tu seguridad, no compartas datos de contacto ni pagos fuera de la plataforma.' };
+        }
+        if (/\b\d{6,9}\b/.test(t)) return { permitido: false, motivo: '⚠️ Por tu seguridad, no compartas números de teléfono ni de cuenta.' };
+        return { permitido: true };
+    },
+    enviarMensajeChat: async function(convId, otroId) {
+        var input = document.getElementById('chatInput');
+        var texto = input ? input.value.trim() : '';
+        if (!texto) return;
+        var alertEl = document.getElementById('chatModAlert');
+        alertEl.style.display = 'none';
+        var mod = this.moderarMensaje(texto);
+        if (!mod.permitido) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = mod.motivo;
+            alertEl.style.display = 'block';
+            return;
+        }
+        var otro = await this.obtenerAutor(otroId);
+        var idiomaDestino = (otro && otro.idioma_preferido) || 'es';
+        var idiomaOrigen = usuarioActual.idioma_preferido || 'es';
+        var textoTraducido = null;
+        if (idiomaDestino !== idiomaOrigen) {
+            textoTraducido = await this.traducirTextoIA(texto, idiomaDestino);
+        }
+        try {
+            var { error } = await supabase.from('mensajes').insert({ conversacion_id: convId, emisor_id: usuarioActual.id, texto_original: texto, texto_traducido: textoTraducido, idioma_original: idiomaOrigen, idioma_destino: idiomaDestino, leido: false });
+            if (error) throw error;
+            await supabase.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', convId);
+            input.value = '';
+            this.abrirConversacion(convId);
+        } catch (e) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = 'Error al enviar: ' + (e.message || 'intenta de nuevo');
+            alertEl.style.display = 'block';
+        }
+    },
+    traducirTextoIA: async function(texto, idiomaDestinoCode) {
+        var nombresIdiomas = { 'en': 'inglés', 'pt': 'portugués', 'fr': 'francés', 'de': 'alemán', 'it': 'italiano', 'zh': 'chino', 'ja': 'japonés', 'ko': 'coreano', 'ar': 'árabe', 'hi': 'hindi', 'nl': 'holandés', 'tr': 'turco', 'es': 'español' };
+        var idiomaNombre = nombresIdiomas[idiomaDestinoCode] || 'inglés';
+        try {
+            var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ messages: [{ role: 'system', content: 'Traduce el siguiente mensaje de chat al ' + idiomaNombre + '. Responde solo con la traducción, sin explicaciones ni comillas.' }, { role: 'user', content: texto }] }) });
+            var data = await response.json();
+            return data.choices && data.choices[0] ? data.choices[0].message.content.trim() : null;
+        } catch (e) { return null; }
+    },
+    actualizarBadgesMensajes: async function() {
+        if (!usuarioActual) return;
+        try {
+            var { data: convs } = await supabase.from('conversaciones').select('id').or('comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + usuarioActual.id);
+            var ids = (convs || []).map(function(c) { return c.id; });
+            var total = 0;
+            if (ids.length) {
+                var { count } = await supabase.from('mensajes').select('id', { count: 'exact', head: true }).in('conversacion_id', ids).eq('leido', false).neq('emisor_id', usuarioActual.id);
+                total = count || 0;
+            }
+            ['mensajesBadge', 'notifBellBadge', 'floatingChatBadge'].forEach(function(elId) {
+                var el = document.getElementById(elId);
+                if (!el) return;
+                el.textContent = total;
+                if (elId !== 'mensajesBadge') el.classList.toggle('visible', total > 0);
+            });
+        } catch (e) { console.warn('No se pudieron actualizar los badges de mensajes:', e); }
+    },
     toggleFavorito: async function(productoId) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         var btn = document.getElementById('saveBtn-' + productoId);
@@ -1963,6 +2125,7 @@ function updateUIForUser(usuario) {
         btn.onclick = function(e) { e.stopPropagation(); PanelUsuario.toggleMenuPerfil(); };
         if (bellWrapper) bellWrapper.classList.add('activo');
         if (floatBtn) floatBtn.classList.add('activo');
+        PanelUsuario.actualizarBadgesMensajes();
         toggleVistaUsuario(true);
     } else {
         usuarioActual = null;
