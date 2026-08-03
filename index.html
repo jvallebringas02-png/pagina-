@@ -773,7 +773,7 @@ select.form-input { cursor: pointer; }
             <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
             <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
             <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Nombre de la persona, o el tema (ej: correas, sillas)..." autocomplete="off"
-                oninput="PanelUsuario.buscarPersonaPicker(this.value, 'compartir')">
+                oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
             <div id="compartirResultadosPersona" class="user-picker-results"></div>
             <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
                 onclick="PanelUsuario.enviarCompartirMensajePrivado()">
@@ -2816,6 +2816,15 @@ var PanelUsuario = {
         }
     },
 
+    // Espera a que el usuario termine de escribir (500ms) antes de buscar,
+    // así no se llama a la IA en cada letra que teclea.
+    onBuscarPersonaInput: function(valor, contexto) {
+        clearTimeout(this._debounceBusqueda);
+        this._debounceBusqueda = setTimeout(function() {
+            PanelUsuario.buscarPersonaPicker(valor, contexto);
+        }, 500);
+    },
+
     buscarPersonaPicker: async function(q, contexto) {
         var el = document.getElementById(contexto + 'ResultadosPersona');
         if (!el) return;
@@ -2845,9 +2854,10 @@ var PanelUsuario = {
             return;
         }
         // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, interpretamos la frase
-        // como una pregunta de interés (ej: "quién quiere correas") y buscamos por categoría relacionada.
+        // como una pregunta de interés (ej: "quién quiere correas") usando la IA real.
         if (contexto === 'compartir') {
-            var categoriaDetectada = this.detectarCategoriaDeTexto(q);
+            el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
+            var categoriaDetectada = await this.detectarCategoriaDeTexto(q);
             if (categoriaDetectada) {
                 var candidatos = await this.buscarUsuariosPorCategoria(categoriaDetectada);
                 if (candidatos && candidatos.length) {
@@ -2864,14 +2874,42 @@ var PanelUsuario = {
                                 '<div class="user-picker-email">✨ Interesado en ' + self2.escHtml(categoriaDetectada) + '</div></div></div>';
                         }).join('');
                     return;
+                } else {
+                    el.innerHTML = '<div class="user-picker-empty">🤖 Todavía nadie registró interés en <strong>' + this.escHtml(categoriaDetectada) + '</strong>. Prueba buscando por nombre, o comparte con todos usando "Copiar Enlace".</div>';
+                    return;
                 }
             }
         }
         el.innerHTML = '<div class="user-picker-empty">😕 No se encontraron usuarios con ese nombre ni con ese interés</div>';
     },
 
-    // Detecta a qué categoría se refiere una frase libre, usando el mismo diccionario de Publicar
-    detectarCategoriaDeTexto: function(texto) {
+    // Detecta a qué categoría se refiere una frase libre, usando la IA real
+    // (con el diccionario de palabras clave como respaldo si la IA falla o no responde)
+    detectarCategoriaDeTexto: async function(texto) {
+        var CATEGORIAS_VALIDAS = ['Tecnología', 'Hogar', 'Ropa', 'Deportes', 'Vehículos', 'Agro', 'Servicios', 'Libros', 'Otros'];
+        try {
+            var response = await fetch(CONFIG.GROQ_API_URL, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
+                body: JSON.stringify({
+                    messages: [
+                        { role: 'system', content: 'El usuario está buscando con quién compartir una publicación. Lee su frase y responde ÚNICAMENTE con el nombre de UNA de estas categorías (exactamente como está escrita, sin explicación ni puntuación): Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros. Si la frase no menciona ningún producto o servicio reconocible, responde exactamente: ninguna.' },
+                        { role: 'user', content: texto }
+                    ]
+                })
+            });
+            var data = await response.json();
+            var respuesta = (data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '').trim();
+            var match = CATEGORIAS_VALIDAS.find(function(c) { return respuesta.toLowerCase().indexOf(c.toLowerCase()) !== -1; });
+            return match || null;
+        } catch (e) {
+            console.warn('IA no disponible, usando diccionario de respaldo:', e);
+            return this.detectarCategoriaPorDiccionario(texto);
+        }
+    },
+
+    // Respaldo sin conexión a IA: diccionario de palabras clave (el que ya existía)
+    detectarCategoriaPorDiccionario: function(texto) {
         texto = (texto || '').toLowerCase();
         for (var cat in this.MAPA_CATEGORIAS) {
             var palabras = this.MAPA_CATEGORIAS[cat];
