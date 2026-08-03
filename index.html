@@ -772,7 +772,7 @@ select.form-input { cursor: pointer; }
             <div style="font-weight:600;font-size:14px;margin-bottom:10px;">✉️ Enviar por Mensaje Privado</div>
             <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
             <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-            <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar persona por nombre..." autocomplete="off"
+            <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Nombre de la persona, o el tema (ej: correas, sillas)..." autocomplete="off"
                 oninput="PanelUsuario.buscarPersonaPicker(this.value, 'compartir')">
             <div id="compartirResultadosPersona" class="user-picker-results"></div>
             <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
@@ -2478,7 +2478,7 @@ var PanelUsuario = {
     MAPA_CATEGORIAS: {
         'Tecnología': ['celular','iphone','android','laptop','computadora','tablet','audifono','tv','televisor','consola','playstation','xbox'],
         'Hogar': ['mueble','sofa','mesa','silla','refrigeradora','cocina','lavadora','microondas','decoracion'],
-        'Ropa': ['camisa','polo','pantalon','zapato','zapatilla','casaca','vestido','chompa','ropa'],
+        'Ropa': ['camisa','polo','pantalon','zapato','zapatilla','casaca','vestido','chompa','ropa','correa','cartera','mochila','lentes','reloj','gorra','cinturon','bolso'],
         'Deportes': ['bicicleta','pesas','balon','pelota','raqueta','patines','gimnasio'],
         'Vehículos': ['auto','carro','moto','camioneta','vehiculo','placa'],
         'Agro': ['papa','uva','semilla','fruta','verdura','cosecha','ganado','abono'],
@@ -2824,27 +2824,79 @@ var PanelUsuario = {
             return;
         }
         var usuarios = await this.buscarUsuariosPorNombre(q);
-        if (!usuarios || !usuarios.length) { 
-            el.innerHTML = '<div class="user-picker-empty">😕 No se encontraron usuarios con ese nombre</div>'; 
-            return; 
+        if (usuarios && usuarios.length) {
+            var self = this;
+            el.innerHTML = usuarios.map(function(u) {
+                var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                var email = u.correo_electronico || '';
+                var foto = u.foto_perfil || '';
+                var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+                var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` : 
+                                     `<div class="user-picker-avatar">${inicial}</div>`;
+                return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
+                    ${fotoHtml}
+                    <div style="flex:1;">
+                        <div class="user-picker-name">${self.escHtml(nombre)}</div>
+                        <div class="user-picker-email">${email ? '✉️ ' + self.escHtml(email) : ''}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            return;
         }
-        var self = this;
-        el.innerHTML = usuarios.map(function(u) {
-            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-            var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var email = u.correo_electronico || '';
-            var foto = u.foto_perfil || '';
-            var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-            var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` : 
-                                 `<div class="user-picker-avatar">${inicial}</div>`;
-            return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
-                ${fotoHtml}
-                <div style="flex:1;">
-                    <div class="user-picker-name">${self.escHtml(nombre)}</div>
-                    <div class="user-picker-email">${email ? '✉️ ' + self.escHtml(email) : ''}</div>
-                </div>
-            </div>`;
-        }).join('');
+        // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, interpretamos la frase
+        // como una pregunta de interés (ej: "quién quiere correas") y buscamos por categoría relacionada.
+        if (contexto === 'compartir') {
+            var categoriaDetectada = this.detectarCategoriaDeTexto(q);
+            if (categoriaDetectada) {
+                var candidatos = await this.buscarUsuariosPorCategoria(categoriaDetectada);
+                if (candidatos && candidatos.length) {
+                    var self2 = this;
+                    el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>:</div>' +
+                        candidatos.map(function(u) {
+                            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                            var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
+                            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+                            return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
+                                fotoHtml +
+                                '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
+                                '<div class="user-picker-email">✨ Interesado en ' + self2.escHtml(categoriaDetectada) + '</div></div></div>';
+                        }).join('');
+                    return;
+                }
+            }
+        }
+        el.innerHTML = '<div class="user-picker-empty">😕 No se encontraron usuarios con ese nombre ni con ese interés</div>';
+    },
+
+    // Detecta a qué categoría se refiere una frase libre, usando el mismo diccionario de Publicar
+    detectarCategoriaDeTexto: function(texto) {
+        texto = (texto || '').toLowerCase();
+        for (var cat in this.MAPA_CATEGORIAS) {
+            var palabras = this.MAPA_CATEGORIAS[cat];
+            for (var i = 0; i < palabras.length; i++) {
+                if (texto.indexOf(palabras[i]) !== -1) return cat;
+            }
+        }
+        return null;
+    },
+
+    buscarUsuariosPorCategoria: async function(categoria) {
+        try {
+            var bloqueados = await this.obtenerBloqueados();
+            var { data, error } = await supabase
+                .from('usuarios')
+                .select('id, nombres, apellidos, foto_perfil, categoria')
+                .ilike('categoria', '%' + categoria + '%')
+                .neq('id', usuarioActual.id)
+                .limit(5);
+            if (error) throw error;
+            return (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
+        } catch (e) {
+            console.warn('Error buscando por categoría:', e);
+            return [];
+        }
     },
 
     seleccionarPersonaPicker: function(id, nombre, contexto) {
