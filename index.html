@@ -722,6 +722,10 @@ select.form-input { cursor: pointer; }
 <label class="form-label" style="margin-top:14px;">Fotos (opcional, máximo 5 — no se permiten videos)</label>
 <input type="file" id="pubFotosInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display:none;" onchange="PanelUsuario.onFotosSeleccionadas(this.files)">
 <div id="pubFotosPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+<div style="font-size:12px;color:var(--texto-secundario);margin-top:8px;display:flex;align-items:flex-start;gap:6px;">
+    <span>💡</span>
+    <span>Lo ideal es subir al menos una foto — las publicaciones con fotos reales generan mucha más confianza y reciben más respuestas de compradores interesados.</span>
+</div>
 
 <label class="form-label" style="margin-top:14px;">Alcance <span id="pubAlcanceSugerido" style="font-weight:400;font-size:12px;color:var(--purpura-ia);"></span></label>
 <div style="display:flex;gap:10px;margin-top:6px;">
@@ -2540,6 +2544,10 @@ var PanelUsuario = {
         if (!titulo) { mostrarError('El título es obligatorio'); return; }
         if (!esServicio && modalidad === 'venta' && !precio) { mostrarError('Ingresa un precio para la venta'); return; }
         if (!declaracion) { mostrarError('Debes aceptar la Declaración Jurada para publicar'); return; }
+        if (this._fotosSeleccionadas.length === 0) {
+            var continuar = confirm('Estás publicando sin fotos. Las publicaciones con fotos reales generan más confianza y respuestas.\n\n¿Quieres publicar así de todos modos?');
+            if (!continuar) return;
+        }
 
         var descripcionFinal = descripcion;
         if (tipo === 'otro') {
