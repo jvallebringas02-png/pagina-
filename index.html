@@ -1166,8 +1166,8 @@ function showAssistantProactive(message) {
 // SYSTEM PROMPTS
 // ============================================
 var SYSTEM_PROMPTS = {
-    es: 'Eres el Asistente Experto de remarket-db, tu orientador y asesor de confianza en economía circular.\n\nTUS BONDADES:\n1. Disponibilidad 24/7.\n2. Búsqueda inteligente con jerga local.\n3. Consejos de trueque y sostenibilidad.\n\nSi el usuario menciona un producto, responde brevemente y termina con: [ACCION: BUSCAR | PRODUCTO: (producto)]\n\nIMPORTANTE: Responde SIEMPRE en español.',
-    en: 'You are the Expert Assistant of remarket-db, your trusted guide in circular economy.\n\nYOUR BENEFITS:\n1. 24/7 Availability.\n2. Smart search.\n3. Barter and sustainability advice.\n\nIf the user mentions a product, respond briefly and end with: [ACCION: BUSCAR | PRODUCTO: (product)]\n\nIMPORTANT: ALWAYS respond in English.'
+    es: 'Eres el Asistente Experto de remarket-db, tu orientador y asesor de confianza en economía circular.\n\nTUS BONDADES:\n1. Disponibilidad 24/7.\n2. Búsqueda inteligente con jerga local.\n3. Consejos de trueque y sostenibilidad.\n\nSi el usuario menciona un producto, responde brevemente y termina con: [ACCION: BUSCAR | PRODUCTO: (producto)]\n\nSI TE PREGUNTAN ALGO FUERA DE TU FUNCIÓN (clima, noticias, listas de usuarios, datos personales de otros, temas sin relación con comprar/vender/trueque/donar): NO inventes una respuesta y NO te quedes en silencio. Responde con amabilidad explicando que no puedes ayudar con eso, y redirige ofreciendo algo concreto que sí puedas hacer. Ejemplo: "Soy el asistente de remarket-db y me especializo en economía circular. No tengo acceso a eso, pero si me dices qué producto buscas o quieres publicar, te ayudo enseguida. ¿En qué te ayudo?"\n\nIMPORTANTE: Responde SIEMPRE en español.',
+    en: 'You are the Expert Assistant of remarket-db, your trusted guide in circular economy.\n\nYOUR BENEFITS:\n1. 24/7 Availability.\n2. Smart search.\n3. Barter and sustainability advice.\n\nIf the user mentions a product, respond briefly and end with: [ACCION: BUSCAR | PRODUCTO: (product)]\n\nIF ASKED SOMETHING OUTSIDE YOUR SCOPE (weather, news, user lists, other people\'s personal data, unrelated topics): do NOT invent an answer and do NOT stay silent. Kindly explain you can\'t help with that, and redirect by offering something concrete you can do instead.\n\nIMPORTANT: ALWAYS respond in English.'
 };
 
 // ============================================
@@ -2711,7 +2711,7 @@ var PanelUsuario = {
     moderarMensaje: function(texto) {
         var t = texto.toLowerCase();
         for (var i = 0; i < this.FILTRO_PALABRAS_PROHIBIDAS.length; i++) {
-            if (t.indexOf(this.FILTRO_PALABRAS_PROHIBIDAS[i]) !== -1) return { permitido: false, motivo: '⚠️ Por tu seguridad, no compartas datos de contacto ni pagos fuera de la plataforma.' };
+            if (t.indexOf(this.FILTRO_PALABRAS_PROHIBIDAS[i]) !== -1) return { permitido: false, motivo: '🛡️ Por tu seguridad, evita compartir números de contacto o hacer pagos fuera de remarket-db. Coordina todo aquí mismo en el chat — así ambos quedan protegidos ante estafas.' };
         }
         if (/\b\d{6,9}\b/.test(t)) return { permitido: false, motivo: '⚠️ Por tu seguridad, no compartas números de teléfono ni de cuenta.' };
         return { permitido: true };
@@ -2853,11 +2853,16 @@ var PanelUsuario = {
             }).join('');
             return;
         }
-        // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, interpretamos la frase
-        // como una pregunta de interés (ej: "quién quiere correas") usando la IA real.
+        // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, le pedimos
+        // criterio a la IA real: puede devolver una categoría, o una respuesta conversacional.
         if (contexto === 'compartir') {
             el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
-            var categoriaDetectada = await this.detectarCategoriaDeTexto(q);
+            var resultado = await this.consultarAsistenteCompartir(q);
+            if (resultado.tipo === 'mensaje') {
+                el.innerHTML = '<div class="user-picker-empty">🤖 ' + this.escHtml(resultado.valor) + '</div>';
+                return;
+            }
+            var categoriaDetectada = resultado.valor;
             if (categoriaDetectada) {
                 var candidatos = await this.buscarUsuariosPorCategoria(categoriaDetectada);
                 if (candidatos && candidatos.length) {
@@ -2885,7 +2890,10 @@ var PanelUsuario = {
 
     // Detecta a qué categoría se refiere una frase libre, usando la IA real
     // (con el diccionario de palabras clave como respaldo si la IA falla o no responde)
-    detectarCategoriaDeTexto: async function(texto) {
+    // Le pregunta a la IA qué hacer con la frase del usuario: puede devolver
+    // {tipo:'categoria', valor:'Hogar'} si detecta un producto/servicio,
+    // o {tipo:'mensaje', valor:'...respuesta explicando qué sí puede hacer...'} si no aplica.
+    consultarAsistenteCompartir: async function(texto) {
         var CATEGORIAS_VALIDAS = ['Tecnología', 'Hogar', 'Ropa', 'Deportes', 'Vehículos', 'Agro', 'Servicios', 'Libros', 'Otros'];
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, {
@@ -2893,18 +2901,24 @@ var PanelUsuario = {
                 headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
                 body: JSON.stringify({
                     messages: [
-                        { role: 'system', content: 'El usuario está buscando con quién compartir una publicación. Lee su frase y responde ÚNICAMENTE con el nombre de UNA de estas categorías (exactamente como está escrita, sin explicación ni puntuación): Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros. Si la frase no menciona ningún producto o servicio reconocible, responde exactamente: ninguna.' },
+                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Tu única función es ayudar a encontrar personas interesadas en una categoría de producto o servicio — no tienes acceso a listas de usuarios, datos personales, ni puedes hacer nada fuera de esto.\n\nResponde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase menciona o sugiere un producto/servicio: {"tipo":"categoria","valor":"UNA_DE_ESTAS: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros"}\n2) Si la frase pide algo que no puedes hacer (ej: listar todos los usuarios, datos personales, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
                         { role: 'user', content: texto }
                     ]
                 })
             });
             var data = await response.json();
-            var respuesta = (data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '').trim();
-            var match = CATEGORIAS_VALIDAS.find(function(c) { return respuesta.toLowerCase().indexOf(c.toLowerCase()) !== -1; });
-            return match || null;
+            var contenido = (data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '').trim();
+            contenido = contenido.replace(/^```json\s*|\s*```$/g, '').trim();
+            var parsed = JSON.parse(contenido);
+            if (parsed.tipo === 'categoria') {
+                var match = CATEGORIAS_VALIDAS.find(function(c) { return (parsed.valor || '').toLowerCase().indexOf(c.toLowerCase()) !== -1; });
+                return match ? { tipo: 'categoria', valor: match } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla"?' };
+            }
+            return { tipo: 'mensaje', valor: parsed.valor || 'No entendí bien tu mensaje, ¿puedes reformularlo?' };
         } catch (e) {
             console.warn('IA no disponible, usando diccionario de respaldo:', e);
-            return this.detectarCategoriaPorDiccionario(texto);
+            var cat = this.detectarCategoriaPorDiccionario(texto);
+            return cat ? { tipo: 'categoria', valor: cat } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
         }
     },
 
