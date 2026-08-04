@@ -2854,7 +2854,7 @@ var PanelUsuario = {
             return;
         }
         // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, le pedimos
-        // criterio a la IA real: puede devolver una categoría, o una respuesta conversacional.
+        // criterio a la IA real: puede devolver una búsqueda (categoría y/o localidad), o un mensaje conversacional.
         if (contexto === 'compartir') {
             el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
             var resultado = await this.consultarAsistenteCompartir(q);
@@ -2862,27 +2862,35 @@ var PanelUsuario = {
                 el.innerHTML = '<div class="user-picker-empty">🤖 ' + this.escHtml(resultado.valor) + '</div>';
                 return;
             }
-            var categoriaDetectada = resultado.valor;
-            if (categoriaDetectada) {
-                var candidatos = await this.buscarUsuariosPorCategoria(categoriaDetectada);
-                if (candidatos && candidatos.length) {
-                    var self2 = this;
-                    el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>:</div>' +
-                        candidatos.map(function(u) {
-                            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-                            var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                            var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
-                            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
-                            return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
-                                fotoHtml +
-                                '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
-                                '<div class="user-picker-email">✨ Interesado en ' + self2.escHtml(categoriaDetectada) + '</div></div></div>';
-                        }).join('');
-                    return;
-                } else {
-                    el.innerHTML = '<div class="user-picker-empty">🤖 Todavía nadie registró interés en <strong>' + this.escHtml(categoriaDetectada) + '</strong>. Prueba buscando por nombre, o comparte con todos usando "Copiar Enlace".</div>';
-                    return;
-                }
+            var categoriaDetectada = resultado.categoria;
+            var nivelZona = resultado.nivel_zona;
+            if (nivelZona && !usuarioActual.localidad_id) {
+                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no tienes tu localidad definida, así que no puedo comparar zonas. Ve a Configuración para definirla, o busca por categoría/nombre.</div>';
+                return;
+            }
+            var candidatos = await this.buscarUsuariosCompartir(categoriaDetectada, nivelZona);
+            var NOMBRES_NIVEL = { local: 'tu misma zona', regional: 'tu misma región', pais: 'tu mismo país' };
+            var etiquetaZona = nivelZona ? NOMBRES_NIVEL[nivelZona] : null;
+            var etiqueta = categoriaDetectada && etiquetaZona ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong> de ' + etiquetaZona
+                : categoriaDetectada ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>'
+                : 'de ' + etiquetaZona;
+            if (candidatos && candidatos.length) {
+                var self2 = this;
+                el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas ' + etiqueta + ':</div>' +
+                    candidatos.map(function(u) {
+                        var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                        var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                        var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
+                        var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+                        return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
+                            fotoHtml +
+                            '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
+                            '<div class="user-picker-email">✨ ' + (categoriaDetectada ? 'Interesado en ' + self2.escHtml(categoriaDetectada) : 'De ' + etiquetaZona) + '</div></div></div>';
+                    }).join('');
+                return;
+            } else {
+                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no encontré personas ' + etiqueta + '. Prueba buscando por nombre, o comparte con todos usando "Copiar Enlace".</div>';
+                return;
             }
         }
         el.innerHTML = '<div class="user-picker-empty">😕 No se encontraron usuarios con ese nombre ni con ese interés</div>';
@@ -2895,13 +2903,14 @@ var PanelUsuario = {
     // o {tipo:'mensaje', valor:'...respuesta explicando qué sí puede hacer...'} si no aplica.
     consultarAsistenteCompartir: async function(texto) {
         var CATEGORIAS_VALIDAS = ['Tecnología', 'Hogar', 'Ropa', 'Deportes', 'Vehículos', 'Agro', 'Servicios', 'Libros', 'Otros'];
+        var NIVELES_ZONA = ['local', 'regional', 'pais'];
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
                 body: JSON.stringify({
                     messages: [
-                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Tu única función es ayudar a encontrar personas interesadas en una categoría de producto o servicio — no tienes acceso a listas de usuarios, datos personales, ni puedes hacer nada fuera de esto.\n\nResponde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase menciona o sugiere un producto/servicio: {"tipo":"categoria","valor":"UNA_DE_ESTAS: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros"}\n2) Si la frase pide algo que no puedes hacer (ej: listar todos los usuarios, datos personales, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
+                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\nResponde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
                         { role: 'user', content: texto }
                     ]
                 })
@@ -2910,15 +2919,19 @@ var PanelUsuario = {
             var contenido = (data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '').trim();
             contenido = contenido.replace(/^```json\s*|\s*```$/g, '').trim();
             var parsed = JSON.parse(contenido);
-            if (parsed.tipo === 'categoria') {
-                var match = CATEGORIAS_VALIDAS.find(function(c) { return (parsed.valor || '').toLowerCase().indexOf(c.toLowerCase()) !== -1; });
-                return match ? { tipo: 'categoria', valor: match } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla"?' };
+            if (parsed.tipo === 'busqueda') {
+                var match = parsed.categoria ? CATEGORIAS_VALIDAS.find(function(c) { return (parsed.categoria || '').toLowerCase().indexOf(c.toLowerCase()) !== -1; }) : null;
+                var nivelZona = NIVELES_ZONA.indexOf(parsed.nivel_zona) !== -1 ? parsed.nivel_zona : null;
+                if (!match && !nivelZona) {
+                    return { tipo: 'mensaje', valor: 'No logré identificar un producto, servicio o zona en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla" o "personas de mi zona"?' };
+                }
+                return { tipo: 'busqueda', categoria: match || null, nivel_zona: nivelZona };
             }
             return { tipo: 'mensaje', valor: parsed.valor || 'No entendí bien tu mensaje, ¿puedes reformularlo?' };
         } catch (e) {
             console.warn('IA no disponible, usando diccionario de respaldo:', e);
             var cat = this.detectarCategoriaPorDiccionario(texto);
-            return cat ? { tipo: 'categoria', valor: cat } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
+            return cat ? { tipo: 'busqueda', categoria: cat, nivel_zona: null } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
         }
     },
 
@@ -2934,21 +2947,55 @@ var PanelUsuario = {
         return null;
     },
 
-    buscarUsuariosPorCategoria: async function(categoria) {
+    // Traduce el nivel de zona pedido a una lista de IDs de localidades que califican,
+    // basándose en la propia localidad del usuario que pregunta.
+    obtenerLocalidadIdsPorNivel: async function(nivelZona) {
+        if (!usuarioActual.localidad_id) return null;
+        if (nivelZona === 'local') return [usuarioActual.localidad_id];
+        try {
+            var { data: miLoc, error: errLoc } = await supabase.from('localidades').select('region, pais_id').eq('id', usuarioActual.localidad_id).maybeSingle();
+            if (errLoc || !miLoc) return null;
+            if (nivelZona === 'regional' && miLoc.region) {
+                var { data: rowsReg } = await supabase.from('localidades').select('id').eq('region', miLoc.region);
+                return (rowsReg || []).map(function(r) { return r.id; });
+            }
+            if (nivelZona === 'pais' && miLoc.pais_id) {
+                var { data: rowsPais } = await supabase.from('localidades').select('id').eq('pais_id', miLoc.pais_id);
+                return (rowsPais || []).map(function(r) { return r.id; });
+            }
+            return null;
+        } catch (e) {
+            console.warn('Error resolviendo nivel de zona:', e);
+            return null;
+        }
+    },
+
+    buscarUsuariosCompartir: async function(categoria, nivelZona) {
         try {
             var bloqueados = await this.obtenerBloqueados();
-            var { data, error } = await supabase
+            var query = supabase
                 .from('usuarios')
-                .select('id, nombres, apellidos, foto_perfil, categoria')
-                .ilike('categoria', '%' + categoria + '%')
+                .select('id, nombres, apellidos, foto_perfil, categoria, localidad_id')
                 .neq('id', usuarioActual.id)
-                .limit(5);
+                .limit(8);
+            if (categoria) query = query.ilike('categoria', '%' + categoria + '%');
+            if (nivelZona) {
+                var idsLocalidades = await this.obtenerLocalidadIdsPorNivel(nivelZona);
+                if (idsLocalidades && idsLocalidades.length) query = query.in('localidad_id', idsLocalidades);
+                else return []; // pidió zona pero no hay localidades que califiquen
+            }
+            var { data, error } = await query;
             if (error) throw error;
-            return (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
+            return (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; }).slice(0, 5);
         } catch (e) {
-            console.warn('Error buscando por categoría:', e);
+            console.warn('Error buscando personas:', e);
             return [];
         }
+    },
+
+    // Se mantiene por compatibilidad (usado en la sugerencia automática al abrir el modal)
+    buscarUsuariosPorCategoria: async function(categoria) {
+        return this.buscarUsuariosCompartir(categoria, null);
     },
 
     seleccionarPersonaPicker: function(id, nombre, contexto) {
