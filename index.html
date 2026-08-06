@@ -722,10 +722,6 @@ select.form-input { cursor: pointer; }
 <label class="form-label" style="margin-top:14px;">Fotos (opcional, máximo 5 — no se permiten videos)</label>
 <input type="file" id="pubFotosInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display:none;" onchange="PanelUsuario.onFotosSeleccionadas(this.files)">
 <div id="pubFotosPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
-<div style="font-size:12px;color:var(--texto-secundario);margin-top:8px;display:flex;align-items:flex-start;gap:6px;">
-    <span>💡</span>
-    <span>Lo ideal es subir al menos una foto — las publicaciones con fotos reales generan mucha más confianza y reciben más respuestas de compradores interesados.</span>
-</div>
 
 <label class="form-label" style="margin-top:14px;">Alcance <span id="pubAlcanceSugerido" style="font-weight:400;font-size:12px;color:var(--purpura-ia);"></span></label>
 <div style="display:flex;gap:10px;margin-top:6px;">
@@ -2544,10 +2540,6 @@ var PanelUsuario = {
         if (!titulo) { mostrarError('El título es obligatorio'); return; }
         if (!esServicio && modalidad === 'venta' && !precio) { mostrarError('Ingresa un precio para la venta'); return; }
         if (!declaracion) { mostrarError('Debes aceptar la Declaración Jurada para publicar'); return; }
-        if (this._fotosSeleccionadas.length === 0) {
-            var continuar = confirm('Estás publicando sin fotos. Las publicaciones con fotos reales generan más confianza y respuestas.\n\n¿Quieres publicar así de todos modos?');
-            if (!continuar) return;
-        }
 
         var descripcionFinal = descripcion;
         if (tipo === 'otro') {
@@ -2865,7 +2857,7 @@ var PanelUsuario = {
         // criterio a la IA real: puede devolver una búsqueda (categoría y/o localidad), o un mensaje conversacional.
         if (contexto === 'compartir') {
             el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
-            var resultado = await this.consultarAsistenteCompartir(q, this._categoriaProductoCompartiendo);
+            var resultado = await this.consultarAsistenteCompartir(q);
             if (resultado.tipo === 'mensaje') {
                 el.innerHTML = '<div class="user-picker-empty">🤖 ' + this.escHtml(resultado.valor) + '</div>';
                 return;
@@ -2909,19 +2901,16 @@ var PanelUsuario = {
     // Le pregunta a la IA qué hacer con la frase del usuario: puede devolver
     // {tipo:'categoria', valor:'Hogar'} si detecta un producto/servicio,
     // o {tipo:'mensaje', valor:'...respuesta explicando qué sí puede hacer...'} si no aplica.
-    consultarAsistenteCompartir: async function(texto, categoriaProducto) {
+    consultarAsistenteCompartir: async function(texto) {
         var CATEGORIAS_VALIDAS = ['Tecnología', 'Hogar', 'Ropa', 'Deportes', 'Vehículos', 'Agro', 'Servicios', 'Libros', 'Otros'];
         var NIVELES_ZONA = ['local', 'regional', 'pais'];
-        var contextoProducto = categoriaProducto
-            ? 'IMPORTANTE: la publicación que el usuario está compartiendo ya es de la categoría "' + categoriaProducto + '". Si la frase del usuario NO menciona claramente otra categoría distinta a esa, usa "' + categoriaProducto + '" como categoría — no adivines "Otros" ni ninguna otra si el usuario no fue específico, ya que lo más probable es que se refiera a lo que está compartiendo.\n\n'
-            : '';
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
                 body: JSON.stringify({
                     messages: [
-                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\n' + contextoProducto + 'Responde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
+                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\nResponde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
                         { role: 'user', content: texto }
                     ]
                 })
@@ -2933,9 +2922,6 @@ var PanelUsuario = {
             if (parsed.tipo === 'busqueda') {
                 var match = parsed.categoria ? CATEGORIAS_VALIDAS.find(function(c) { return (parsed.categoria || '').toLowerCase().indexOf(c.toLowerCase()) !== -1; }) : null;
                 var nivelZona = NIVELES_ZONA.indexOf(parsed.nivel_zona) !== -1 ? parsed.nivel_zona : null;
-                // Respaldo garantizado en código (no solo confiar en que la IA lo haga bien):
-                // si no detectó categoría clara, usar la de la publicación que se está compartiendo.
-                if (!match && categoriaProducto) match = categoriaProducto;
                 if (!match && !nivelZona) {
                     return { tipo: 'mensaje', valor: 'No logré identificar un producto, servicio o zona en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla" o "personas de mi zona"?' };
                 }
@@ -2944,7 +2930,7 @@ var PanelUsuario = {
             return { tipo: 'mensaje', valor: parsed.valor || 'No entendí bien tu mensaje, ¿puedes reformularlo?' };
         } catch (e) {
             console.warn('IA no disponible, usando diccionario de respaldo:', e);
-            var cat = this.detectarCategoriaPorDiccionario(texto) || categoriaProducto;
+            var cat = this.detectarCategoriaPorDiccionario(texto);
             return cat ? { tipo: 'busqueda', categoria: cat, nivel_zona: null } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
         }
     },
