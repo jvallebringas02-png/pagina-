@@ -2463,6 +2463,7 @@ var PanelUsuario = {
             return this._modeloNSFW;
         } catch (e) {
             console.warn('No se pudo cargar el filtro de contenido:', e);
+            this._ultimoErrorFiltro = 'Filtro NSFW (carga del modelo): ' + (e && e.message ? e.message : String(e));
             return null;
         }
     },
@@ -2489,6 +2490,7 @@ var PanelUsuario = {
             return { resultado: (contienePalabraProhibida || esLinkExterno) ? 'rechazada' : 'segura', qrTexto: resultado.data };
         } catch (e) {
             console.warn('Error revisando código QR:', e);
+            this._ultimoErrorFiltro = 'Filtro QR: ' + (e && e.message ? e.message : String(e));
             return { resultado: 'error', qrTexto: null };
         }
     },
@@ -2509,6 +2511,7 @@ var PanelUsuario = {
             return riesgo < this.NSFW_UMBRAL ? 'segura' : 'rechazada';
         } catch (e) {
             console.warn('Error revisando la foto:', e);
+            this._ultimoErrorFiltro = 'Filtro NSFW (clasificación): ' + (e && e.message ? e.message : String(e));
             return 'error'; // ante un error técnico, bloqueamos por seguridad (falla cerrado, no abierto)
         }
     },
@@ -2544,7 +2547,7 @@ var PanelUsuario = {
             }
             if (resultadoFiltro === 'error') {
                 alertEl.className = 'alert alert-error';
-                alertEl.textContent = '⚠️ No pudimos verificar esta foto por un problema técnico. Intenta de nuevo o prueba con otra imagen.';
+                alertEl.textContent = '⚠️ No pudimos verificar esta foto: ' + (this._ultimoErrorFiltro || 'problema técnico desconocido') + '. Intenta de nuevo o prueba con otra imagen.';
                 alertEl.style.display = 'block';
                 continue;
             }
@@ -2560,7 +2563,7 @@ var PanelUsuario = {
             }
             if (qrCheck.resultado === 'error') {
                 alertEl.className = 'alert alert-error';
-                alertEl.textContent = '⚠️ No pudimos verificar esta foto por un problema técnico. Intenta de nuevo o prueba con otra imagen.';
+                alertEl.textContent = '⚠️ No pudimos verificar esta foto: ' + (this._ultimoErrorFiltro || 'problema técnico desconocido') + '. Intenta de nuevo o prueba con otra imagen.';
                 alertEl.style.display = 'block';
                 continue;
             }
