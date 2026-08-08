@@ -463,8 +463,6 @@ select.form-input { cursor: pointer; }
 
 <!-- ✅ Supabase conectado -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
   // Configuración de Supabase
@@ -2459,7 +2457,10 @@ var PanelUsuario = {
     cargarModeloNSFW: async function() {
         if (this._modeloNSFW) return this._modeloNSFW;
         try {
-            this._modeloNSFW = await nsfwjs.load();
+            var tf = await import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/+esm');
+            await tf.ready();
+            var nsfwjsModulo = await import('https://cdn.jsdelivr.net/npm/nsfwjs@4.4.0/+esm');
+            this._modeloNSFW = await nsfwjsModulo.load(); // modelo empaquetado, no depende de un servidor externo
             return this._modeloNSFW;
         } catch (e) {
             console.warn('No se pudo cargar el filtro de contenido:', e);
