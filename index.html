@@ -463,7 +463,6 @@ select.form-input { cursor: pointer; }
 
 <!-- ✅ Supabase conectado -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
   // Configuración de Supabase
   const SUPABASE_URL = 'https://kqazkraxlqncfcwbbsps.supabase.co';
@@ -723,10 +722,6 @@ select.form-input { cursor: pointer; }
 <label class="form-label" style="margin-top:14px;">Fotos (opcional, máximo 5 — no se permiten videos)</label>
 <input type="file" id="pubFotosInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display:none;" onchange="PanelUsuario.onFotosSeleccionadas(this.files)">
 <div id="pubFotosPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
-<div style="font-size:12px;color:var(--texto-secundario);margin-top:8px;display:flex;align-items:flex-start;gap:6px;">
-    <span>💡</span>
-    <span>Lo ideal es subir al menos una foto — las publicaciones con fotos reales generan mucha más confianza y reciben más respuestas de compradores interesados.</span>
-</div>
 
 <label class="form-label" style="margin-top:14px;">Alcance <span id="pubAlcanceSugerido" style="font-weight:400;font-size:12px;color:var(--purpura-ia);"></span></label>
 <div style="display:flex;gap:10px;margin-top:6px;">
@@ -740,7 +735,7 @@ select.form-input { cursor: pointer; }
 <span>Declaro, bajo Declaración Jurada, que <strong>soy el legítimo propietario</strong> de lo que publico (o estoy autorizado a ofrecerlo), que la información es veraz, y que <strong>me hago responsable legal</strong> de todo el contenido publicado (texto, fotos y mensajes), confirmando que no contiene material político, ofensivo, discriminatorio, difamatorio ni pornográfico.</span>
 </label>
 
-<button class="btn-auth btn-auth-primary" id="btnPublicarSubmit" disabled style="margin-top:20px;" onclick="PanelUsuario.mostrarVistaPreviaPublicacion()">Continuar</button>
+<button class="btn-auth btn-auth-primary" id="btnPublicarSubmit" disabled style="margin-top:20px;" onclick="PanelUsuario.enviarPublicacion()">Publicar</button>
 </div>
 </div>
 
@@ -778,7 +773,7 @@ select.form-input { cursor: pointer; }
             <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
             <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
             <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Nombre de la persona, o el tema (ej: correas, sillas)..." autocomplete="off"
-                oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
+                oninput="PanelUsuario.buscarPersonaPicker(this.value, 'compartir')">
             <div id="compartirResultadosPersona" class="user-picker-results"></div>
             <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
                 onclick="PanelUsuario.enviarCompartirMensajePrivado()">
@@ -929,43 +924,6 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
 <a onclick="switchAuthTab('login')">← Volver al inicio de sesión</a>
 </div>
 </div>
-</div>
-</div>
-
-<!-- ============================================ -->
-<!-- MODAL DE VISTA PREVIA (antes de publicar) -->
-<!-- ============================================ -->
-<div id="modalVistaPrevia" class="modal-overlay">
-<div class="modal-fb">
-    <div class="modal-fb-header">
-        <div style="display:flex;align-items:center;gap:8px;">👁️ <span>Vista Previa</span></div>
-    </div>
-    <div class="modal-fb-body">
-        <div style="font-size:12px;color:var(--texto-secundario);margin-bottom:12px;">Así se verá tu publicación. Revísala antes de confirmar.</div>
-
-        <div class="preview-compartir">
-            <div class="preview-compartir-header">
-                <div class="preview-compartir-avatar" id="vpAvatar">U</div>
-                <div>
-                    <div class="preview-compartir-nombre" id="vpNombre">Tu Nombre</div>
-                    <div class="preview-compartir-fecha">Ahora</div>
-                </div>
-            </div>
-            <div id="vpImagen" class="preview-compartir-imagen"></div>
-            <div class="preview-compartir-body">
-                <div class="preview-compartir-titulo" id="vpTitulo">Título</div>
-                <div class="preview-compartir-desc" id="vpDescripcion">Descripción...</div>
-                <div style="font-weight:700;color:var(--verde-eco);margin-top:6px;" id="vpPrecio">S/ 0</div>
-            </div>
-        </div>
-
-        <div class="modal-fb-botones" style="flex-wrap:wrap;gap:8px;margin-top:16px;">
-            <button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.descartarPublicacion()">🗑️ Descartar</button>
-            <button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.guardarComoBorrador()">💾 Guardar borrador</button>
-            <button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.editarDesdeVistaPrevia()">← Editar</button>
-            <button class="btn-auth btn-auth-primary" id="btnVpConfirmar" style="flex:1;min-width:160px;" onclick="PanelUsuario.confirmarPublicacionFinal()">✅ Confirmar y Publicar</button>
-        </div>
-    </div>
 </div>
 </div>
 
@@ -1208,8 +1166,8 @@ function showAssistantProactive(message) {
 // SYSTEM PROMPTS
 // ============================================
 var SYSTEM_PROMPTS = {
-    es: 'Eres el Asistente Experto de remarket-db, tu orientador y asesor de confianza en economía circular.\n\nTUS BONDADES:\n1. Disponibilidad 24/7.\n2. Búsqueda inteligente con jerga local.\n3. Consejos de trueque y sostenibilidad.\n\nSi el usuario menciona un producto, responde brevemente y termina con: [ACCION: BUSCAR | PRODUCTO: (producto)]\n\nSI TE PREGUNTAN ALGO FUERA DE TU FUNCIÓN (clima, noticias, listas de usuarios, datos personales de otros, temas sin relación con comprar/vender/trueque/donar): NO inventes una respuesta y NO te quedes en silencio. Responde con amabilidad explicando que no puedes ayudar con eso, y redirige ofreciendo algo concreto que sí puedas hacer. Ejemplo: "Soy el asistente de remarket-db y me especializo en economía circular. No tengo acceso a eso, pero si me dices qué producto buscas o quieres publicar, te ayudo enseguida. ¿En qué te ayudo?"\n\nIMPORTANTE: Responde SIEMPRE en español.',
-    en: 'You are the Expert Assistant of remarket-db, your trusted guide in circular economy.\n\nYOUR BENEFITS:\n1. 24/7 Availability.\n2. Smart search.\n3. Barter and sustainability advice.\n\nIf the user mentions a product, respond briefly and end with: [ACCION: BUSCAR | PRODUCTO: (product)]\n\nIF ASKED SOMETHING OUTSIDE YOUR SCOPE (weather, news, user lists, other people\'s personal data, unrelated topics): do NOT invent an answer and do NOT stay silent. Kindly explain you can\'t help with that, and redirect by offering something concrete you can do instead.\n\nIMPORTANT: ALWAYS respond in English.'
+    es: 'Eres el Asistente Experto de remarket-db, tu orientador y asesor de confianza en economía circular.\n\nTUS BONDADES:\n1. Disponibilidad 24/7.\n2. Búsqueda inteligente con jerga local.\n3. Consejos de trueque y sostenibilidad.\n\nSi el usuario menciona un producto, responde brevemente y termina con: [ACCION: BUSCAR | PRODUCTO: (producto)]\n\nIMPORTANTE: Responde SIEMPRE en español.',
+    en: 'You are the Expert Assistant of remarket-db, your trusted guide in circular economy.\n\nYOUR BENEFITS:\n1. 24/7 Availability.\n2. Smart search.\n3. Barter and sustainability advice.\n\nIf the user mentions a product, respond briefly and end with: [ACCION: BUSCAR | PRODUCTO: (product)]\n\nIMPORTANT: ALWAYS respond in English.'
 };
 
 // ============================================
@@ -2449,79 +2407,10 @@ var PanelUsuario = {
     },
 
     // Micro-Paso 3.2: Validación de Fotos (SOLO FOTOS, no videos)
-    // Umbral de sensibilidad del filtro de contenido (0 a 1). 0.75 = equilibrado.
-    NSFW_UMBRAL: 0.60,
-    _modeloNSFW: null,
-
-    // Carga el modelo una sola vez (se reutiliza en todas las fotos que se suban después)
-    cargarModeloNSFW: async function() {
-        if (this._modeloNSFW) return this._modeloNSFW;
-        try {
-            var tf = await import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/+esm');
-            await tf.ready();
-            var nsfwjsModulo = await import('https://cdn.jsdelivr.net/npm/nsfwjs@4.4.0/+esm');
-            this._modeloNSFW = await nsfwjsModulo.load(); // modelo empaquetado, no depende de un servidor externo
-            return this._modeloNSFW;
-        } catch (e) {
-            console.warn('No se pudo cargar el filtro de contenido:', e);
-            this._ultimoErrorFiltro = 'Filtro NSFW (carga del modelo): ' + (e && e.message ? e.message : String(e));
-            return null;
-        }
-    },
-
-    // Revisa si la foto contiene un código QR con contenido prohibido (pagos/contacto externo).
-    // Devuelve 'segura' (sin QR, o QR limpio), 'rechazada' (QR con contenido prohibido), o 'error'.
-    fotoTieneQRProhibido: async function(file) {
-        try {
-            var img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            await new Promise(function(resolve, reject) { img.onload = resolve; img.onerror = reject; });
-            var canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            URL.revokeObjectURL(img.src);
-            var resultado = jsQR(imageData.data, imageData.width, imageData.height);
-            if (!resultado || !resultado.data) return { resultado: 'segura', qrTexto: null }; // no tiene ningún QR
-            var texto = resultado.data.toLowerCase();
-            var contienePalabraProhibida = this.FILTRO_PALABRAS_PROHIBIDAS.some(function(p) { return texto.indexOf(p) !== -1; });
-            var esLinkExterno = /^https?:\/\//.test(texto) && texto.indexOf(window.location.hostname) === -1;
-            return { resultado: (contienePalabraProhibida || esLinkExterno) ? 'rechazada' : 'segura', qrTexto: resultado.data };
-        } catch (e) {
-            console.warn('Error revisando código QR:', e);
-            this._ultimoErrorFiltro = 'Filtro QR: ' + (e && e.message ? e.message : String(e));
-            return { resultado: 'error', qrTexto: null };
-        }
-    },
-
-    // Revisa una foto. Devuelve 'segura', 'rechazada', o 'error' (no se pudo verificar).
-    fotoEsSegura: async function(file) {
-        try {
-            var modelo = await this.cargarModeloNSFW();
-            if (!modelo) return 'error'; // no se pudo cargar el filtro: no confiamos, bloqueamos por seguridad
-            var img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            await new Promise(function(resolve, reject) { img.onload = resolve; img.onerror = reject; });
-            var predicciones = await modelo.classify(img);
-            URL.revokeObjectURL(img.src);
-            var riesgo = predicciones.filter(function(p) { return p.className === 'Porn' || p.className === 'Hentai' || p.className === 'Sexy'; })
-                .reduce(function(max, p) { return Math.max(max, p.probability); }, 0);
-            console.log('🔎 NSFW.js - predicciones:', predicciones, '| riesgo calculado:', (riesgo * 100).toFixed(1) + '%', '| umbral:', (this.NSFW_UMBRAL * 100) + '%');
-            return riesgo < this.NSFW_UMBRAL ? 'segura' : 'rechazada';
-        } catch (e) {
-            console.warn('Error revisando la foto:', e);
-            this._ultimoErrorFiltro = 'Filtro NSFW (clasificación): ' + (e && e.message ? e.message : String(e));
-            return 'error'; // ante un error técnico, bloqueamos por seguridad (falla cerrado, no abierto)
-        }
-    },
-
-    onFotosSeleccionadas: async function(fileList) {
+    onFotosSeleccionadas: function(fileList) {
         var alertEl = document.getElementById('publicarAlert');
         var tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         var archivos = Array.from(fileList);
-        document.getElementById('pubFotosInput').value = '';
         for (var i = 0; i < archivos.length; i++) {
             var f = archivos[i];
             if (f.type.indexOf('video') !== -1 || !tiposPermitidos.includes(f.type)) {
@@ -2536,51 +2425,9 @@ var PanelUsuario = {
                 alertEl.style.display = 'block';
                 break;
             }
-            alertEl.className = 'alert';
-            alertEl.textContent = '🔎 Revisando foto...';
-            alertEl.style.display = 'block';
-            var resultadoFiltro = await this.fotoEsSegura(f);
-            if (resultadoFiltro === 'rechazada') {
-                alertEl.className = 'alert alert-error';
-                alertEl.textContent = '🚫 Esta foto no cumple con nuestras normas de contenido.';
-                alertEl.style.display = 'block';
-                continue;
-            }
-            if (resultadoFiltro === 'error') {
-                alertEl.className = 'alert alert-error';
-                alertEl.textContent = '⚠️ No pudimos verificar esta foto: ' + (this._ultimoErrorFiltro || 'problema técnico desconocido') + '. Intenta de nuevo o prueba con otra imagen.';
-                alertEl.style.display = 'block';
-                continue;
-            }
-            var qrCheck = await this.fotoTieneQRProhibido(f);
-            if (qrCheck.qrTexto) {
-                console.log('🔎 QR detectado en la foto, contenido:', qrCheck.qrTexto);
-            }
-            if (qrCheck.resultado === 'rechazada') {
-                alertEl.className = 'alert alert-error';
-                alertEl.textContent = '🚫 Esta imagen contiene un código QR de pago o contacto externo, lo cual no está permitido. Coordina todo dentro de remarket-db.';
-                alertEl.style.display = 'block';
-                continue;
-            }
-            if (qrCheck.resultado === 'error') {
-                alertEl.className = 'alert alert-error';
-                alertEl.textContent = '⚠️ No pudimos verificar esta foto: ' + (this._ultimoErrorFiltro || 'problema técnico desconocido') + '. Intenta de nuevo o prueba con otra imagen.';
-                alertEl.style.display = 'block';
-                continue;
-            }
-            // Modo diagnóstico temporal: si se detectó un QR pero pasó la revisión, lo mostramos 3 segundos igual
-            if (qrCheck.qrTexto) {
-                alertEl.className = 'alert';
-                alertEl.textContent = '🔎 QR detectado y revisado (contenido no prohibido): ' + qrCheck.qrTexto.substring(0, 80);
-                alertEl.style.display = 'block';
-                var alertElRef = alertEl;
-                setTimeout(function() { alertElRef.style.display = 'none'; }, 4000);
-            } else {
-                alertEl.style.display = 'none';
-            }
             this._fotosSeleccionadas.push(f);
-            this.renderFotosPreview();
         }
+        document.getElementById('pubFotosInput').value = '';
         this.renderFotosPreview();
     },
     quitarFotoPublicar: function(index) {
@@ -2674,8 +2521,7 @@ var PanelUsuario = {
         sugeridoEl.textContent = '✨ La IA recomienda: ' + valor.charAt(0).toUpperCase() + valor.slice(1) + ' (' + motivo + ')';
     },
 
-    // PASO 1: valida el formulario y muestra la Vista Previa (no publica todavía)
-    mostrarVistaPreviaPublicacion: function() {
+    enviarPublicacion: async function() {
         var alertEl = document.getElementById('publicarAlert');
         function mostrarError(msg) { alertEl.className = 'alert alert-error'; alertEl.textContent = msg; alertEl.style.display = 'block'; }
         if (!usuarioActual) { mostrarError('Debes iniciar sesión'); return; }
@@ -2694,10 +2540,6 @@ var PanelUsuario = {
         if (!titulo) { mostrarError('El título es obligatorio'); return; }
         if (!esServicio && modalidad === 'venta' && !precio) { mostrarError('Ingresa un precio para la venta'); return; }
         if (!declaracion) { mostrarError('Debes aceptar la Declaración Jurada para publicar'); return; }
-        if (this._fotosSeleccionadas.length === 0) {
-            var continuar = confirm('Estás publicando sin fotos. Las publicaciones con fotos reales generan más confianza y respuestas.\n\n¿Quieres continuar así de todos modos?');
-            if (!continuar) return;
-        }
 
         var descripcionFinal = descripcion;
         if (tipo === 'otro') {
@@ -2710,32 +2552,7 @@ var PanelUsuario = {
             if (buscaCambio) descripcionFinal += (descripcionFinal ? '\n' : '') + 'Busca a cambio: ' + buscaCambio;
         }
 
-        // Guardamos los datos ya validados para usarlos si el usuario confirma
-        this._datosPublicacionPendiente = { tipo: tipo, titulo: titulo, descripcionFinal: descripcionFinal, categoria: categoria, esServicio: esServicio, modalidad: modalidad, precio: precio, alcance: alcance };
-
-        // Armamos la vista previa visual
-        var nombreCompleto = ((usuarioActual.nombres || '') + ' ' + (usuarioActual.apellidos || '')).trim() || 'Usuario';
-        document.getElementById('vpNombre').textContent = nombreCompleto;
-        document.getElementById('vpAvatar').textContent = nombreCompleto.charAt(0).toUpperCase();
-        document.getElementById('vpTitulo').textContent = titulo;
-        document.getElementById('vpDescripcion').textContent = descripcionFinal;
-        document.getElementById('vpPrecio').textContent = (!esServicio && modalidad === 'venta' && precio) ? ('S/ ' + precio) : (esServicio ? 'Servicio' : modalidad.charAt(0).toUpperCase() + modalidad.slice(1));
-        var imgCont = document.getElementById('vpImagen');
-        if (this._fotosSeleccionadas.length > 0) {
-            imgCont.innerHTML = '<img src="' + URL.createObjectURL(this._fotosSeleccionadas[0]) + '" style="width:100%;max-height:280px;object-fit:contain;">';
-        } else {
-            imgCont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
-        }
-        document.getElementById('modalVistaPrevia').style.display = 'flex';
-    },
-
-    // PASO 2a: el usuario confirma, recién aquí se sube todo de verdad
-    confirmarPublicacionFinal: async function() {
-        var datos = this._datosPublicacionPendiente;
-        if (!datos) return;
-        var alertEl = document.getElementById('publicarAlert');
-        function mostrarError(msg) { alertEl.className = 'alert alert-error'; alertEl.textContent = msg; alertEl.style.display = 'block'; }
-        var btn = document.getElementById('btnVpConfirmar');
+        var btn = document.getElementById('btnPublicarSubmit');
         var textoOriginal = btn.textContent;
         btn.textContent = '⏳ Subiendo fotos...';
         btn.disabled = true;
@@ -2753,15 +2570,15 @@ var PanelUsuario = {
             btn.textContent = '⏳ Publicando...';
             var { error } = await supabase.from('productos').insert({
                 usuario_id: usuarioActual.id,
-                titulo: datos.titulo,
-                descripcion: datos.descripcionFinal,
-                categoria: datos.categoria,
-                modalidad: datos.modalidad,
-                precio: datos.precio,
+                titulo: titulo,
+                descripcion: descripcionFinal,
+                categoria: categoria,
+                modalidad: modalidad,
+                precio: precio,
                 moneda: 'PEN',
                 ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
                 pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
-                alcance: datos.alcance,
+                alcance: alcance,
                 fotos: fotos,
                 estado: 'pendiente',
                 ia_scan_status: 'pendiente',
@@ -2769,43 +2586,20 @@ var PanelUsuario = {
                 fecha_aceptacion_jurada: new Date().toISOString()
             });
             if (error) throw error;
-            document.getElementById('modalVistaPrevia').style.display = 'none';
             alertEl.className = 'alert alert-success';
             alertEl.textContent = '✅ Publicación creada. Un moderador la revisará antes de publicarla.';
             alertEl.style.display = 'block';
             this.limpiarFormularioPublicar();
-            this._datosPublicacionPendiente = null;
             setTimeout(function() {
                 PanelUsuario.cerrarModalPublicar();
                 PanelUsuario.cargarFeed();
             }, 1800);
         } catch (e) {
-            document.getElementById('modalVistaPrevia').style.display = 'none';
             mostrarError('Error al publicar: ' + (e.message || 'Intenta de nuevo'));
-        } finally {
             btn.disabled = false;
+        } finally {
             btn.textContent = textoOriginal;
         }
-    },
-
-    // PASO 2b: el usuario quiere seguir editando el formulario
-    editarDesdeVistaPrevia: function() {
-        document.getElementById('modalVistaPrevia').style.display = 'none';
-    },
-
-    // PASO 2c: el usuario descarta todo lo escrito
-    descartarPublicacion: function() {
-        var seguro = confirm('¿Seguro que quieres descartar esta publicación? Se perderá todo lo que escribiste.');
-        if (!seguro) return;
-        document.getElementById('modalVistaPrevia').style.display = 'none';
-        this.limpiarFormularioPublicar();
-        this._datosPublicacionPendiente = null;
-        this.cerrarModalPublicar();
-    },
-
-    // PASO 2d: guardar como borrador (función más grande, pendiente para más adelante)
-    guardarComoBorrador: function() {
-        alert('💾 Guardar como borrador — próximo paso');
     },
 
     limpiarFormularioPublicar: function() {
@@ -2917,7 +2711,7 @@ var PanelUsuario = {
     moderarMensaje: function(texto) {
         var t = texto.toLowerCase();
         for (var i = 0; i < this.FILTRO_PALABRAS_PROHIBIDAS.length; i++) {
-            if (t.indexOf(this.FILTRO_PALABRAS_PROHIBIDAS[i]) !== -1) return { permitido: false, motivo: '🛡️ Por tu seguridad, evita compartir números de contacto o hacer pagos fuera de remarket-db. Coordina todo aquí mismo en el chat — así ambos quedan protegidos ante estafas.' };
+            if (t.indexOf(this.FILTRO_PALABRAS_PROHIBIDAS[i]) !== -1) return { permitido: false, motivo: '⚠️ Por tu seguridad, no compartas datos de contacto ni pagos fuera de la plataforma.' };
         }
         if (/\b\d{6,9}\b/.test(t)) return { permitido: false, motivo: '⚠️ Por tu seguridad, no compartas números de teléfono ni de cuenta.' };
         return { permitido: true };
@@ -3022,15 +2816,6 @@ var PanelUsuario = {
         }
     },
 
-    // Espera a que el usuario termine de escribir (500ms) antes de buscar,
-    // así no se llama a la IA en cada letra que teclea.
-    onBuscarPersonaInput: function(valor, contexto) {
-        clearTimeout(this._debounceBusqueda);
-        this._debounceBusqueda = setTimeout(function() {
-            PanelUsuario.buscarPersonaPicker(valor, contexto);
-        }, 500);
-    },
-
     buscarPersonaPicker: async function(q, contexto) {
         var el = document.getElementById(contexto + 'ResultadosPersona');
         if (!el) return;
@@ -3059,96 +2844,34 @@ var PanelUsuario = {
             }).join('');
             return;
         }
-        // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, le pedimos
-        // criterio a la IA real: puede devolver una búsqueda (categoría y/o localidad), o un mensaje conversacional.
+        // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, interpretamos la frase
+        // como una pregunta de interés (ej: "quién quiere correas") y buscamos por categoría relacionada.
         if (contexto === 'compartir') {
-            el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
-            var resultado = await this.consultarAsistenteCompartir(q, this._categoriaProductoCompartiendo);
-            if (resultado.tipo === 'mensaje') {
-                el.innerHTML = '<div class="user-picker-empty">🤖 ' + this.escHtml(resultado.valor) + '</div>';
-                return;
-            }
-            var categoriaDetectada = resultado.categoria;
-            var nivelZona = resultado.nivel_zona;
-            if (nivelZona && !usuarioActual.localidad_id) {
-                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no tienes tu localidad definida, así que no puedo comparar zonas. Ve a Configuración para definirla, o busca por categoría/nombre.</div>';
-                return;
-            }
-            var candidatos = await this.buscarUsuariosCompartir(categoriaDetectada, nivelZona);
-            var NOMBRES_NIVEL = { local: 'tu misma zona', regional: 'tu misma región', pais: 'tu mismo país' };
-            var etiquetaZona = nivelZona ? NOMBRES_NIVEL[nivelZona] : null;
-            var etiqueta = categoriaDetectada && etiquetaZona ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong> de ' + etiquetaZona
-                : categoriaDetectada ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>'
-                : 'de ' + etiquetaZona;
-            if (candidatos && candidatos.length) {
-                var self2 = this;
-                el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas ' + etiqueta + ':</div>' +
-                    candidatos.map(function(u) {
-                        var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-                        var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                        var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
-                        var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
-                        return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
-                            fotoHtml +
-                            '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
-                            '<div class="user-picker-email">✨ ' + (categoriaDetectada ? 'Interesado en ' + self2.escHtml(categoriaDetectada) : 'De ' + etiquetaZona) + '</div></div></div>';
-                    }).join('');
-                return;
-            } else {
-                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no encontré personas ' + etiqueta + '. Prueba buscando por nombre, o comparte con todos usando "Copiar Enlace".</div>';
-                return;
+            var categoriaDetectada = this.detectarCategoriaDeTexto(q);
+            if (categoriaDetectada) {
+                var candidatos = await this.buscarUsuariosPorCategoria(categoriaDetectada);
+                if (candidatos && candidatos.length) {
+                    var self2 = this;
+                    el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>:</div>' +
+                        candidatos.map(function(u) {
+                            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                            var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
+                            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+                            return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
+                                fotoHtml +
+                                '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
+                                '<div class="user-picker-email">✨ Interesado en ' + self2.escHtml(categoriaDetectada) + '</div></div></div>';
+                        }).join('');
+                    return;
+                }
             }
         }
         el.innerHTML = '<div class="user-picker-empty">😕 No se encontraron usuarios con ese nombre ni con ese interés</div>';
     },
 
-    // Detecta a qué categoría se refiere una frase libre, usando la IA real
-    // (con el diccionario de palabras clave como respaldo si la IA falla o no responde)
-    // Le pregunta a la IA qué hacer con la frase del usuario: puede devolver
-    // {tipo:'categoria', valor:'Hogar'} si detecta un producto/servicio,
-    // o {tipo:'mensaje', valor:'...respuesta explicando qué sí puede hacer...'} si no aplica.
-    consultarAsistenteCompartir: async function(texto, categoriaProducto) {
-        var CATEGORIAS_VALIDAS = ['Tecnología', 'Hogar', 'Ropa', 'Deportes', 'Vehículos', 'Agro', 'Servicios', 'Libros', 'Otros'];
-        var NIVELES_ZONA = ['local', 'regional', 'pais'];
-        var contextoProducto = categoriaProducto
-            ? 'IMPORTANTE: la publicación que el usuario está compartiendo ya es de la categoría "' + categoriaProducto + '". Si la frase del usuario NO menciona claramente otra categoría distinta a esa, usa "' + categoriaProducto + '" como categoría — no adivines "Otros" ni ninguna otra si el usuario no fue específico, ya que lo más probable es que se refiera a lo que está compartiendo.\n\n'
-            : '';
-        try {
-            var response = await fetch(CONFIG.GROQ_API_URL, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
-                body: JSON.stringify({
-                    messages: [
-                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\n' + contextoProducto + 'Responde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
-                        { role: 'user', content: texto }
-                    ]
-                })
-            });
-            var data = await response.json();
-            var contenido = (data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '').trim();
-            contenido = contenido.replace(/^```json\s*|\s*```$/g, '').trim();
-            var parsed = JSON.parse(contenido);
-            if (parsed.tipo === 'busqueda') {
-                var match = parsed.categoria ? CATEGORIAS_VALIDAS.find(function(c) { return (parsed.categoria || '').toLowerCase().indexOf(c.toLowerCase()) !== -1; }) : null;
-                var nivelZona = NIVELES_ZONA.indexOf(parsed.nivel_zona) !== -1 ? parsed.nivel_zona : null;
-                // Respaldo garantizado en código (no solo confiar en que la IA lo haga bien):
-                // si no detectó categoría clara, usar la de la publicación que se está compartiendo.
-                if (!match && categoriaProducto) match = categoriaProducto;
-                if (!match && !nivelZona) {
-                    return { tipo: 'mensaje', valor: 'No logré identificar un producto, servicio o zona en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla" o "personas de mi zona"?' };
-                }
-                return { tipo: 'busqueda', categoria: match || null, nivel_zona: nivelZona };
-            }
-            return { tipo: 'mensaje', valor: parsed.valor || 'No entendí bien tu mensaje, ¿puedes reformularlo?' };
-        } catch (e) {
-            console.warn('IA no disponible, usando diccionario de respaldo:', e);
-            var cat = this.detectarCategoriaPorDiccionario(texto) || categoriaProducto;
-            return cat ? { tipo: 'busqueda', categoria: cat, nivel_zona: null } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
-        }
-    },
-
-    // Respaldo sin conexión a IA: diccionario de palabras clave (el que ya existía)
-    detectarCategoriaPorDiccionario: function(texto) {
+    // Detecta a qué categoría se refiere una frase libre, usando el mismo diccionario de Publicar
+    detectarCategoriaDeTexto: function(texto) {
         texto = (texto || '').toLowerCase();
         for (var cat in this.MAPA_CATEGORIAS) {
             var palabras = this.MAPA_CATEGORIAS[cat];
@@ -3159,55 +2882,21 @@ var PanelUsuario = {
         return null;
     },
 
-    // Traduce el nivel de zona pedido a una lista de IDs de localidades que califican,
-    // basándose en la propia localidad del usuario que pregunta.
-    obtenerLocalidadIdsPorNivel: async function(nivelZona) {
-        if (!usuarioActual.localidad_id) return null;
-        if (nivelZona === 'local') return [usuarioActual.localidad_id];
-        try {
-            var { data: miLoc, error: errLoc } = await supabase.from('localidades').select('region, pais_id').eq('id', usuarioActual.localidad_id).maybeSingle();
-            if (errLoc || !miLoc) return null;
-            if (nivelZona === 'regional' && miLoc.region) {
-                var { data: rowsReg } = await supabase.from('localidades').select('id').eq('region', miLoc.region);
-                return (rowsReg || []).map(function(r) { return r.id; });
-            }
-            if (nivelZona === 'pais' && miLoc.pais_id) {
-                var { data: rowsPais } = await supabase.from('localidades').select('id').eq('pais_id', miLoc.pais_id);
-                return (rowsPais || []).map(function(r) { return r.id; });
-            }
-            return null;
-        } catch (e) {
-            console.warn('Error resolviendo nivel de zona:', e);
-            return null;
-        }
-    },
-
-    buscarUsuariosCompartir: async function(categoria, nivelZona) {
+    buscarUsuariosPorCategoria: async function(categoria) {
         try {
             var bloqueados = await this.obtenerBloqueados();
-            var query = supabase
+            var { data, error } = await supabase
                 .from('usuarios')
-                .select('id, nombres, apellidos, foto_perfil, categoria, localidad_id')
+                .select('id, nombres, apellidos, foto_perfil, categoria')
+                .ilike('categoria', '%' + categoria + '%')
                 .neq('id', usuarioActual.id)
-                .limit(8);
-            if (categoria) query = query.ilike('categoria', '%' + categoria + '%');
-            if (nivelZona) {
-                var idsLocalidades = await this.obtenerLocalidadIdsPorNivel(nivelZona);
-                if (idsLocalidades && idsLocalidades.length) query = query.in('localidad_id', idsLocalidades);
-                else return []; // pidió zona pero no hay localidades que califiquen
-            }
-            var { data, error } = await query;
+                .limit(5);
             if (error) throw error;
-            return (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; }).slice(0, 5);
+            return (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
         } catch (e) {
-            console.warn('Error buscando personas:', e);
+            console.warn('Error buscando por categoría:', e);
             return [];
         }
-    },
-
-    // Se mantiene por compatibilidad (usado en la sugerencia automática al abrir el modal)
-    buscarUsuariosPorCategoria: async function(categoria) {
-        return this.buscarUsuariosCompartir(categoria, null);
     },
 
     seleccionarPersonaPicker: function(id, nombre, contexto) {
