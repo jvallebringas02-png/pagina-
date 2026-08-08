@@ -2446,6 +2446,7 @@ var PanelUsuario = {
     },
     cerrarModalPublicar: function() {
         document.getElementById('modalPublicar').style.display = 'none';
+        this.mostrarPanelLateral();
     },
 
     // Micro-Paso 3.2: Validación de Fotos (SOLO FOTOS, no videos)
@@ -2675,6 +2676,16 @@ var PanelUsuario = {
     },
 
     // PASO 1: valida el formulario y muestra la Vista Previa (no publica todavía)
+    ocultarPanelLateral: function() {
+        var panel = document.getElementById('userPanelRight');
+        if (panel) panel.style.display = 'none';
+    },
+
+    mostrarPanelLateral: function() {
+        var panel = document.getElementById('userPanelRight');
+        if (panel) panel.style.display = '';
+    },
+
     mostrarVistaPreviaPublicacion: function() {
         var alertEl = document.getElementById('publicarAlert');
         function mostrarError(msg) { alertEl.className = 'alert alert-error'; alertEl.textContent = msg; alertEl.style.display = 'block'; }
@@ -2727,6 +2738,7 @@ var PanelUsuario = {
             imgCont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
         document.getElementById('modalPublicar').style.display = 'none';
+        this.ocultarPanelLateral();
         document.getElementById('modalVistaPrevia').style.display = 'flex';
     },
 
@@ -2771,6 +2783,7 @@ var PanelUsuario = {
             });
             if (error) throw error;
             document.getElementById('modalVistaPrevia').style.display = 'none';
+            this.mostrarPanelLateral();
             alertEl.className = 'alert alert-success';
             alertEl.textContent = '✅ Publicación creada. Un moderador la revisará antes de publicarla.';
             alertEl.style.display = 'block';
@@ -2782,6 +2795,8 @@ var PanelUsuario = {
             }, 1800);
         } catch (e) {
             document.getElementById('modalVistaPrevia').style.display = 'none';
+            document.getElementById('modalPublicar').style.display = 'flex';
+            this.mostrarPanelLateral();
             mostrarError('Error al publicar: ' + (e.message || 'Intenta de nuevo'));
         } finally {
             btn.disabled = false;
@@ -2792,6 +2807,7 @@ var PanelUsuario = {
     // PASO 2b: el usuario quiere seguir editando el formulario
     editarDesdeVistaPrevia: function() {
         document.getElementById('modalVistaPrevia').style.display = 'none';
+        this.mostrarPanelLateral();
         document.getElementById('modalPublicar').style.display = 'flex';
     },
 
@@ -2800,6 +2816,7 @@ var PanelUsuario = {
         var seguro = confirm('¿Seguro que quieres descartar esta publicación? Se perderá todo lo que escribiste.');
         if (!seguro) return;
         document.getElementById('modalVistaPrevia').style.display = 'none';
+        this.mostrarPanelLateral();
         this.limpiarFormularioPublicar();
         this._datosPublicacionPendiente = null;
         this.cerrarModalPublicar();
