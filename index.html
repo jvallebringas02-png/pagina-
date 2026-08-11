@@ -388,6 +388,7 @@ select.form-input { cursor: pointer; }
 .preview-compartir-body { padding: 12px; }
 .preview-compartir-titulo { font-weight: 600; font-size: 14px; color: var(--texto-principal); margin-bottom: 4px; }
 .preview-compartir-desc { font-size: 13px; color: var(--texto-secundario); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#vpDescripcion { color: var(--texto-principal); -webkit-line-clamp: unset; overflow: visible; white-space: pre-line; }
 .preview-compartir-imagen { background: var(--fondo-terciario); min-height: 120px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--texto-terciario); overflow: hidden; }
 .preview-compartir-imagen img { max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto; }
 #vpImagen img { width: 100%; max-width: 100%; max-height: 420px; height: auto; object-fit: cover; margin: 0; }
@@ -631,6 +632,7 @@ select.form-input { cursor: pointer; }
 <div id="userFeedContainer">
 <div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>
 </div>
+<div id="vistaPreviaInline" style="display:none;"></div>
 </main>
 
 <aside class="user-panel-right" id="userPanelRight">
@@ -931,43 +933,6 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
 <a onclick="switchAuthTab('login')">← Volver al inicio de sesión</a>
 </div>
 </div>
-</div>
-</div>
-
-<!-- ============================================ -->
-<!-- MODAL DE VISTA PREVIA (antes de publicar) -->
-<!-- ============================================ -->
-<div id="modalVistaPrevia" class="modal-overlay">
-<div class="modal-fb">
-    <div class="modal-fb-header">
-        <div style="display:flex;align-items:center;gap:8px;">👁️ <span>Vista Previa</span></div>
-    </div>
-    <div class="modal-fb-body">
-        <div style="font-size:12px;color:var(--texto-secundario);margin-bottom:12px;">Así se verá tu publicación. Revísala antes de confirmar.</div>
-
-        <div class="preview-compartir">
-            <div class="preview-compartir-header">
-                <div class="preview-compartir-avatar" id="vpAvatar">U</div>
-                <div>
-                    <div class="preview-compartir-nombre" id="vpNombre">Tu Nombre</div>
-                    <div class="preview-compartir-fecha">Ahora</div>
-                </div>
-            </div>
-            <div id="vpImagen" class="preview-compartir-imagen"></div>
-            <div class="preview-compartir-body">
-                <div class="preview-compartir-titulo" id="vpTitulo">Título</div>
-                <div class="preview-compartir-desc" id="vpDescripcion">Descripción...</div>
-                <div style="font-weight:700;color:var(--verde-eco);margin-top:6px;" id="vpPrecio">S/ 0</div>
-            </div>
-        </div>
-
-        <div class="modal-fb-botones" style="flex-wrap:wrap;gap:8px;margin-top:16px;">
-            <button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.descartarPublicacion()">🗑️ Descartar</button>
-            <button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.guardarComoBorrador()">💾 Guardar borrador</button>
-            <button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.editarDesdeVistaPrevia()">← Editar</button>
-            <button class="btn-auth btn-auth-primary" id="btnVpConfirmar" style="flex:1;min-width:160px;" onclick="PanelUsuario.confirmarPublicacionFinal()">✅ Confirmar y Publicar</button>
-        </div>
-    </div>
 </div>
 </div>
 
@@ -2760,17 +2725,12 @@ var PanelUsuario = {
         // Guardamos los datos ya validados para usarlos si el usuario confirma
         this._datosPublicacionPendiente = { tipo: tipo, titulo: titulo, descripcionFinal: descripcionFinal, categoria: categoria, esServicio: esServicio, modalidad: modalidad, precio: precio, alcance: alcance };
 
-        // Armamos la vista previa visual
         var nombreCompleto = ((usuarioActual.nombres || '') + ' ' + (usuarioActual.apellidos || '')).trim() || 'Usuario';
-        document.getElementById('vpNombre').textContent = nombreCompleto;
-        document.getElementById('vpAvatar').textContent = nombreCompleto.charAt(0).toUpperCase();
-        document.getElementById('vpTitulo').textContent = titulo;
-        document.getElementById('vpDescripcion').textContent = descripcionFinal;
-        document.getElementById('vpPrecio').textContent = (!esServicio && modalidad === 'venta' && precio) ? ('S/ ' + precio) : (esServicio ? 'Servicio' : modalidad.charAt(0).toUpperCase() + modalidad.slice(1));
-        var imgCont = document.getElementById('vpImagen');
+        var precioTexto = (!esServicio && modalidad === 'venta' && precio) ? ('S/ ' + precio) : (esServicio ? 'Servicio' : modalidad.charAt(0).toUpperCase() + modalidad.slice(1));
         var fotos = this._fotosSeleccionadas;
+        var imagenHtml;
         if (fotos.length > 1) {
-            imgCont.innerHTML = '<div class="feed-post-carousel">' +
+            imagenHtml = '<div class="feed-post-carousel">' +
                 '<div class="feed-post-carousel-track" id="carruselTrack-vp" onscroll="PanelUsuario.actualizarDotsCarrusel(this)">' +
                 fotos.map(function(f) { return '<img class="feed-post-image" src="' + URL.createObjectURL(f) + '">'; }).join('') +
                 '</div>' +
@@ -2779,20 +2739,50 @@ var PanelUsuario = {
                 '<div class="feed-post-carousel-dots">' + fotos.map(function(f, i) { return '<span class="dot' + (i === 0 ? ' active' : '') + '"></span>'; }).join('') + '</div>' +
                 '</div>';
         } else if (fotos.length === 1) {
-            imgCont.innerHTML = '<img src="' + URL.createObjectURL(fotos[0]) + '" class="feed-post-image">';
+            imagenHtml = '<img src="' + URL.createObjectURL(fotos[0]) + '" class="feed-post-image">';
         } else {
-            imgCont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
+            imagenHtml = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
+
+        var html = '<div style="max-width:540px;margin:0 auto;">' +
+            '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:12px;display:flex;align-items:center;gap:6px;">👁️ <strong style="color:var(--texto-principal);">Vista Previa</strong> — así se verá tu publicación. Revísala antes de confirmar.</div>' +
+            '<div class="preview-compartir">' +
+                '<div class="preview-compartir-header">' +
+                    '<div class="preview-compartir-avatar">' + this.escHtml(nombreCompleto.charAt(0).toUpperCase()) + '</div>' +
+                    '<div><div class="preview-compartir-nombre">' + this.escHtml(nombreCompleto) + '</div><div class="preview-compartir-fecha">Ahora</div></div>' +
+                '</div>' +
+                '<div id="vpImagen" class="preview-compartir-imagen">' + imagenHtml + '</div>' +
+                '<div class="preview-compartir-body">' +
+                    '<div class="preview-compartir-titulo">' + this.escHtml(titulo) + '</div>' +
+                    '<div id="vpDescripcion" class="preview-compartir-desc">' + this.escHtml(descripcionFinal) + '</div>' +
+                    '<div style="font-weight:700;color:var(--verde-eco);margin-top:6px;">' + this.escHtml(precioTexto) + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div id="publicarAlertVp" class="alert" style="margin-top:12px;"></div>' +
+            '<div class="modal-fb-botones" style="flex-wrap:wrap;gap:8px;margin-top:16px;">' +
+                '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.descartarPublicacion()">🗑️ Descartar</button>' +
+                '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.guardarComoBorrador()">💾 Guardar borrador</button>' +
+                '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.editarDesdeVistaPrevia()">← Editar</button>' +
+                '<button class="btn-auth btn-auth-primary" id="btnVpConfirmar" style="flex:1;min-width:160px;" onclick="PanelUsuario.confirmarPublicacionFinal()">✅ Confirmar y Publicar</button>' +
+            '</div>' +
+        '</div>';
+
+        document.getElementById('vistaPreviaInline').innerHTML = html;
         document.getElementById('modalPublicar').style.display = 'none';
-        this.ocultarPanelLateral();
-        document.getElementById('modalVistaPrevia').style.display = 'flex';
+        document.getElementById('userFeedContainer').style.display = 'none';
+        document.getElementById('vistaPreviaInline').style.display = 'block';
+
+        // El asistente muestra contexto real de lo que se está publicando
+        if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) {
+            UIController.mostrarRespuestaIA('👁️ Estoy viendo tu publicación "' + titulo + '" — ' + precioTexto + ', categoría ' + categoria + ', con ' + fotos.length + (fotos.length === 1 ? ' foto' : ' fotos') + '. Si quieres que revise algo específico, pregúntame.', 'assistant');
+        }
     },
 
     // PASO 2a: el usuario confirma, recién aquí se sube todo de verdad
     confirmarPublicacionFinal: async function() {
         var datos = this._datosPublicacionPendiente;
         if (!datos) return;
-        var alertEl = document.getElementById('publicarAlert');
+        var alertEl = document.getElementById('publicarAlertVp');
         function mostrarError(msg) { alertEl.className = 'alert alert-error'; alertEl.textContent = msg; alertEl.style.display = 'block'; }
         var btn = document.getElementById('btnVpConfirmar');
         var textoOriginal = btn.textContent;
@@ -2829,21 +2819,12 @@ var PanelUsuario = {
                 texto_ocr_fotos: this._textoOCRAcumulado || null
             });
             if (error) throw error;
-            document.getElementById('modalVistaPrevia').style.display = 'none';
-            this.mostrarPanelLateral();
-            alertEl.className = 'alert alert-success';
-            alertEl.textContent = '✅ Publicación creada. Un moderador la revisará antes de publicarla.';
-            alertEl.style.display = 'block';
+            this.volverAlFeedDesdeVistaPrevia();
+            this.mostrarToast('✅ Publicación creada. Un moderador la revisará antes de publicarla.');
             this.limpiarFormularioPublicar();
             this._datosPublicacionPendiente = null;
-            setTimeout(function() {
-                PanelUsuario.cerrarModalPublicar();
-                PanelUsuario.cargarFeed();
-            }, 1800);
+            this.cargarFeed();
         } catch (e) {
-            document.getElementById('modalVistaPrevia').style.display = 'none';
-            document.getElementById('modalPublicar').style.display = 'flex';
-            this.mostrarPanelLateral();
             mostrarError('Error al publicar: ' + (e.message || 'Intenta de nuevo'));
         } finally {
             btn.disabled = false;
@@ -2851,10 +2832,16 @@ var PanelUsuario = {
         }
     },
 
+    // Vuelve del área de Vista Previa al feed normal (dentro del panel central, sin modales)
+    volverAlFeedDesdeVistaPrevia: function() {
+        document.getElementById('vistaPreviaInline').style.display = 'none';
+        document.getElementById('vistaPreviaInline').innerHTML = '';
+        document.getElementById('userFeedContainer').style.display = '';
+    },
+
     // PASO 2b: el usuario quiere seguir editando el formulario
     editarDesdeVistaPrevia: function() {
-        document.getElementById('modalVistaPrevia').style.display = 'none';
-        this.mostrarPanelLateral();
+        this.volverAlFeedDesdeVistaPrevia();
         document.getElementById('modalPublicar').style.display = 'flex';
     },
 
@@ -2862,8 +2849,7 @@ var PanelUsuario = {
     descartarPublicacion: function() {
         var seguro = confirm('¿Seguro que quieres descartar esta publicación? Se perderá todo lo que escribiste.');
         if (!seguro) return;
-        document.getElementById('modalVistaPrevia').style.display = 'none';
-        this.mostrarPanelLateral();
+        this.volverAlFeedDesdeVistaPrevia();
         this.limpiarFormularioPublicar();
         this._datosPublicacionPendiente = null;
         this.cerrarModalPublicar();
