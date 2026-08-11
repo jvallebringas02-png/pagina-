@@ -390,6 +390,7 @@ select.form-input { cursor: pointer; }
 .preview-compartir-desc { font-size: 13px; color: var(--texto-secundario); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .preview-compartir-imagen { background: var(--fondo-terciario); min-height: 120px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--texto-terciario); overflow: hidden; }
 .preview-compartir-imagen img { max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto; }
+#vpImagen img { width: 100%; max-width: 100%; max-height: 420px; height: auto; object-fit: cover; margin: 0; }
 
 .modal-fb-botones { display: flex; gap: 10px; margin-top: 16px; }
 .modal-fb-botones button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
@@ -2767,8 +2768,18 @@ var PanelUsuario = {
         document.getElementById('vpDescripcion').textContent = descripcionFinal;
         document.getElementById('vpPrecio').textContent = (!esServicio && modalidad === 'venta' && precio) ? ('S/ ' + precio) : (esServicio ? 'Servicio' : modalidad.charAt(0).toUpperCase() + modalidad.slice(1));
         var imgCont = document.getElementById('vpImagen');
-        if (this._fotosSeleccionadas.length > 0) {
-            imgCont.innerHTML = '<img src="' + URL.createObjectURL(this._fotosSeleccionadas[0]) + '" class="feed-post-image">';
+        var fotos = this._fotosSeleccionadas;
+        if (fotos.length > 1) {
+            imgCont.innerHTML = '<div class="feed-post-carousel">' +
+                '<div class="feed-post-carousel-track" id="carruselTrack-vp" onscroll="PanelUsuario.actualizarDotsCarrusel(this)">' +
+                fotos.map(function(f) { return '<img class="feed-post-image" src="' + URL.createObjectURL(f) + '">'; }).join('') +
+                '</div>' +
+                '<button type="button" class="feed-post-carousel-arrow prev" onclick="PanelUsuario.moverCarrusel(\'vp\', -1)">‹</button>' +
+                '<button type="button" class="feed-post-carousel-arrow next" onclick="PanelUsuario.moverCarrusel(\'vp\', 1)">›</button>' +
+                '<div class="feed-post-carousel-dots">' + fotos.map(function(f, i) { return '<span class="dot' + (i === 0 ? ' active' : '') + '"></span>'; }).join('') + '</div>' +
+                '</div>';
+        } else if (fotos.length === 1) {
+            imgCont.innerHTML = '<img src="' + URL.createObjectURL(fotos[0]) + '" class="feed-post-image">';
         } else {
             imgCont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
