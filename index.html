@@ -2768,7 +2768,7 @@ var PanelUsuario = {
         document.getElementById('vpPrecio').textContent = (!esServicio && modalidad === 'venta' && precio) ? ('S/ ' + precio) : (esServicio ? 'Servicio' : modalidad.charAt(0).toUpperCase() + modalidad.slice(1));
         var imgCont = document.getElementById('vpImagen');
         if (this._fotosSeleccionadas.length > 0) {
-            imgCont.innerHTML = '<img src="' + URL.createObjectURL(this._fotosSeleccionadas[0]) + '" style="width:100%;max-height:280px;object-fit:contain;">';
+            imgCont.innerHTML = '<img src="' + URL.createObjectURL(this._fotosSeleccionadas[0]) + '" class="feed-post-image">';
         } else {
             imgCont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
