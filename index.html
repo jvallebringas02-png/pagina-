@@ -949,6 +949,34 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
 </div>
 
 <!-- ============================================ -->
+<!-- MODAL DE REPORTAR PUBLICACIÓN -->
+<!-- ============================================ -->
+<div id="modalReportar" class="modal-overlay">
+<div class="modal-fb">
+    <div class="modal-fb-header">
+        <div style="display:flex;align-items:center;gap:8px;">🚩 <span>Reportar publicación</span></div>
+        <button class="modal-close" onclick="PanelUsuario.cerrarModalReportar()">✕</button>
+    </div>
+    <div class="modal-fb-body">
+        <div style="font-size:13px;color:var(--texto-secundario);margin-bottom:12px;">¿Por qué quieres reportar esta publicación?</div>
+        <div id="reportarOpciones" style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Estafa o fraude" checked> Estafa o fraude</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Contenido ofensivo"> Contenido ofensivo</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Precio falso o engañoso"> Precio falso o engañoso</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Producto o servicio prohibido"> Producto o servicio prohibido</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Otro"> Otro</label>
+        </div>
+        <textarea id="reportarDetalle" class="form-input" rows="2" placeholder="Cuéntanos más (opcional)..." style="margin-top:10px;"></textarea>
+        <div id="reportarAlert" class="alert" style="display:none;margin-top:10px;"></div>
+        <div class="modal-fb-botones" style="margin-top:16px;">
+            <button class="btn-cancelar" onclick="PanelUsuario.cerrarModalReportar()">Cancelar</button>
+            <button class="btn-auth btn-auth-primary" onclick="PanelUsuario.enviarReporte()">🚩 Enviar reporte</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ============================================ -->
 <!-- MODAL DE CONFIGURACIÓN (intereses y localidad) -->
 <!-- ============================================ -->
 <div id="modalConfiguracion" class="modal-overlay">
@@ -1447,6 +1475,7 @@ var PanelUsuario = {
                 '<button onclick="PanelUsuario.toggleSeguir(\'' + autorUid + '\', \'' + id + '\')" id="seguirBtn-' + id + '">➕ Seguir</button>' +
                 '<button onclick="PanelUsuario.toggleFavoritoUsuario(\'' + autorUid + '\', \'' + id + '\')" id="prefBtn-' + id + '">⭐ Marcar preferido</button>' +
                 '<button onclick="PanelUsuario.toggleBloqueado(\'' + autorUid + '\', \'' + id + '\')" class="logout-item">🚫 Bloquear usuario</button>' +
+                '<button onclick="PanelUsuario.abrirModalReportar(\'' + id + '\')" class="logout-item">🚩 Reportar publicación</button>' +
                 '</div></div>';
         }
         var videoHtmlFeed = '';
@@ -2069,6 +2098,46 @@ var PanelUsuario = {
     },
 
     // === CONFIGURACIÓN (intereses y localidad) ===
+    // === REPORTAR PUBLICACIÓN ===
+    _productoReportando: null,
+
+    abrirModalReportar: function(productoId) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        this._productoReportando = productoId;
+        document.getElementById('reportarDetalle').value = '';
+        document.getElementById('reportarAlert').style.display = 'none';
+        var radios = document.querySelectorAll('input[name="reportarMotivo"]');
+        radios.forEach(function(r, i) { r.checked = i === 0; });
+        document.getElementById('modalReportar').style.display = 'flex';
+    },
+
+    cerrarModalReportar: function() {
+        document.getElementById('modalReportar').style.display = 'none';
+    },
+
+    enviarReporte: async function() {
+        var alertEl = document.getElementById('reportarAlert');
+        var motivoRadio = document.querySelector('input[name="reportarMotivo"]:checked');
+        var motivo = motivoRadio ? motivoRadio.value : 'Otro';
+        var detalle = document.getElementById('reportarDetalle').value.trim();
+        try {
+            var { error } = await supabase.from('reportes').insert({
+                producto_id: this._productoReportando,
+                usuario_reporta_id: usuarioActual.id,
+                motivo: motivo,
+                detalle: detalle || null,
+                estado: 'pendiente'
+            });
+            if (error) throw error;
+            this.cerrarModalReportar();
+            this.mostrarToast('✅ Gracias por avisarnos. Vamos a revisar esta publicación.');
+        } catch (e) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = 'No se pudo enviar el reporte: ' + (e.message || 'intenta de nuevo');
+            alertEl.style.display = 'block';
+        }
+    },
+
     abrirModalConfiguracion: function() {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         var actuales = usuarioActual.categoria ? usuarioActual.categoria.split(',').map(function(c) { return c.trim(); }) : [];
