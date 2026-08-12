@@ -732,6 +732,18 @@ select.form-input { cursor: pointer; }
     <span>Lo ideal es subir al menos una foto — las publicaciones con fotos reales generan mucha más confianza y reciben más respuestas de compradores interesados.</span>
 </div>
 
+<label class="form-label" style="margin-top:14px;">Enlace de video (opcional)</label>
+<div style="display:flex;gap:6px;">
+    <select id="pubVideoPlataforma" class="form-input" style="max-width:130px;">
+        <option value="youtube">YouTube</option>
+        <option value="tiktok">TikTok</option>
+        <option value="instagram">Instagram</option>
+    </select>
+    <input type="text" id="pubVideoUrl" class="form-input" placeholder="Pega el link aquí...">
+    <button type="button" class="btn-auth" style="width:auto;padding:0 16px;white-space:nowrap;" onclick="PanelUsuario.verificarEnlaceVideo()">Verificar</button>
+</div>
+<div id="pubVideoPreview" style="margin-top:8px;"></div>
+
 <label class="form-label" style="margin-top:14px;">Alcance <span id="pubAlcanceSugerido" style="font-weight:400;font-size:12px;color:var(--purpura-ia);"></span></label>
 <div style="display:flex;gap:10px;margin-top:6px;">
     <label style="display:flex;align-items:center;gap:5px;font-size:13px;"><input type="radio" name="pubAlcance" value="local" checked> Local</label>
@@ -1437,12 +1449,20 @@ var PanelUsuario = {
                 '<button onclick="PanelUsuario.toggleBloqueado(\'' + autorUid + '\', \'' + id + '\')" class="logout-item">🚫 Bloquear usuario</button>' +
                 '</div></div>';
         }
+        var videoHtmlFeed = '';
+        if (item.video_url) {
+            videoHtmlFeed = '<a href="' + this.escHtml(item.video_url) + '" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--borde);text-decoration:none;color:inherit;">' +
+                (item.video_miniatura ? '<img src="' + this.escHtml(item.video_miniatura) + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">' : '<span style="font-size:24px;">▶️</span>') +
+                '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶️ ' + this.escHtml(item.video_titulo || 'Video') + '</div>' +
+                '<div style="font-size:11px;color:var(--texto-secundario);">' + (item.video_plataforma === 'youtube' ? 'YouTube' : 'TikTok') + '</div></div></a>';
+        }
         return '<article class="feed-post" data-id="' + id + '" data-autor="' + autorUid + '">' +
             '<div class="feed-post-header">' + avatarHtml +
             '<div class="feed-post-meta"><div class="feed-post-name">' + this.escHtml(nombre) + '</div>' +
             '<div class="feed-post-time">' + this.tiempoRelativo(item.created_at || item.fecha_creacion) + '</div>' +
             (ciudad ? '<div class="feed-post-location">📍 ' + this.escHtml(ciudad) + '</div>' : '') + '</div>' + menuAutorHtml + '</div>' +
             imgHtml +
+            videoHtmlFeed +
             '<div class="feed-post-body"><div class="feed-post-title">' + this.escHtml(item.titulo || item.nombre || 'Sin título') + '</div>' +
             '<div class="feed-post-desc">' + this.escHtml((item.descripcion || item.detalle || '').substring(0, 200)) + '</div>' +
             '<div class="feed-post-price">' + precioHtml + '</div></div>' +
@@ -2455,6 +2475,46 @@ var PanelUsuario = {
     },
 
     // Lee el texto visible en una foto. Nunca bloquea la publicación, solo devuelve el texto (o vacío).
+    // === ENLACE DE VIDEO VERIFICADO (YouTube/TikTok) ===
+    _videoVerificado: null,
+
+    verificarEnlaceVideo: async function() {
+        var plataforma = document.getElementById('pubVideoPlataforma').value;
+        var url = document.getElementById('pubVideoUrl').value.trim();
+        var previewEl = document.getElementById('pubVideoPreview');
+        this._videoVerificado = null;
+
+        if (!url) { previewEl.innerHTML = ''; return; }
+
+        if (plataforma === 'instagram') {
+            previewEl.innerHTML = '<div class="alert" style="display:block;">📸 La verificación de Instagram estará disponible próximamente. Por ahora, usa YouTube o TikTok.</div>';
+            return;
+        }
+
+        var dominiosValidos = { youtube: ['youtube.com', 'youtu.be'], tiktok: ['tiktok.com'] };
+        var esDominioValido = dominiosValidos[plataforma].some(function(d) { return url.indexOf(d) !== -1; });
+        if (!esDominioValido) {
+            previewEl.innerHTML = '<div class="alert alert-error" style="display:block;">🚫 Ese link no parece ser de ' + (plataforma === 'youtube' ? 'YouTube' : 'TikTok') + '.</div>';
+            return;
+        }
+
+        previewEl.innerHTML = '<div class="alert" style="display:block;">🔎 Verificando...</div>';
+        try {
+            var endpoint = plataforma === 'youtube' ? 'https://www.youtube.com/oembed' : 'https://www.tiktok.com/oembed';
+            var response = await fetch(endpoint + '?url=' + encodeURIComponent(url) + '&format=json');
+            if (!response.ok) throw new Error('No se encontró ese video');
+            var data = await response.json();
+            this._videoVerificado = { plataforma: plataforma, url: url, titulo: data.title || 'Video', miniatura: data.thumbnail_url || '' };
+            previewEl.innerHTML = '<div style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--borde);border-radius:8px;">' +
+                (this._videoVerificado.miniatura ? '<img src="' + this._videoVerificado.miniatura + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
+                '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">✅ ' + this.escHtml(this._videoVerificado.titulo) + '</div>' +
+                '<div style="font-size:11px;color:var(--texto-secundario);">' + (plataforma === 'youtube' ? 'YouTube' : 'TikTok') + ' verificado</div></div></div>';
+        } catch (e) {
+            this._videoVerificado = null;
+            previewEl.innerHTML = '<div class="alert alert-error" style="display:block;">🚫 No pudimos verificar este enlace. Revisa que esté completo y correcto.</div>';
+        }
+    },
+
     leerTextoDeImagen: async function(file) {
         try {
             var worker = await this.obtenerWorkerOCR();
@@ -2743,6 +2803,14 @@ var PanelUsuario = {
         } else {
             imagenHtml = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
+        var videoHtml = '';
+        if (this._videoVerificado) {
+            var v = this._videoVerificado;
+            videoHtml = '<a href="' + v.url + '" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--borde);border-radius:8px;margin-top:8px;text-decoration:none;color:inherit;">' +
+                (v.miniatura ? '<img src="' + v.miniatura + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
+                '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶️ ' + this.escHtml(v.titulo) + '</div>' +
+                '<div style="font-size:11px;color:var(--texto-secundario);">' + (v.plataforma === 'youtube' ? 'YouTube' : 'TikTok') + '</div></div></a>';
+        }
 
         var html = '<div style="max-width:540px;margin:0 auto;">' +
             '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:12px;display:flex;align-items:center;gap:6px;">👁️ <strong style="color:var(--texto-principal);">Vista Previa</strong> — así se verá tu publicación. Revísala antes de confirmar.</div>' +
@@ -2752,6 +2820,7 @@ var PanelUsuario = {
                     '<div><div class="preview-compartir-nombre">' + this.escHtml(nombreCompleto) + '</div><div class="preview-compartir-fecha">Ahora</div></div>' +
                 '</div>' +
                 '<div id="vpImagen" class="preview-compartir-imagen">' + imagenHtml + '</div>' +
+                videoHtml +
                 '<div class="preview-compartir-body">' +
                     '<div class="preview-compartir-titulo">' + this.escHtml(titulo) + '</div>' +
                     '<div id="vpDescripcion" class="preview-compartir-desc">' + this.escHtml(descripcionFinal) + '</div>' +
@@ -2774,7 +2843,7 @@ var PanelUsuario = {
 
         // El asistente muestra contexto real de lo que se está publicando
         if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) {
-            UIController.mostrarRespuestaIA('👁️ Estoy viendo tu publicación "' + titulo + '" — ' + precioTexto + ', categoría ' + categoria + ', con ' + fotos.length + (fotos.length === 1 ? ' foto' : ' fotos') + '. Si quieres que revise algo específico, pregúntame.', 'assistant');
+            UIController.mostrarRespuestaIA('👁️ Estoy viendo tu publicación "' + titulo + '" — ' + precioTexto + ', categoría ' + categoria + ', con ' + fotos.length + (fotos.length === 1 ? ' foto' : ' fotos') + (this._videoVerificado ? ' y un video de ' + (this._videoVerificado.plataforma === 'youtube' ? 'YouTube' : 'TikTok') : '') + '. Si quieres que revise algo específico, pregúntame.', 'assistant');
         }
     },
 
@@ -2816,7 +2885,11 @@ var PanelUsuario = {
                 ia_scan_status: 'pendiente',
                 acepto_declaracion_jurada: true,
                 fecha_aceptacion_jurada: new Date().toISOString(),
-                texto_ocr_fotos: this._textoOCRAcumulado || null
+                texto_ocr_fotos: this._textoOCRAcumulado || null,
+                video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
+                video_url: this._videoVerificado ? this._videoVerificado.url : null,
+                video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
+                video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null
             });
             if (error) throw error;
             this.volverAlFeedDesdeVistaPrevia();
@@ -2875,6 +2948,9 @@ var PanelUsuario = {
         document.querySelector('input[name="pubAlcance"][value="local"]').checked = true;
         document.getElementById('pubDeclaracionJurada').checked = false;
         document.getElementById('btnPublicarSubmit').disabled = true;
+        document.getElementById('pubVideoUrl').value = '';
+        document.getElementById('pubVideoPreview').innerHTML = '';
+        this._videoVerificado = null;
         this._fotosSeleccionadas = [];
         this._textoOCRAcumulado = '';
         this.renderFotosPreview();
