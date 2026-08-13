@@ -526,7 +526,6 @@ select.form-input { cursor: pointer; }
         🔔<span class="notif-bell-badge" id="notifBellBadge">0</span>
     </button>
 </div>
-<button type="button" class="btn-publicar btn-publicar-header" id="btnPublicarHeader" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar</button>
 <div class="user-menu-dropdown-wrapper" id="userMenuDropdownWrapper">
 <button class="btn-account" id="accountBtn">Mi Cuenta</button>
 <div class="user-menu-dropdown" id="userMenuDropdown">
@@ -2950,7 +2949,7 @@ var PanelUsuario = {
                 pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
                 alcance: datos.alcance,
                 fotos: fotos,
-                estado: 'pendiente',
+                estado: 'aprobado', // auto-aprobado: no hay Panel de Moderador todavía (queda pendiente para más adelante)
                 ia_scan_status: 'pendiente',
                 acepto_declaracion_jurada: true,
                 fecha_aceptacion_jurada: new Date().toISOString(),
@@ -2962,7 +2961,7 @@ var PanelUsuario = {
             });
             if (error) throw error;
             this.volverAlFeedDesdeVistaPrevia();
-            this.mostrarToast('✅ Publicación creada. Un moderador la revisará antes de publicarla.');
+            this.mostrarToast('✅ ¡Publicación creada y ya visible en el feed!');
             this.limpiarFormularioPublicar();
             this._datosPublicacionPendiente = null;
             this.cargarFeed();
@@ -3518,13 +3517,23 @@ var PanelUsuario = {
         document.getElementById('sidebarOverlay').classList.remove('show');
     },
 
-    buscarEnFeed: function(query) {
+    buscarEnFeed: async function(query) {
         var posts = document.querySelectorAll('.feed-post');
         var q = query.toLowerCase();
+        var algunoVisible = false;
         posts.forEach(function(post) {
             var text = post.textContent.toLowerCase();
-            post.style.display = !q || text.includes(q) ? '' : 'none';
+            var visible = !q || text.includes(q);
+            post.style.display = visible ? '' : 'none';
+            if (visible) algunoVisible = true;
         });
+        // Si el filtro rápido no encontró nada, consultamos al Asistente IA para que ayude de verdad
+        if (q && !algunoVisible && typeof AIService !== 'undefined' && AIService.enviarMensaje) {
+            var respuestaIA = await AIService.enviarMensaje(query);
+            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) {
+                UIController.mostrarRespuestaIA('🔎 No encontré "' + query + '" entre las publicaciones visibles ahora mismo. ' + respuestaIA, 'assistant');
+            }
+        }
     }
 };
 
