@@ -553,16 +553,16 @@ select.form-input { cursor: pointer; }
             <div class="chat-message assistant" id="assistantGreeting">¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?</div>
         </div>
         <div class="quick-actions">
-            <button onclick="iaResponde('publicar')">📦 ¿Cómo publico?</button>
-            <button onclick="iaResponde('vender')">💰 ¿Cómo vendo?</button>
-            <button onclick="iaResponde('seguridad')">🛡️ Seguridad</button>
-            <button onclick="iaResponde('reportar')">⚠️ Reportar</button>
+            <button onclick="iaResponde('publicar')">📦 <span id="quickTextPublicar">¿Cómo publico?</span></button>
+            <button onclick="iaResponde('vender')">💰 <span id="quickTextVender">¿Cómo vendo?</span></button>
+            <button onclick="iaResponde('seguridad')">🛡️ <span id="quickTextSeguridad">Seguridad</span></button>
+            <button onclick="iaResponde('reportar')">⚠️ <span id="quickTextReportar">Reportar</span></button>
         </div>
         <form class="assistant-form" id="assistantForm">
             <input type="text" id="assistantInput" class="assistant-input" placeholder="Escribe tu duda aquí..." required>
             <button type="submit" class="assistant-submit">➤</button>
         </form>
-        <button class="btn-clear-chat" id="clearChatBtn">🗑️ Limpiar Conversación</button>
+        <button class="btn-clear-chat" id="clearChatBtn">🗑️ <span id="btnLimpiarTexto">Limpiar Conversación</span></button>
     </div>
 </div>
 </aside>
@@ -606,27 +606,27 @@ select.form-input { cursor: pointer; }
 <div class="user-panel-layout">
 <aside class="user-panel-left" id="userPanelLeft">
 <nav class="user-menu" id="userMenu">
-<button class="user-menu-item active" data-action="inicio" onclick="PanelUsuario.menuClick('inicio')"><span>🏠</span> Inicio</button>
-<button class="user-menu-item" data-action="perfil" onclick="PanelUsuario.menuClick('perfil')"><span>👤</span> Mi Perfil</button>
-<button class="user-menu-item" data-action="publicaciones" onclick="PanelUsuario.menuClick('publicaciones')"><span>📦</span> Mis Publicaciones</button>
-<button class="user-menu-item" data-action="blog" onclick="PanelUsuario.menuClick('blog')"><span>✍️</span> Mi Blog</button>
-<button class="user-menu-item" data-action="mensajes" onclick="PanelUsuario.menuClick('mensajes')"><span>💬</span> Mensajes <span class="menu-badge" id="mensajesBadge">0</span></button>
-<button class="user-menu-item" data-action="favoritos" onclick="PanelUsuario.menuClick('favoritos')"><span>❤️</span> Favoritos</button>
-<button class="user-menu-item" data-action="config" onclick="PanelUsuario.menuClick('config')"><span>⚙️</span> Configuración</button>
+<button class="user-menu-item active" data-action="inicio" onclick="PanelUsuario.menuClick('inicio')"><span>🏠</span> <span id="menuTextInicio">Inicio</span></button>
+<button class="user-menu-item" data-action="perfil" onclick="PanelUsuario.menuClick('perfil')"><span>👤</span> <span id="menuTextPerfil">Mi Perfil</span></button>
+<button class="user-menu-item" data-action="publicaciones" onclick="PanelUsuario.menuClick('publicaciones')"><span>📦</span> <span id="menuTextPublicaciones">Mis Publicaciones</span></button>
+<button class="user-menu-item" data-action="blog" onclick="PanelUsuario.menuClick('blog')"><span>✍️</span> <span id="menuTextBlog">Mi Blog</span></button>
+<button class="user-menu-item" data-action="mensajes" onclick="PanelUsuario.menuClick('mensajes')"><span>💬</span> <span id="menuTextMensajes">Mensajes</span> <span class="menu-badge" id="mensajesBadge">0</span></button>
+<button class="user-menu-item" data-action="favoritos" onclick="PanelUsuario.menuClick('favoritos')"><span>❤️</span> <span id="menuTextFavoritos">Favoritos</span></button>
+<button class="user-menu-item" data-action="config" onclick="PanelUsuario.menuClick('config')"><span>⚙️</span> <span id="menuTextConfig">Configuración</span></button>
 </nav>
 <div class="panel-card">
-<div class="panel-card-title">📍 Tu Alcance</div>
+<div class="panel-card-title">📍 <span id="panelTextAlcance">Tu Alcance</span></div>
 <div id="alcanceContent" style="font-size:13px;color:var(--texto-secundario);line-height:1.6;">Cargando ubicación...</div>
 </div>
 <div class="panel-card">
-<div class="panel-card-title">🏷️ Tus Intereses</div>
+<div class="panel-card-title">🏷️ <span id="panelTextIntereses">Tus Intereses</span></div>
 <div id="interesesContent"><span class="interest-tag">General</span></div>
 </div>
 </aside>
 
 <main class="user-panel-center">
 <div class="feed-toolbar" style="justify-content:flex-end;">
-<button type="button" class="btn-publicar" id="btnPublicar" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar</button>
+<button type="button" class="btn-publicar" id="btnPublicar" onclick="PanelUsuario.abrirModalPublicar()">📦 <span id="btnPublicarTexto">Publicar</span></button>
 </div>
 <div id="userFeedContainer">
 <div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>
@@ -1135,10 +1135,22 @@ function obtenerIdiomaPreferido() {
 // TRADUCCIONES UI
 // ============================================
 const UI_TRANSLATIONS = {
-    es: { account_btn: "Mi Cuenta", content_title: "🌱 Catálogo de Economía Circular", content_subtitle: "Descubre artículos disponibles para intercambio en tu zona", featured_title: "Artículos Destacados", search_placeholder: "¿Qué estás buscando hoy? Ej: camisa, laptop, carros...", login_tab: "Iniciar Sesión", register_tab: "Registrarse", assistant_header: "🤖 Asistente IA", footer_desc: "Conectando comercios y vecinos de forma inteligente." },
-    en: { account_btn: "My Account", content_title: " Circular Economy Catalog", content_subtitle: "Discover items available for exchange in your area", featured_title: "Featured Items", search_placeholder: "What are you looking for today? Ex: shirt, laptop, cars...", login_tab: "Sign In", register_tab: "Sign Up", assistant_header: "🤖 AI Assistant", footer_desc: "Connecting businesses and neighbors smartly." },
-    pt: { account_btn: "Minha Conta", content_title: "🌱 Catálogo de Economia Circular", content_subtitle: "Descubra itens disponíveis para troca na sua área", featured_title: "Itens em Destaque", search_placeholder: "O que você procura hoje? Ex: camisa, laptop, carros...", login_tab: "Entrar", register_tab: "Registrar", assistant_header: "🤖 Assistente de IA", footer_desc: "Conectando empresas e vizinhos de forma inteligente." },
-    fr: { account_btn: "Mon Compte", content_title: "🌱 Catalogue d'Économie Circulaire", content_subtitle: "Découvrez des articles disponibles pour l'échange dans votre région", featured_title: "Articles en Vedette", search_placeholder: "Que cherchez-vous aujourd'hui? Ex: chemise, ordinateur, voitures...", login_tab: "Se connecter", register_tab: "S'inscrire", assistant_header: "🤖 Assistant IA", footer_desc: "Connecter les entreprises et les voisins intelligemment." },
+    es: { account_btn: "Mi Cuenta", content_title: "🌱 Catálogo de Economía Circular", content_subtitle: "Descubre artículos disponibles para intercambio en tu zona", featured_title: "Artículos Destacados", search_placeholder: "¿Qué estás buscando hoy? Ej: camisa, laptop, carros...", login_tab: "Iniciar Sesión", register_tab: "Registrarse", assistant_header: "🤖 Asistente IA", footer_desc: "Conectando comercios y vecinos de forma inteligente.",
+        menu_inicio: "Inicio", menu_perfil: "Mi Perfil", menu_publicaciones: "Mis Publicaciones", menu_blog: "Mi Blog", menu_mensajes: "Mensajes", menu_favoritos: "Favoritos", menu_config: "Configuración",
+        panel_alcance: "Tu Alcance", panel_intereses: "Tus Intereses", btn_publicar: "Publicar",
+        quick_publicar: "¿Cómo publico?", quick_vender: "¿Cómo vendo?", quick_seguridad: "Seguridad", quick_reportar: "Reportar", btn_limpiar: "Limpiar Conversación" },
+    en: { account_btn: "My Account", content_title: " Circular Economy Catalog", content_subtitle: "Discover items available for exchange in your area", featured_title: "Featured Items", search_placeholder: "What are you looking for today? Ex: shirt, laptop, cars...", login_tab: "Sign In", register_tab: "Sign Up", assistant_header: "🤖 AI Assistant", footer_desc: "Connecting businesses and neighbors smartly.",
+        menu_inicio: "Home", menu_perfil: "My Profile", menu_publicaciones: "My Listings", menu_blog: "My Blog", menu_mensajes: "Messages", menu_favoritos: "Favorites", menu_config: "Settings",
+        panel_alcance: "Your Reach", panel_intereses: "Your Interests", btn_publicar: "Post",
+        quick_publicar: "How do I post?", quick_vender: "How do I sell?", quick_seguridad: "Safety", quick_reportar: "Report", btn_limpiar: "Clear Conversation" },
+    pt: { account_btn: "Minha Conta", content_title: "🌱 Catálogo de Economia Circular", content_subtitle: "Descubra itens disponíveis para troca na sua área", featured_title: "Itens em Destaque", search_placeholder: "O que você procura hoje? Ex: camisa, laptop, carros...", login_tab: "Entrar", register_tab: "Registrar", assistant_header: "🤖 Assistente de IA", footer_desc: "Conectando empresas e vizinhos de forma inteligente.",
+        menu_inicio: "Início", menu_perfil: "Meu Perfil", menu_publicaciones: "Minhas Publicações", menu_blog: "Meu Blog", menu_mensajes: "Mensagens", menu_favoritos: "Favoritos", menu_config: "Configurações",
+        panel_alcance: "Seu Alcance", panel_intereses: "Seus Interesses", btn_publicar: "Publicar",
+        quick_publicar: "Como publico?", quick_vender: "Como vendo?", quick_seguridad: "Segurança", quick_reportar: "Denunciar", btn_limpiar: "Limpar Conversa" },
+    fr: { account_btn: "Mon Compte", content_title: "🌱 Catalogue d'Économie Circulaire", content_subtitle: "Découvrez des articles disponibles pour l'échange dans votre région", featured_title: "Articles en Vedette", search_placeholder: "Que cherchez-vous aujourd'hui? Ex: chemise, ordinateur, voitures...", login_tab: "Se connecter", register_tab: "S'inscrire", assistant_header: "🤖 Assistant IA", footer_desc: "Connecter les entreprises et les voisins intelligemment.",
+        menu_inicio: "Accueil", menu_perfil: "Mon Profil", menu_publicaciones: "Mes Annonces", menu_blog: "Mon Blog", menu_mensajes: "Messages", menu_favoritos: "Favoris", menu_config: "Paramètres",
+        panel_alcance: "Votre Portée", panel_intereses: "Vos Intérêts", btn_publicar: "Publier",
+        quick_publicar: "Comment publier?", quick_vender: "Comment vendre?", quick_seguridad: "Sécurité", quick_reportar: "Signaler", btn_limpiar: "Effacer la Conversation" },
 };
 
 function aplicarTraduccionUI(lang) {
@@ -1153,6 +1165,15 @@ function aplicarTraduccionUI(lang) {
     const tabLogin = document.getElementById('tabLogin'); if (tabLogin) tabLogin.textContent = t.login_tab;
     const tabRegister = document.getElementById('tabRegister'); if (tabRegister) tabRegister.textContent = t.register_tab;
     const footerDesc = document.getElementById('footerDesc'); if (footerDesc) footerDesc.textContent = t.footer_desc;
+
+    // Menú lateral
+    var mapaMenu = { menuTextInicio: 'menu_inicio', menuTextPerfil: 'menu_perfil', menuTextPublicaciones: 'menu_publicaciones', menuTextBlog: 'menu_blog', menuTextMensajes: 'menu_mensajes', menuTextFavoritos: 'menu_favoritos', menuTextConfig: 'menu_config',
+        panelTextAlcance: 'panel_alcance', panelTextIntereses: 'panel_intereses', btnPublicarTexto: 'btn_publicar',
+        quickTextPublicar: 'quick_publicar', quickTextVender: 'quick_vender', quickTextSeguridad: 'quick_seguridad', quickTextReportar: 'quick_reportar', btnLimpiarTexto: 'btn_limpiar' };
+    Object.keys(mapaMenu).forEach(function(elId) {
+        var el = document.getElementById(elId);
+        if (el && t[mapaMenu[elId]]) el.textContent = t[mapaMenu[elId]];
+    });
 }
 
 // ============================================
