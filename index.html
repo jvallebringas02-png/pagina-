@@ -1724,11 +1724,77 @@ var PanelUsuario = {
         this.cerrarMenuMobile();
         if (action === 'inicio') this.cargarFeed();
         else if (action === 'perfil') this.cargarMiPerfilFB();
-        else if (action === 'publicaciones') alert('📦 Mis Publicaciones — próximo paso');
+        else if (action === 'publicaciones') this.cargarMisPublicaciones();
         else if (action === 'blog') alert('✍️ Mi Blog — próximo paso');
         else if (action === 'mensajes') this.cargarConversaciones();
         else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') this.abrirModalConfiguracion();
+    },
+
+    // === MIS PUBLICACIONES (Publicadas + Borradores) ===
+    cargarMisPublicaciones: async function() {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var container = document.getElementById('userFeedContainer');
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando tus publicaciones...</p></div>';
+        try {
+            var { data: productos, error } = await supabase.from('productos').select('*').eq('usuario_id', usuarioActual.id).order('created_at', { ascending: false });
+            if (error) throw error;
+            productos = productos || [];
+            var borradores = productos.filter(function(p) { return p.estado === 'borrador'; });
+            var publicadas = productos.filter(function(p) { return p.estado !== 'borrador'; });
+            var self = this;
+
+            var estadoBadge = { aprobado: '✅ Aprobada', pendiente: '⏳ Pendiente', borrador: '💾 Borrador' };
+            function tarjetaProducto(p, esBorrador) {
+                var foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : '';
+                return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
+                    (foto ? '<img src="' + self.escHtml(foto) + '" style="width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:60px;height:60px;border-radius:8px;background:var(--fondo-terciario);display:flex;align-items:center;justify-content:center;flex-shrink:0;">📷</div>') +
+                    '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + self.escHtml(p.titulo || 'Sin título') + '</div>' +
+                    '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div></div>' +
+                    '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                    (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
+                    '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
+                    '</div></div>';
+            }
+
+            var html = '<div style="max-width:600px;margin:0 auto;padding:16px;">';
+            html += '<h3 style="margin-bottom:12px;">📦 Mis Publicaciones (' + publicadas.length + ')</h3>';
+            html += publicadas.length ? publicadas.map(function(p) { return tarjetaProducto(p, false); }).join('') : '<div style="color:var(--texto-secundario);font-size:13px;margin-bottom:16px;">Aún no tienes publicaciones.</div>';
+
+            if (borradores.length) {
+                html += '<h3 style="margin:24px 0 12px;">💾 Borradores (' + borradores.length + ')</h3>';
+                html += borradores.map(function(p) { return tarjetaProducto(p, true); }).join('');
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus publicaciones.</p></div>';
+        }
+    },
+
+    publicarBorrador: async function(productoId) {
+        try {
+            var { error } = await supabase.from('productos').update({ estado: 'aprobado' }).eq('id', productoId);
+            if (error) throw error;
+            this.mostrarToast('✅ Publicación activada');
+            this.cargarMisPublicaciones();
+        } catch (e) {
+            this.mostrarToast('Error al publicar: ' + (e.message || 'intenta de nuevo'));
+        }
+    },
+
+    eliminarPublicacionPropia: async function(productoId) {
+        var seguro = confirm('¿Seguro que quieres eliminar esta publicación? No se puede deshacer.');
+        if (!seguro) return;
+        try {
+            var { error } = await supabase.from('productos').delete().eq('id', productoId);
+            if (error) throw error;
+            this.mostrarToast('🗑️ Publicación eliminada');
+            this.cargarMisPublicaciones();
+        } catch (e) {
+            this.mostrarToast('Error al eliminar: ' + (e.message || 'intenta de nuevo'));
+        }
     },
 
     // === FAVORITOS === [FASE 4.2 / FASE 5 - Guardar en Favoritos]
@@ -3017,9 +3083,57 @@ var PanelUsuario = {
         this.cerrarModalPublicar();
     },
 
-    // PASO 2d: guardar como borrador (función más grande, pendiente para más adelante)
-    guardarComoBorrador: function() {
-        alert('💾 Guardar como borrador — próximo paso');
+    // PASO 2d: guardar como borrador de verdad
+    guardarComoBorrador: async function() {
+        var datos = this._datosPublicacionPendiente;
+        if (!datos) return;
+        var alertEl = document.getElementById('publicarAlertVp');
+        var botones = document.querySelectorAll('.modal-fb-botones button');
+        botones.forEach(function(b) { b.disabled = true; });
+        try {
+            var fotos = [];
+            for (var i = 0; i < this._fotosSeleccionadas.length; i++) {
+                var archivo = this._fotosSeleccionadas[i];
+                var ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase();
+                var path = 'productos/' + usuarioActual.id + '/' + Date.now() + '_' + i + '.' + ext;
+                var { error: errSubida } = await supabase.storage.from('publicaciones').upload(path, archivo);
+                if (errSubida) throw errSubida;
+                var { data: urlData } = supabase.storage.from('publicaciones').getPublicUrl(path);
+                fotos.push(urlData.publicUrl);
+            }
+            var { error } = await supabase.from('productos').insert({
+                usuario_id: usuarioActual.id,
+                titulo: datos.titulo,
+                descripcion: datos.descripcionFinal,
+                categoria: datos.categoria,
+                modalidad: datos.modalidad,
+                precio: datos.precio,
+                moneda: 'PEN',
+                ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
+                pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
+                alcance: datos.alcance,
+                fotos: fotos,
+                estado: 'borrador',
+                ia_scan_status: 'pendiente',
+                acepto_declaracion_jurada: true,
+                fecha_aceptacion_jurada: new Date().toISOString(),
+                texto_ocr_fotos: this._textoOCRAcumulado || null,
+                video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
+                video_url: this._videoVerificado ? this._videoVerificado.url : null,
+                video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
+                video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null
+            });
+            if (error) throw error;
+            this.volverAlFeedDesdeVistaPrevia();
+            this.mostrarToast('💾 Guardado como borrador. Puedes retomarlo en "Mis Publicaciones".');
+            this.limpiarFormularioPublicar();
+            this._datosPublicacionPendiente = null;
+            this.cerrarModalPublicar();
+        } catch (e) {
+            if (alertEl) { alertEl.className = 'alert alert-error'; alertEl.textContent = 'Error al guardar borrador: ' + (e.message || 'intenta de nuevo'); alertEl.style.display = 'block'; }
+        } finally {
+            botones.forEach(function(b) { b.disabled = false; });
+        }
     },
 
     limpiarFormularioPublicar: function() {
