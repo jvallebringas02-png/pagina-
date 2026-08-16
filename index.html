@@ -431,6 +431,24 @@ select.form-input { cursor: pointer; }
 /* CHAT */
 /* ============================================ */
 .conv-list { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.messenger-layout { display: flex; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); height: 600px; background: #fff; }
+.messenger-list { width: 320px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--borde-suave, #E5E7EB); }
+.messenger-list .conv-list { box-shadow: none; border-radius: 0; }
+.messenger-chat-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.messenger-chat-panel .chat-header, .messenger-chat-panel .chat-input-row { border-radius: 0; box-shadow: none; border-bottom: 1px solid var(--borde-suave, #E5E7EB); }
+.messenger-chat-panel .chat-input-row { border-bottom: none; border-top: 1px solid var(--borde-suave, #E5E7EB); }
+.messenger-chat-panel .chat-messages { flex: 1; height: auto; border-radius: 0; }
+.conv-item.activo { background: var(--purpura-claro, #EDE9FE); }
+.messenger-vacio { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--texto-terciario); text-align: center; padding: 20px; }
+.messenger-back-movil { display: none; }
+@media (max-width: 768px) {
+    .messenger-layout { height: auto; min-height: 500px; position: relative; }
+    .messenger-list { width: 100%; border-right: none; }
+    .messenger-chat-panel { display: none; position: absolute; inset: 0; background: #fff; }
+    .messenger-layout.chat-activo .messenger-list { display: none; }
+    .messenger-layout.chat-activo .messenger-chat-panel { display: flex; }
+    .messenger-back-movil { display: inline; }
+}
 .conv-item { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--borde-suave, #E5E7EB); cursor: pointer; align-items: center; }
 .conv-item:hover { background: var(--fondo-terciario, #F3F4F6); }
 .conv-item:last-child { border-bottom: none; }
@@ -1503,7 +1521,7 @@ var PanelUsuario = {
             videoHtmlFeed = '<a href="' + this.escHtml(item.video_url) + '" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--borde);text-decoration:none;color:inherit;">' +
                 (item.video_miniatura ? '<img src="' + this.escHtml(item.video_miniatura) + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">' : '<span style="font-size:24px;">▶️</span>') +
                 '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶️ ' + this.escHtml(item.video_titulo || 'Video') + '</div>' +
-                '<div style="font-size:11px;color:var(--texto-secundario);">' + (item.video_plataforma === 'youtube' ? 'YouTube' : 'TikTok') + '</div></div></a>';
+                '<div style="font-size:11px;color:var(--texto-secundario);">' + (item.video_plataforma === 'youtube' ? 'YouTube' : item.video_plataforma === 'tiktok' ? 'TikTok' : 'Instagram') + '</div></div></a>';
         }
         return '<article class="feed-post" data-id="' + id + '" data-autor="' + autorUid + '">' +
             '<div class="feed-post-header">' + avatarHtml +
@@ -2642,7 +2660,16 @@ var PanelUsuario = {
         if (!url) { previewEl.innerHTML = ''; return; }
 
         if (plataforma === 'instagram') {
-            previewEl.innerHTML = '<div class="alert" style="display:block;">📸 La verificación de Instagram estará disponible próximamente. Por ahora, usa YouTube o TikTok.</div>';
+            if (url.indexOf('instagram.com') === -1) {
+                previewEl.innerHTML = '<div class="alert alert-error" style="display:block;">🚫 Ese link no parece ser de Instagram.</div>';
+                this._videoVerificado = null;
+                return;
+            }
+            this._videoVerificado = { plataforma: 'instagram', url: url, titulo: 'Ver publicación en Instagram', miniatura: '' };
+            previewEl.innerHTML = '<div style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--borde);border-radius:8px;">' +
+                '<span style="font-size:24px;">📸</span>' +
+                '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">Ver publicación en Instagram</div>' +
+                '<div style="font-size:11px;color:var(--texto-secundario);">⚠️ Enlace no verificado automáticamente todavía — revisa que sea correcto antes de publicar.</div></div></div>';
             return;
         }
 
@@ -2964,7 +2991,7 @@ var PanelUsuario = {
             videoHtml = '<a href="' + v.url + '" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--borde);border-radius:8px;margin-top:8px;text-decoration:none;color:inherit;">' +
                 (v.miniatura ? '<img src="' + v.miniatura + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
                 '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶️ ' + this.escHtml(v.titulo) + '</div>' +
-                '<div style="font-size:11px;color:var(--texto-secundario);">' + (v.plataforma === 'youtube' ? 'YouTube' : 'TikTok') + '</div></div></a>';
+                '<div style="font-size:11px;color:var(--texto-secundario);">' + (v.plataforma === 'youtube' ? 'YouTube' : v.plataforma === 'tiktok' ? 'TikTok' : 'Instagram') + '</div></div></a>';
         }
 
         var html = '<div style="max-width:540px;margin:0 auto;">' +
@@ -3161,7 +3188,7 @@ var PanelUsuario = {
     },
 
     // === CHAT === [FASE 6 - Chat con Moderación + Traducción]
-    cargarConversaciones: async function() {
+    cargarConversaciones: async function(convIdAbrir) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         var container = document.getElementById('userFeedContainer');
         if (this._scrollObserver) this._scrollObserver.disconnect();
@@ -3169,11 +3196,16 @@ var PanelUsuario = {
         try {
             var { data: convs, error } = await supabase.from('conversaciones').select('*').or('comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + usuarioActual.id).order('updated_at', { ascending: false });
             if (error) throw error;
-            if (!convs || !convs.length) {
-                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">💬</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">Sin conversaciones todavía</h3><p>Cuando compartas o te escriban sobre una publicación, aparecerá aquí.</p></div>';
+            convs = convs || [];
+            this._conversacionesCache = convs;
+
+            if (!convs.length) {
+                container.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div>' +
+                    '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">💬</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">Sin conversaciones todavía</h3><p>Cuando compartas o te escriban sobre una publicación, aparecerá aquí.</p></div>';
                 return;
             }
-            var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div><div class="conv-list">';
+
+            var listaHtml = '';
             for (var i = 0; i < convs.length; i++) {
                 var c = convs[i];
                 var otroId = c.comprador_id === usuarioActual.id ? c.vendedor_id : c.comprador_id;
@@ -3186,27 +3218,46 @@ var PanelUsuario = {
                 var ultimo = ultimosMsjs && ultimosMsjs[0];
                 var { count: noLeidos } = await supabase.from('mensajes').select('id', { count: 'exact', head: true }).eq('conversacion_id', c.id).eq('leido', false).neq('emisor_id', usuarioActual.id);
                 var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" alt="${nombreOtro}">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
-                html += '<div class="conv-item" onclick="PanelUsuario.abrirConversacion(\'' + c.id + '\')">' +
+                listaHtml += '<div class="conv-item" id="convItem-' + c.id + '" onclick="PanelUsuario.abrirConversacion(\'' + c.id + '\')">' +
                     '<div class="conv-avatar">' + avatarHtml + '</div>' +
                     '<div class="conv-info"><div class="conv-name">' + this.escHtml(nombreOtro) + (noLeidos ? ' <span class="conv-badge">' + noLeidos + '</span>' : '') + '</div>' +
                     '<div class="conv-producto">' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div>' +
                     '<div class="conv-preview">' + (ultimo ? this.escHtml((ultimo.texto_original || '').substring(0, 60)) : 'Sin mensajes aún') + '</div></div></div>';
             }
-            html += '</div>';
+
+            var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div>' +
+                '<div class="messenger-layout" id="messengerLayout">' +
+                '<div class="messenger-list"><div class="conv-list">' + listaHtml + '</div></div>' +
+                '<div class="messenger-chat-panel" id="messengerChatPanel">' +
+                '<div class="messenger-vacio"><div style="font-size:40px;">💬</div><p>Selecciona una conversación para empezar a chatear.</p></div>' +
+                '</div></div>';
             container.innerHTML = html;
             this.actualizarBadgesMensajes();
+
+            if (convIdAbrir) this.abrirConversacion(convIdAbrir);
         } catch (e) {
             console.warn('Error cargando conversaciones:', e);
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus mensajes.</p></div>';
         }
     },
 
+    volverListaConversaciones: function() {
+        var layout = document.getElementById('messengerLayout');
+        if (layout) layout.classList.remove('chat-activo');
+    },
+
     abrirConversacion: async function(convId) {
-        var container = document.getElementById('userFeedContainer');
-        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando conversación...</p></div>';
+        var panel = document.getElementById('messengerChatPanel');
+        if (!panel) { this.cargarConversaciones(convId); return; } // si aún no está el layout (ej: recién entrando), lo carga primero
+        var layout = document.getElementById('messengerLayout');
+        if (layout) layout.classList.add('chat-activo'); // en celular, muestra el chat y oculta la lista
+        document.querySelectorAll('.conv-item.activo').forEach(function(el) { el.classList.remove('activo'); });
+        var itemActivo = document.getElementById('convItem-' + convId);
+        if (itemActivo) itemActivo.classList.add('activo');
+        panel.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando conversación...</p></div>';
         try {
             var { data: conv } = await supabase.from('conversaciones').select('*').eq('id', convId).maybeSingle();
-            if (!conv) { container.innerHTML = '<div class="feed-empty"><p>Conversación no encontrada.</p></div>'; return; }
+            if (!conv) { panel.innerHTML = '<div class="feed-empty"><p>Conversación no encontrada.</p></div>'; return; }
             var otroId = conv.comprador_id === usuarioActual.id ? conv.vendedor_id : conv.comprador_id;
             var otro = await this.obtenerAutor(otroId);
             var nombreOtro = otro ? ((otro.nombres || '') + ' ' + (otro.apellidos || '')).trim() : 'Usuario';
@@ -3216,6 +3267,8 @@ var PanelUsuario = {
 
             await supabase.from('mensajes').update({ leido: true }).eq('conversacion_id', convId).neq('emisor_id', usuarioActual.id).eq('leido', false);
             this.actualizarBadgesMensajes();
+            var itemActivo2 = document.getElementById('convItem-' + convId);
+            if (itemActivo2) { var badge = itemActivo2.querySelector('.conv-badge'); if (badge) badge.remove(); }
 
             var { data: mensajes } = await supabase.from('mensajes').select('*').eq('conversacion_id', convId).order('created_at', { ascending: true });
             var self = this;
@@ -3229,7 +3282,7 @@ var PanelUsuario = {
 
             var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
 
-            container.innerHTML = '<div class="chat-header"><button class="chat-back-btn" onclick="PanelUsuario.cargarConversaciones()">← Volver</button>' +
+            panel.innerHTML = '<div class="chat-header"><button class="chat-back-btn messenger-back-movil" onclick="PanelUsuario.volverListaConversaciones()">← Volver</button>' +
                 '<div style="display:flex;align-items:center;gap:8px;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;">' + avatarHtml + '</div>' +
                 '<div><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);">' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div></div>' +
                 '<div class="chat-messages" id="chatMessages">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
@@ -3240,7 +3293,7 @@ var PanelUsuario = {
             if (msgsBox) msgsBox.scrollTop = msgsBox.scrollHeight;
         } catch (e) {
             console.warn('Error cargando conversación:', e);
-            container.innerHTML = '<div class="feed-empty"><p>No se pudo cargar la conversación.</p></div>';
+            panel.innerHTML = '<div class="feed-empty"><p>No se pudo cargar la conversación.</p></div>';
         }
     },
 
