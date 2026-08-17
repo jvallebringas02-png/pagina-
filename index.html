@@ -1766,10 +1766,14 @@ var PanelUsuario = {
             var estadoBadge = { aprobado: '✅ Aprobada', pendiente: '⏳ Pendiente', borrador: '💾 Borrador' };
             function tarjetaProducto(p, esBorrador) {
                 var foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : '';
+                var alertas = [];
+                if (p.nivel_alerta_ocr === 'medio' || p.nivel_alerta_ocr === 'alto') alertas.push((p.nivel_alerta_ocr === 'alto' ? '🔴' : '🟡') + ' Posible contacto externo');
+                if (p.nivel_alerta_legal === 'medio' || p.nivel_alerta_legal === 'alto') alertas.push((p.nivel_alerta_legal === 'alto' ? '🔴' : '🟡') + ' Revisar contenido');
+                var alertaHtml = alertas.length ? '<div style="font-size:11px;color:#B45309;margin-top:2px;">' + alertas.join(' · ') + '</div>' : '';
                 return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
                     (foto ? '<img src="' + self.escHtml(foto) + '" style="width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:60px;height:60px;border-radius:8px;background:var(--fondo-terciario);display:flex;align-items:center;justify-content:center;flex-shrink:0;">📷</div>') +
                     '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + self.escHtml(p.titulo || 'Sin título') + '</div>' +
-                    '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div></div>' +
+                    '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div>' + alertaHtml + '</div>' +
                     '<div style="display:flex;gap:6px;flex-shrink:0;">' +
                     (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
                     '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
@@ -2697,6 +2701,37 @@ var PanelUsuario = {
         }
     },
 
+    // === NIVELES DE ALERTA (contacto externo + contenido ilegal) — solo registra, no bloquea ===
+    evaluarNivelesAlerta: async function(titulo, descripcion, textoOCR) {
+        var resultado = { nivel_ocr: null, nivel_legal: null };
+        var contenidoCompleto = (titulo || '') + ' | ' + (descripcion || '') + (textoOCR ? ' | Texto en fotos: ' + textoOCR : '');
+        try {
+            var response = await fetch(CONFIG.GROQ_API_URL, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
+                body: JSON.stringify({
+                    messages: [
+                        { role: 'system', content: 'Eres un revisor de seguridad de remarket-db. Analiza el título, descripción y texto detectado en fotos de una publicación, y clasifica DOS riesgos por separado, cada uno en "bajo", "medio" o "alto":\n\n' +
+                            '1) "riesgo_contacto": ¿el contenido intenta dar un número de teléfono, WhatsApp, o cualquier forma de contactar/pagar fuera de la plataforma? Un número de modelo, talla, año o código de producto es riesgo bajo (normal). Un número de teléfono suelto sin contexto es riesgo medio. Un número junto a "cobro adelantado", "solo WhatsApp", o lenguaje de presión es riesgo alto.\n\n' +
+                            '2) "riesgo_legal": ¿el producto o servicio corresponde a alguna categoría prohibida por ley? Categorías graves (riesgo alto): armas/municiones, drogas, explotación o contenido de menores, documentos falsos, bienes robados, trata de personas, animales protegidos. Categorías moderadas (riesgo medio): medicamentos con receta sin autorización, productos falsificados/réplicas de marcas, alcohol/tabaco sin licencia, vehículos sin papeles. Todo lo demás (productos y servicios normales) es riesgo bajo.\n\n' +
+                            'Responde ÚNICAMENTE en JSON válido, sin texto adicional: {"riesgo_contacto":"bajo|medio|alto","riesgo_legal":"bajo|medio|alto"}' },
+                        { role: 'user', content: contenidoCompleto }
+                    ]
+                })
+            });
+            var data = await response.json();
+            var contenidoRespuesta = (data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '').trim();
+            contenidoRespuesta = contenidoRespuesta.replace(/^```json\s*|\s*```$/g, '').trim();
+            var parsed = JSON.parse(contenidoRespuesta);
+            var niveles = ['bajo', 'medio', 'alto'];
+            resultado.nivel_ocr = niveles.indexOf(parsed.riesgo_contacto) !== -1 ? parsed.riesgo_contacto : null;
+            resultado.nivel_legal = niveles.indexOf(parsed.riesgo_legal) !== -1 ? parsed.riesgo_legal : null;
+        } catch (e) {
+            console.warn('No se pudo evaluar el nivel de alerta (no bloquea la publicación):', e);
+        }
+        return resultado;
+    },
+
     leerTextoDeImagen: async function(file) {
         try {
             var worker = await this.obtenerWorkerOCR();
@@ -3051,6 +3086,7 @@ var PanelUsuario = {
                 fotos.push(urlData.publicUrl);
             }
             btn.textContent = '⏳ Publicando...';
+            var niveles = await this.evaluarNivelesAlerta(datos.titulo, datos.descripcionFinal, this._textoOCRAcumulado);
             var { error } = await supabase.from('productos').insert({
                 usuario_id: usuarioActual.id,
                 titulo: datos.titulo,
@@ -3068,6 +3104,8 @@ var PanelUsuario = {
                 acepto_declaracion_jurada: true,
                 fecha_aceptacion_jurada: new Date().toISOString(),
                 texto_ocr_fotos: this._textoOCRAcumulado || null,
+                nivel_alerta_ocr: niveles.nivel_ocr,
+                nivel_alerta_legal: niveles.nivel_legal,
                 video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
                 video_url: this._videoVerificado ? this._videoVerificado.url : null,
                 video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
