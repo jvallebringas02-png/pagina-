@@ -464,8 +464,12 @@ select.form-input { cursor: pointer; }
 .chat-messages { background: var(--fondo-secundario, #F9FAFB); padding: 16px; height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .chat-bubble-row { display: flex; }
 .chat-bubble-row.mio { justify-content: flex-end; }
-.chat-bubble { max-width: 70%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.chat-bubble-row.mio .chat-bubble { background: var(--purpura-ia, #8B5CF6); color: #fff; }
+.chat-bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px 18px 18px 4px; font-size: 14px; line-height: 1.4; background: #E4E6EB; color: #050505; }
+.chat-bubble-row.mio .chat-bubble { background: #0084FF; color: #fff; border-radius: 18px 18px 4px 18px; }
+.chat-bubble-hora { font-size: 11px; color: var(--texto-terciario, #8A8D91); margin-top: 3px; }
+.chat-bubble-row.mio .chat-bubble-hora { text-align: right; }
+.chat-bubble-check { font-size: 11px; margin-left: 4px; color: var(--texto-terciario, #8A8D91); }
+.chat-bubble-check.leido { color: #0084FF; }
 .chat-input-row { display: flex; gap: 8px; background: #fff; padding: 12px 16px; border-radius: 0 0 14px 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
 .chat-input-row input { flex: 1; }
 
@@ -778,6 +782,22 @@ select.form-input { cursor: pointer; }
 </div>
 
 <!-- ============================================ -->
+<!-- MODAL DECLARACIÓN JURADA DE CHAT -->
+<div id="modalDeclaracionChat" class="modal-overlay">
+<div class="modal-content" style="max-width: 460px; padding: 28px;">
+<h2 style="text-align:center;margin-bottom:14px;color:var(--purpura-ia);">🛡️ Declaración Jurada de Chat</h2>
+<p style="color:var(--texto-secundario);font-size:14px;line-height:1.5;margin-bottom:16px;">Para chatear de forma segura, acepta nuestra Declaración Jurada de Chat. Declaro que no compartiré datos bancarios, no intentaré sacar la transacción fuera de remarket-db, y me haré responsable de todo el contenido que envíe.</p>
+<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--texto-secundario);line-height:1.4;">
+<input type="checkbox" id="chatDeclaracionCheckbox" style="margin-top:3px;" onchange="document.getElementById('btnAceptarDeclaracionChat').disabled = !this.checked;">
+<span>Acepto la Declaración Jurada de Chat</span>
+</label>
+<div style="display:flex;gap:8px;margin-top:20px;">
+<button class="btn-cancelar" style="flex:1;" onclick="PanelUsuario.cancelarDeclaracionChat()">Cancelar</button>
+<button class="btn-auth btn-auth-primary" id="btnAceptarDeclaracionChat" disabled style="flex:1;" onclick="PanelUsuario.aceptarDeclaracionChat()">Aceptar</button>
+</div>
+</div>
+</div>
+
 <!-- MODAL DE COMPARTIR ESTILO FACEBOOK -->
 <!-- ============================================ -->
 <div id="modalCompartirFB" class="modal-overlay">
@@ -3379,7 +3399,10 @@ var PanelUsuario = {
                 var esMio = m.emisor_id === usuarioActual.id;
                 var textoMostrar = m.texto_original;
                 if (!esMio && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
-                msgsHtml += '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '"><div class="chat-bubble">' + self.escHtml(textoMostrar) + '</div></div>';
+                var traducidoHtml = (!esMio && textoMostrar === m.texto_traducido && m.idioma_original) ? '<div style="font-size:11px;color:var(--texto-terciario);margin-top:2px;">Traducido del ' + self.escHtml(self.NOMBRES_IDIOMAS[m.idioma_original] || m.idioma_original) + '</div>' : '';
+                var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
+                var checkHtml = esMio ? '<span class="chat-bubble-check' + (m.leido ? ' leido' : '') + '">' + (m.leido ? '✓✓' : '✓') + '</span>' : '';
+                msgsHtml += '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '"><div><div class="chat-bubble">' + self.escHtml(textoMostrar) + '</div>' + traducidoHtml + '<div class="chat-bubble-hora">' + hora + checkHtml + '</div></div></div>';
             });
 
             var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
@@ -3399,6 +3422,23 @@ var PanelUsuario = {
         }
     },
 
+    NOMBRES_IDIOMAS: { 'en': 'inglés', 'pt': 'portugués', 'fr': 'francés', 'de': 'alemán', 'it': 'italiano', 'zh': 'chino', 'ja': 'japonés', 'ko': 'coreano', 'ar': 'árabe', 'hi': 'hindi', 'nl': 'holandés', 'tr': 'turco', 'es': 'español' },
+
+    // Micro-Paso 6.2: Declaración Jurada de Chat
+    tieneDeclaracionChatAceptada: function() {
+        try { return localStorage.getItem('chat_declaracion_aceptada') === 'true'; } catch (e) { return false; }
+    },
+    aceptarDeclaracionChat: function() {
+        try { localStorage.setItem('chat_declaracion_aceptada', 'true'); } catch (e) {}
+        document.getElementById('modalDeclaracionChat').style.display = 'none';
+        var pendiente = this._chatPendiente;
+        this._chatPendiente = null;
+        if (pendiente) this.enviarMensajeChat(pendiente.convId, pendiente.otroId);
+    },
+    cancelarDeclaracionChat: function() {
+        document.getElementById('modalDeclaracionChat').style.display = 'none';
+        this._chatPendiente = null;
+    },
     FILTRO_PALABRAS_PROHIBIDAS: ['whatsapp', 'wsp', 'yape', 'plin', 'deposito', 'depósito', 'numero de cuenta', 'número de cuenta', 'cuenta bancaria', 'fuera de la plataforma', 'tarjeta de credito', 'tarjeta de crédito', 'transferencia'],
 
     moderarMensaje: function(texto) {
@@ -3414,6 +3454,13 @@ var PanelUsuario = {
         var input = document.getElementById('chatInput');
         var texto = input ? input.value.trim() : '';
         if (!texto) return;
+        if (!this.tieneDeclaracionChatAceptada()) {
+            this._chatPendiente = { convId: convId, otroId: otroId };
+            document.getElementById('chatDeclaracionCheckbox').checked = false;
+            document.getElementById('btnAceptarDeclaracionChat').disabled = true;
+            document.getElementById('modalDeclaracionChat').style.display = 'flex';
+            return;
+        }
         var alertEl = document.getElementById('chatModAlert');
         alertEl.style.display = 'none';
         var mod = this.moderarMensaje(texto);
@@ -3444,8 +3491,7 @@ var PanelUsuario = {
     },
 
     traducirTextoIA: async function(texto, idiomaDestinoCode) {
-        var nombresIdiomas = { 'en': 'inglés', 'pt': 'portugués', 'fr': 'francés', 'de': 'alemán', 'it': 'italiano', 'zh': 'chino', 'ja': 'japonés', 'ko': 'coreano', 'ar': 'árabe', 'hi': 'hindi', 'nl': 'holandés', 'tr': 'turco', 'es': 'español' };
-        var idiomaNombre = nombresIdiomas[idiomaDestinoCode] || 'inglés';
+        var idiomaNombre = this.NOMBRES_IDIOMAS[idiomaDestinoCode] || 'inglés';
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ messages: [{ role: 'system', content: 'Traduce el siguiente mensaje de chat al ' + idiomaNombre + '. Responde solo con la traducción, sin explicaciones ni comillas.' }, { role: 'user', content: texto }] }) });
             var data = await response.json();
