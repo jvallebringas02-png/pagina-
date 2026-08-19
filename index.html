@@ -1750,6 +1750,37 @@ var PanelUsuario = {
     },
 
     // === MIS PUBLICACIONES (Publicadas + Borradores) ===
+    renderTarjetaAdminPublicacion: function(p, esBorrador) {
+        var estadoBadge = { aprobado: '✅ Aprobada', pendiente: '⏳ Pendiente', borrador: '💾 Borrador' };
+        var foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : '';
+        var alertas = [];
+        if (p.nivel_alerta_ocr === 'medio' || p.nivel_alerta_ocr === 'alto') alertas.push((p.nivel_alerta_ocr === 'alto' ? '🔴' : '🟡') + ' Posible contacto externo');
+        if (p.nivel_alerta_legal === 'medio' || p.nivel_alerta_legal === 'alto') alertas.push((p.nivel_alerta_legal === 'alto' ? '🔴' : '🟡') + ' Revisar contenido');
+        var alertaHtml = alertas.length ? '<div style="font-size:11px;color:#B45309;margin-top:2px;">' + alertas.join(' · ') + '</div>' : '';
+        return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
+            (foto ? '<img src="' + this.escHtml(foto) + '" style="width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:60px;height:60px;border-radius:8px;background:var(--fondo-terciario);display:flex;align-items:center;justify-content:center;flex-shrink:0;">📷</div>') +
+            '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + this.escHtml(p.titulo || 'Sin título') + '</div>' +
+            '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div>' + alertaHtml + '</div>' +
+            '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+            (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
+            '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
+            '</div></div>';
+    },
+    renderListaAdminPublicaciones: function(productos) {
+        productos = productos || [];
+        var borradores = productos.filter(function(p) { return p.estado === 'borrador'; });
+        var publicadas = productos.filter(function(p) { return p.estado !== 'borrador'; });
+        var self = this;
+        var html = '<div style="max-width:600px;margin:0 auto;padding:16px;">';
+        html += '<h3 style="margin-bottom:12px;">📦 Publicaciones (' + publicadas.length + ')</h3>';
+        html += publicadas.length ? publicadas.map(function(p) { return self.renderTarjetaAdminPublicacion(p, false); }).join('') : '<div style="color:var(--texto-secundario);font-size:13px;margin-bottom:16px;">Aún no tienes publicaciones.</div>';
+        if (borradores.length) {
+            html += '<h3 style="margin:24px 0 12px;">💾 Borradores (' + borradores.length + ')</h3>';
+            html += borradores.map(function(p) { return self.renderTarjetaAdminPublicacion(p, true); }).join('');
+        }
+        html += '</div>';
+        return html;
+    },
     cargarMisPublicaciones: async function() {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         var container = document.getElementById('userFeedContainer');
@@ -1758,38 +1789,7 @@ var PanelUsuario = {
         try {
             var { data: productos, error } = await supabase.from('productos').select('*').eq('usuario_id', usuarioActual.id).order('created_at', { ascending: false });
             if (error) throw error;
-            productos = productos || [];
-            var borradores = productos.filter(function(p) { return p.estado === 'borrador'; });
-            var publicadas = productos.filter(function(p) { return p.estado !== 'borrador'; });
-            var self = this;
-
-            var estadoBadge = { aprobado: '✅ Aprobada', pendiente: '⏳ Pendiente', borrador: '💾 Borrador' };
-            function tarjetaProducto(p, esBorrador) {
-                var foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : '';
-                var alertas = [];
-                if (p.nivel_alerta_ocr === 'medio' || p.nivel_alerta_ocr === 'alto') alertas.push((p.nivel_alerta_ocr === 'alto' ? '🔴' : '🟡') + ' Posible contacto externo');
-                if (p.nivel_alerta_legal === 'medio' || p.nivel_alerta_legal === 'alto') alertas.push((p.nivel_alerta_legal === 'alto' ? '🔴' : '🟡') + ' Revisar contenido');
-                var alertaHtml = alertas.length ? '<div style="font-size:11px;color:#B45309;margin-top:2px;">' + alertas.join(' · ') + '</div>' : '';
-                return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
-                    (foto ? '<img src="' + self.escHtml(foto) + '" style="width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:60px;height:60px;border-radius:8px;background:var(--fondo-terciario);display:flex;align-items:center;justify-content:center;flex-shrink:0;">📷</div>') +
-                    '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + self.escHtml(p.titulo || 'Sin título') + '</div>' +
-                    '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div>' + alertaHtml + '</div>' +
-                    '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-                    (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
-                    '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
-                    '</div></div>';
-            }
-
-            var html = '<div style="max-width:600px;margin:0 auto;padding:16px;">';
-            html += '<h3 style="margin-bottom:12px;">📦 Mis Publicaciones (' + publicadas.length + ')</h3>';
-            html += publicadas.length ? publicadas.map(function(p) { return tarjetaProducto(p, false); }).join('') : '<div style="color:var(--texto-secundario);font-size:13px;margin-bottom:16px;">Aún no tienes publicaciones.</div>';
-
-            if (borradores.length) {
-                html += '<h3 style="margin:24px 0 12px;">💾 Borradores (' + borradores.length + ')</h3>';
-                html += borradores.map(function(p) { return tarjetaProducto(p, true); }).join('');
-            }
-            html += '</div>';
-            container.innerHTML = html;
+            container.innerHTML = this.renderListaAdminPublicaciones(productos);
         } catch (e) {
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus publicaciones.</p></div>';
         }
@@ -1977,7 +1977,7 @@ var PanelUsuario = {
             `;
             
             container.innerHTML = html;
-            await this.cargarPublicacionesPerfil(usuarioActual.id);
+            this.cambiarPestanaPerfil('publicaciones');
             
         } catch (e) {
             console.warn('Error cargando perfil:', e);
@@ -1994,7 +1994,13 @@ var PanelUsuario = {
         
         var container = document.getElementById('perfilContenido');
         if (tab === 'publicaciones') {
-            this.cargarPublicacionesPerfil(usuarioActual.id);
+            container.innerHTML = `
+                <div style="background:#fff;border-radius:12px;padding:32px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                    <div style="font-size:48px;margin-bottom:12px;">📦</div>
+                    <p style="color:var(--texto-secundario);margin-bottom:16px;">Administra tus publicaciones (incluye borradores) desde "Mis Publicaciones" en el menú.</p>
+                    <button class="btn-publicar" onclick="PanelUsuario.menuClick('publicaciones')">Ir a Mis Publicaciones</button>
+                </div>
+            `;
         } else if (tab === 'acerca') {
             container.innerHTML = `
                 <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
@@ -2018,40 +2024,6 @@ var PanelUsuario = {
                     <p style="color:var(--texto-secundario);">Tus artículos del blog aparecerán aquí</p>
                 </div>
             `;
-        }
-    },
-
-    cargarPublicacionesPerfil: async function(usuarioId) {
-        var container = document.getElementById('perfilContenido');
-        try {
-            var { data: productos } = await supabase
-                .from('productos')
-                .select('*')
-                .eq('usuario_id', usuarioId)
-                .order('created_at', { ascending: false });
-                
-            if (!productos || !productos.length) {
-                container.innerHTML = `
-                    <div class="feed-empty">
-                        <div style="font-size:48px;margin-bottom:12px;">📭</div>
-                        <h3 style="color:var(--texto-principal);margin-bottom:8px;">Sin publicaciones aún</h3>
-                        <p>Comparte algo con la comunidad.</p>
-                        <button class="btn-publicar" style="margin-top:16px;" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar ahora</button>
-                    </div>
-                `;
-                return;
-            }
-            
-            var html = '';
-            for (var i = 0; i < productos.length; i++) {
-                var p = productos[i];
-                var autor = await PanelUsuario.obtenerAutor(p.usuario_id);
-                html += PanelUsuario.renderPost(p, autor);
-            }
-            container.innerHTML = html;
-            
-        } catch (e) {
-            container.innerHTML = '<div class="feed-empty"><p>Error al cargar publicaciones.</p></div>';
         }
     },
 
