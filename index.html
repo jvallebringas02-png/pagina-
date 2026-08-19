@@ -991,18 +991,12 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
 <div id="modalReportar" class="modal-overlay">
 <div class="modal-fb">
     <div class="modal-fb-header">
-        <div style="display:flex;align-items:center;gap:8px;">🚩 <span>Reportar publicación</span></div>
+        <div style="display:flex;align-items:center;gap:8px;">🚩 <span id="reportarTitulo">Reportar publicación</span></div>
         <button class="modal-close" onclick="PanelUsuario.cerrarModalReportar()">✕</button>
     </div>
     <div class="modal-fb-body">
-        <div style="font-size:13px;color:var(--texto-secundario);margin-bottom:12px;">¿Por qué quieres reportar esta publicación?</div>
-        <div id="reportarOpciones" style="display:flex;flex-direction:column;gap:8px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Estafa o fraude" checked> Estafa o fraude</label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Contenido ofensivo"> Contenido ofensivo</label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Precio falso o engañoso"> Precio falso o engañoso</label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Producto o servicio prohibido"> Producto o servicio prohibido</label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="Otro"> Otro</label>
-        </div>
+        <div id="reportarPregunta" style="font-size:13px;color:var(--texto-secundario);margin-bottom:12px;">¿Por qué quieres reportar esta publicación?</div>
+        <div id="reportarOpciones" style="display:flex;flex-direction:column;gap:8px;"></div>
         <textarea id="reportarDetalle" class="form-input" rows="2" placeholder="Cuéntanos más (opcional)..." style="margin-top:10px;"></textarea>
         <div id="reportarAlert" class="alert" style="display:none;margin-top:10px;"></div>
         <div class="modal-fb-botones" style="margin-top:16px;">
@@ -1596,7 +1590,7 @@ var PanelUsuario = {
         if (!uid) return null;
         if (this.autoresCacheGlobal[uid]) return this.autoresCacheGlobal[uid];
         if (usuarioActual && usuarioActual.id === uid) { this.autoresCacheGlobal[uid] = usuarioActual; return usuarioActual; }
-        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico, idioma_preferido, foto_perfil').eq('id', uid).maybeSingle();
+        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico, idioma_preferido, foto_perfil, ultima_conexion').eq('id', uid).maybeSingle();
         if (u) this.autoresCacheGlobal[uid] = u;
         return u;
     },
@@ -2202,13 +2196,33 @@ var PanelUsuario = {
     // === REPORTAR PUBLICACIÓN ===
     _productoReportando: null,
 
+    OPCIONES_REPORTE_PUBLICACION: ['Estafa o fraude', 'Contenido ofensivo', 'Precio falso o engañoso', 'Producto o servicio prohibido', 'Otro'],
+    OPCIONES_REPORTE_USUARIO: ['Acoso o comportamiento abusivo', 'Estafa o fraude', 'Suplantación de identidad', 'Spam', 'Otro'],
+    _renderOpcionesReportar: function(opciones) {
+        document.getElementById('reportarOpciones').innerHTML = opciones.map(function(op, i) {
+            return '<label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="reportarMotivo" value="' + op + '"' + (i === 0 ? ' checked' : '') + '> ' + op + '</label>';
+        }).join('');
+    },
     abrirModalReportar: function(productoId) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         this._productoReportando = productoId;
+        this._usuarioReportando = null;
+        document.getElementById('reportarTitulo').textContent = 'Reportar publicación';
+        document.getElementById('reportarPregunta').textContent = '¿Por qué quieres reportar esta publicación?';
+        this._renderOpcionesReportar(this.OPCIONES_REPORTE_PUBLICACION);
         document.getElementById('reportarDetalle').value = '';
         document.getElementById('reportarAlert').style.display = 'none';
-        var radios = document.querySelectorAll('input[name="reportarMotivo"]');
-        radios.forEach(function(r, i) { r.checked = i === 0; });
+        document.getElementById('modalReportar').style.display = 'flex';
+    },
+    abrirModalReportarUsuario: function(usuarioId, nombre) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        this._productoReportando = null;
+        this._usuarioReportando = usuarioId;
+        document.getElementById('reportarTitulo').textContent = 'Reportar a ' + nombre;
+        document.getElementById('reportarPregunta').textContent = '¿Por qué quieres reportar a este usuario?';
+        this._renderOpcionesReportar(this.OPCIONES_REPORTE_USUARIO);
+        document.getElementById('reportarDetalle').value = '';
+        document.getElementById('reportarAlert').style.display = 'none';
         document.getElementById('modalReportar').style.display = 'flex';
     },
 
@@ -2223,7 +2237,8 @@ var PanelUsuario = {
         var detalle = document.getElementById('reportarDetalle').value.trim();
         try {
             var { error } = await supabase.from('reportes').insert({
-                producto_id: this._productoReportando,
+                producto_id: this._productoReportando || null,
+                usuario_reportado_id: this._usuarioReportando || null,
                 usuario_reporta_id: usuarioActual.id,
                 motivo: motivo,
                 detalle: detalle || null,
@@ -3395,10 +3410,11 @@ var PanelUsuario = {
             var { data: mensajes } = await supabase.from('mensajes').select('*').eq('conversacion_id', convId).order('created_at', { ascending: true });
             var self = this;
             var msgsHtml = '';
+            var traduccionActivaMsgs = this.tieneTraduccionChatActiva();
             (mensajes || []).forEach(function(m) {
                 var esMio = m.emisor_id === usuarioActual.id;
                 var textoMostrar = m.texto_original;
-                if (!esMio && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
+                if (!esMio && traduccionActivaMsgs && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
                 var traducidoHtml = (!esMio && textoMostrar === m.texto_traducido && m.idioma_original) ? '<div style="font-size:11px;color:var(--texto-terciario);margin-top:2px;">Traducido del ' + self.escHtml(self.NOMBRES_IDIOMAS[m.idioma_original] || m.idioma_original) + '</div>' : '';
                 var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
                 var checkHtml = esMio ? '<span class="chat-bubble-check' + (m.leido ? ' leido' : '') + '">' + (m.leido ? '✓✓' : '✓') + '</span>' : '';
@@ -3406,10 +3422,16 @@ var PanelUsuario = {
             });
 
             var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
+            var enLinea = otro && otro.ultima_conexion && (Date.now() - new Date(otro.ultima_conexion).getTime() < 120000);
+            var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">🟢 En línea</span>' : '<span>⚫ Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
+            var traduccionActiva = this.tieneTraduccionChatActiva();
 
             panel.innerHTML = '<div class="chat-header"><button class="chat-back-btn messenger-back-movil" onclick="PanelUsuario.volverListaConversaciones()">← Volver</button>' +
-                '<div style="display:flex;align-items:center;gap:8px;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;">' + avatarHtml + '</div>' +
-                '<div><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);">' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div></div>' +
+                '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0;">' + avatarHtml + '</div>' +
+                '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
+                '<button type="button" title="' + (traduccionActiva ? 'Desactivar traducción automática' : 'Activar traducción automática') + '" onclick="PanelUsuario.toggleTraduccionChat(\'' + convId + '\', \'' + otroId + '\')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;opacity:' + (traduccionActiva ? '1' : '0.4') + ';" >🌐</button>' +
+                '<button type="button" title="Reportar usuario" onclick="PanelUsuario.abrirModalReportarUsuario(\'' + otroId + '\', \'' + this.escHtml(nombreOtro) + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚩</button>' +
+                '</div>' +
                 '<div class="chat-messages" id="chatMessages">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
                 '<div id="chatModAlert" class="alert" style="margin:0 12px;"></div>' +
                 '<div class="chat-input-row"><input type="text" id="chatInput" class="form-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\')}"><button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\')"><i class="fas fa-paper-plane"></i></button></div>';
@@ -3438,6 +3460,16 @@ var PanelUsuario = {
     cancelarDeclaracionChat: function() {
         document.getElementById('modalDeclaracionChat').style.display = 'none';
         this._chatPendiente = null;
+    },
+
+    // Micro-Paso 6.5: interruptor de traducción automática (activa por defecto)
+    tieneTraduccionChatActiva: function() {
+        try { var v = localStorage.getItem('chat_traduccion_activa'); return v === null ? true : v === 'true'; } catch (e) { return true; }
+    },
+    toggleTraduccionChat: function(convId, otroId) {
+        var activa = this.tieneTraduccionChatActiva();
+        try { localStorage.setItem('chat_traduccion_activa', (!activa).toString()); } catch (e) {}
+        this.abrirConversacion(convId);
     },
     FILTRO_PALABRAS_PROHIBIDAS: ['whatsapp', 'wsp', 'yape', 'plin', 'deposito', 'depósito', 'numero de cuenta', 'número de cuenta', 'cuenta bancaria', 'fuera de la plataforma', 'tarjeta de credito', 'tarjeta de crédito', 'transferencia'],
 
@@ -4035,6 +4067,7 @@ function updateUIForUser(usuario) {
         if (btnPublicarHeader) btnPublicarHeader.classList.add('activo');
         PanelUsuario.actualizarBadgesMensajes();
         toggleVistaUsuario(true);
+        iniciarLatidoConexion();
     } else {
         usuarioActual = null;
         window.usuarioActual = null;
@@ -4048,7 +4081,22 @@ function updateUIForUser(usuario) {
         if (floatBtn) floatBtn.classList.remove('activo');
         if (btnPublicarHeader) btnPublicarHeader.classList.remove('activo');
         PanelUsuario.cerrarMenuPerfil();
+        detenerLatidoConexion();
     }
+}
+
+var _latidoConexionInterval = null;
+function iniciarLatidoConexion() {
+    if (_latidoConexionInterval) return;
+    var actualizar = async function() {
+        if (!usuarioActual) return;
+        try { await supabase.from('usuarios').update({ ultima_conexion: new Date().toISOString() }).eq('id', usuarioActual.id); } catch (e) { /* columna aún no creada en Supabase: se ignora */ }
+    };
+    actualizar();
+    _latidoConexionInterval = setInterval(actualizar, 60000);
+}
+function detenerLatidoConexion() {
+    if (_latidoConexionInterval) { clearInterval(_latidoConexionInterval); _latidoConexionInterval = null; }
 }
 
 async function logout() {
