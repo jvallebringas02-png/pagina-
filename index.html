@@ -686,7 +686,7 @@ select.form-input { cursor: pointer; }
 <div id="modalPublicar" class="modal-overlay">
 <div class="modal-content" style="max-width: 560px; padding: 30px; max-height: 85vh; overflow-y: auto;">
 <button class="modal-close-btn" onclick="PanelUsuario.cerrarModalPublicar()">&times;</button>
-<h2 style="text-align:center;margin-bottom:5px;color:var(--purpura-ia);">📦 Publicar</h2>
+<h2 id="modalPublicarTitulo" style="text-align:center;margin-bottom:5px;color:var(--purpura-ia);">📦 Publicar</h2>
 <p style="text-align:center;color:var(--texto-secundario);margin-bottom:20px;font-size:14px;">Completa los datos de tu publicación</p>
 <div id="publicarAlert" class="alert"></div>
 
@@ -1763,6 +1763,7 @@ var PanelUsuario = {
             '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div>' + alertaHtml + '</div>' +
             '<div style="display:flex;gap:6px;flex-shrink:0;">' +
             (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
+            '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.editarPublicacion(\'' + p.id + '\')">✏️ Editar</button>' +
             '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
             '</div></div>';
     },
@@ -2575,12 +2576,54 @@ var PanelUsuario = {
         document.getElementById('publicarAlert').className = 'alert';
         document.getElementById('publicarAlert').style.display = 'none';
         this._fotosSeleccionadas = [];
+        this._fotosExistentesEdit = [];
+        this._editandoProductoId = null;
+        document.getElementById('modalPublicarTitulo').textContent = '📦 Publicar';
         this._textoOCRAcumulado = '';
         this.renderFotosPreview();
         var btnSubmit = document.getElementById('btnPublicarSubmit');
         if (btnSubmit) btnSubmit.disabled = true;
         var declaracion = document.getElementById('pubDeclaracionJurada');
         if (declaracion) declaracion.checked = false;
+    },
+    editarPublicacion: async function(id) {
+        try {
+            var { data: p, error } = await supabase.from('productos').select('*').eq('id', id).eq('usuario_id', usuarioActual.id).single();
+            if (error || !p) { this.mostrarToast('No se pudo cargar la publicación'); return; }
+
+            this.abrirModalPublicar();
+            this._editandoProductoId = id;
+            document.getElementById('modalPublicarTitulo').textContent = '✏️ Editar publicación';
+
+            var esServicio = p.modalidad === 'servicio';
+            document.getElementById('pubTipo').value = esServicio ? 'servicio' : 'producto';
+            this.onTipoPublicacionChange();
+
+            document.getElementById('pubTitulo').value = p.titulo || '';
+            document.getElementById('pubTituloContador').textContent = (p.titulo || '').length + '/100';
+            document.getElementById('pubDescripcion').value = p.descripcion || '';
+            document.getElementById('pubDescripcionContador').textContent = (p.descripcion || '').length + '/500';
+            document.getElementById('pubCategoria').value = p.categoria || 'Tecnología';
+
+            if (!esServicio) {
+                document.getElementById('pubModalidad').value = p.modalidad || 'venta';
+                this.onModalidadChange();
+            }
+            document.getElementById('pubPrecio').value = (p.precio != null) ? p.precio : '';
+            document.getElementById('pubCantidad').value = '';
+
+            var alcanceRadio = document.querySelector('input[name="pubAlcance"][value="' + (p.alcance || 'local') + '"]');
+            if (alcanceRadio) alcanceRadio.checked = true;
+
+            this._fotosExistentesEdit = (p.fotos || []).slice();
+            this._fotosSeleccionadas = [];
+            this.renderFotosPreview();
+
+            document.getElementById('pubDeclaracionJurada').checked = true;
+            document.getElementById('btnPublicarSubmit').disabled = false;
+        } catch (e) {
+            this.mostrarToast('Error al cargar la publicación');
+        }
     },
     cerrarModalPublicar: function() {
         document.getElementById('modalPublicar').style.display = 'none';
@@ -2777,7 +2820,7 @@ var PanelUsuario = {
                 alertEl.style.display = 'block';
                 continue;
             }
-            if (this._fotosSeleccionadas.length >= 5) {
+            if ((this._fotosExistentesEdit || []).length + this._fotosSeleccionadas.length >= 5) {
                 alertEl.className = 'alert alert-error';
                 alertEl.textContent = '🚫 Máximo 5 fotos por publicación.';
                 alertEl.style.display = 'block';
@@ -2838,9 +2881,20 @@ var PanelUsuario = {
         this._fotosSeleccionadas.splice(index, 1);
         this.renderFotosPreview();
     },
+    quitarFotoExistente: function(index) {
+        this._fotosExistentesEdit.splice(index, 1);
+        this.renderFotosPreview();
+    },
     renderFotosPreview: function() {
         var cont = document.getElementById('pubFotosPreview');
-        var html = this._fotosSeleccionadas.map(function(f, i) {
+        var self = this;
+        var htmlExistentes = (this._fotosExistentesEdit || []).map(function(url, i) {
+            return '<div style="position:relative;width:72px;height:72px;">' +
+                '<img src="' + self.escHtml(url) + '" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--borde);">' +
+                '<button type="button" onclick="PanelUsuario.quitarFotoExistente(' + i + ')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#EF4444;color:#fff;border:none;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+                '</div>';
+        }).join('');
+        var html = htmlExistentes + this._fotosSeleccionadas.map(function(f, i) {
             var url = URL.createObjectURL(f);
             return '<div style="position:relative;width:72px;height:72px;">' +
                 '<img src="' + url + '" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--borde);">' +
@@ -2848,7 +2902,7 @@ var PanelUsuario = {
                 '</div>';
         }).join('');
         // Casilla "+" estilo Facebook para agregar más fotos, visible mientras no se llegue al máximo de 5
-        if (this._fotosSeleccionadas.length < 5) {
+        if ((this._fotosExistentesEdit || []).length + this._fotosSeleccionadas.length < 5) {
             html += '<button type="button" onclick="document.getElementById(\'pubFotosInput\').click()" ' +
                 'style="width:72px;height:72px;border-radius:8px;border:2px dashed var(--borde);background:var(--fondo-secundario);' +
                 'display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--purpura-ia);cursor:pointer;line-height:1;" ' +
@@ -2955,7 +3009,8 @@ var PanelUsuario = {
         if (!titulo) { mostrarError('El título es obligatorio'); return; }
         if (!esServicio && modalidad === 'venta' && !precio) { mostrarError('Ingresa un precio para la venta'); return; }
         if (!declaracion) { mostrarError('Debes aceptar la Declaración Jurada para publicar'); return; }
-        if (this._fotosSeleccionadas.length === 0) {
+        var totalFotos = (this._fotosExistentesEdit || []).length + this._fotosSeleccionadas.length;
+        if (totalFotos === 0) {
             var continuar = confirm('Estás publicando sin fotos. Las publicaciones con fotos reales generan más confianza y respuestas.\n\n¿Quieres continuar así de todos modos?');
             if (!continuar) return;
         }
@@ -2976,19 +3031,21 @@ var PanelUsuario = {
 
         var nombreCompleto = ((usuarioActual.nombres || '') + ' ' + (usuarioActual.apellidos || '')).trim() || 'Usuario';
         var precioTexto = (!esServicio && modalidad === 'venta' && precio) ? ('S/ ' + precio) : (esServicio ? 'Servicio' : modalidad.charAt(0).toUpperCase() + modalidad.slice(1));
-        var fotos = this._fotosSeleccionadas;
+        var fotosExistentes = this._fotosExistentesEdit || [];
+        var fotosNuevas = this._fotosSeleccionadas;
+        var todasLasUrls = fotosExistentes.concat(fotosNuevas.map(function(f) { return URL.createObjectURL(f); }));
         var imagenHtml;
-        if (fotos.length > 1) {
+        if (todasLasUrls.length > 1) {
             imagenHtml = '<div class="feed-post-carousel">' +
                 '<div class="feed-post-carousel-track" id="carruselTrack-vp" onscroll="PanelUsuario.actualizarDotsCarrusel(this)">' +
-                fotos.map(function(f) { return '<img class="feed-post-image" src="' + URL.createObjectURL(f) + '">'; }).join('') +
+                todasLasUrls.map(function(u) { return '<img class="feed-post-image" src="' + u + '">'; }).join('') +
                 '</div>' +
                 '<button type="button" class="feed-post-carousel-arrow prev" onclick="PanelUsuario.moverCarrusel(\'vp\', -1)">‹</button>' +
                 '<button type="button" class="feed-post-carousel-arrow next" onclick="PanelUsuario.moverCarrusel(\'vp\', 1)">›</button>' +
-                '<div class="feed-post-carousel-dots">' + fotos.map(function(f, i) { return '<span class="dot' + (i === 0 ? ' active' : '') + '"></span>'; }).join('') + '</div>' +
+                '<div class="feed-post-carousel-dots">' + todasLasUrls.map(function(u, i) { return '<span class="dot' + (i === 0 ? ' active' : '') + '"></span>'; }).join('') + '</div>' +
                 '</div>';
-        } else if (fotos.length === 1) {
-            imagenHtml = '<img src="' + URL.createObjectURL(fotos[0]) + '" class="feed-post-image">';
+        } else if (todasLasUrls.length === 1) {
+            imagenHtml = '<img src="' + todasLasUrls[0] + '" class="feed-post-image">';
         } else {
             imagenHtml = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
@@ -3001,8 +3058,18 @@ var PanelUsuario = {
                 '<div style="font-size:11px;color:var(--texto-secundario);">' + (v.plataforma === 'youtube' ? 'YouTube' : v.plataforma === 'tiktok' ? 'TikTok' : 'Instagram') + '</div></div></a>';
         }
 
+        var esEdicion = !!this._editandoProductoId;
+        var botonesHtml = esEdicion ?
+            ('<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.editarDesdeVistaPrevia()">← Seguir editando</button>' +
+             '<button class="btn-auth btn-auth-primary" id="btnVpConfirmar" style="flex:1;min-width:160px;" onclick="PanelUsuario.confirmarPublicacionFinal()">✅ Guardar cambios</button>')
+            :
+            ('<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.descartarPublicacion()">🗑️ Descartar</button>' +
+             '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.guardarComoBorrador()">💾 Guardar borrador</button>' +
+             '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.editarDesdeVistaPrevia()">← Editar</button>' +
+             '<button class="btn-auth btn-auth-primary" id="btnVpConfirmar" style="flex:1;min-width:160px;" onclick="PanelUsuario.confirmarPublicacionFinal()">✅ Confirmar y Publicar</button>');
+
         var html = '<div style="max-width:540px;margin:0 auto;">' +
-            '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:12px;display:flex;align-items:center;gap:6px;">👁️ <strong style="color:var(--texto-principal);">Vista Previa</strong> — así se verá tu publicación. Revísala antes de confirmar.</div>' +
+            '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:12px;display:flex;align-items:center;gap:6px;">👁️ <strong style="color:var(--texto-principal);">' + (esEdicion ? 'Vista Previa de tus cambios' : 'Vista Previa') + '</strong> — así se verá tu publicación. Revísala antes de confirmar.</div>' +
             '<div class="preview-compartir">' +
                 '<div class="preview-compartir-header">' +
                     '<div class="preview-compartir-avatar">' + this.escHtml(nombreCompleto.charAt(0).toUpperCase()) + '</div>' +
@@ -3017,12 +3084,7 @@ var PanelUsuario = {
                 '</div>' +
             '</div>' +
             '<div id="publicarAlertVp" class="alert" style="margin-top:12px;"></div>' +
-            '<div class="modal-fb-botones" style="flex-wrap:wrap;gap:8px;margin-top:16px;">' +
-                '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.descartarPublicacion()">🗑️ Descartar</button>' +
-                '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.guardarComoBorrador()">💾 Guardar borrador</button>' +
-                '<button class="btn-cancelar" style="flex:1;min-width:120px;" onclick="PanelUsuario.editarDesdeVistaPrevia()">← Editar</button>' +
-                '<button class="btn-auth btn-auth-primary" id="btnVpConfirmar" style="flex:1;min-width:160px;" onclick="PanelUsuario.confirmarPublicacionFinal()">✅ Confirmar y Publicar</button>' +
-            '</div>' +
+            '<div class="modal-fb-botones" style="flex-wrap:wrap;gap:8px;margin-top:16px;">' + botonesHtml + '</div>' +
         '</div>';
 
         document.getElementById('vistaPreviaInline').innerHTML = html;
@@ -3032,7 +3094,7 @@ var PanelUsuario = {
 
         // El asistente muestra contexto real de lo que se está publicando
         if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) {
-            UIController.mostrarRespuestaIA('👁️ Estoy viendo tu publicación "' + titulo + '" — ' + precioTexto + ', categoría ' + categoria + ', con ' + fotos.length + (fotos.length === 1 ? ' foto' : ' fotos') + (this._videoVerificado ? ' y un video de ' + (this._videoVerificado.plataforma === 'youtube' ? 'YouTube' : 'TikTok') : '') + '. Si quieres que revise algo específico, pregúntame.', 'assistant');
+            UIController.mostrarRespuestaIA('👁️ Estoy viendo tu publicación "' + titulo + '" — ' + precioTexto + ', categoría ' + categoria + ', con ' + todasLasUrls.length + (todasLasUrls.length === 1 ? ' foto' : ' fotos') + (this._videoVerificado ? ' y un video de ' + (this._videoVerificado.plataforma === 'youtube' ? 'YouTube' : 'TikTok') : '') + '. Si quieres que revise algo específico, pregúntame.', 'assistant');
         }
     },
 
@@ -3047,7 +3109,7 @@ var PanelUsuario = {
         btn.textContent = '⏳ Subiendo fotos...';
         btn.disabled = true;
         try {
-            var fotos = [];
+            var fotos = (this._fotosExistentesEdit || []).slice();
             for (var i = 0; i < this._fotosSeleccionadas.length; i++) {
                 var archivo = this._fotosSeleccionadas[i];
                 var ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase();
@@ -3057,38 +3119,65 @@ var PanelUsuario = {
                 var { data: urlData } = supabase.storage.from('publicaciones').getPublicUrl(path);
                 fotos.push(urlData.publicUrl);
             }
-            btn.textContent = '⏳ Publicando...';
             var niveles = await this.evaluarNivelesAlerta(datos.titulo, datos.descripcionFinal, this._textoOCRAcumulado);
-            var { error } = await supabase.from('productos').insert({
-                usuario_id: usuarioActual.id,
-                titulo: datos.titulo,
-                descripcion: datos.descripcionFinal,
-                categoria: datos.categoria,
-                modalidad: datos.modalidad,
-                precio: datos.precio,
-                moneda: 'PEN',
-                ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
-                pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
-                alcance: datos.alcance,
-                fotos: fotos,
-                estado: 'aprobado', // auto-aprobado: no hay Panel de Moderador todavía (queda pendiente para más adelante)
-                ia_scan_status: 'pendiente',
-                acepto_declaracion_jurada: true,
-                fecha_aceptacion_jurada: new Date().toISOString(),
-                texto_ocr_fotos: this._textoOCRAcumulado || null,
-                nivel_alerta_ocr: niveles.nivel_ocr,
-                nivel_alerta_legal: niveles.nivel_legal,
-                video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
-                video_url: this._videoVerificado ? this._videoVerificado.url : null,
-                video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
-                video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null
-            });
-            if (error) throw error;
-            this.volverAlFeedDesdeVistaPrevia();
-            this.mostrarToast('✅ ¡Publicación creada y ya visible en el feed!');
-            this.limpiarFormularioPublicar();
-            this._datosPublicacionPendiente = null;
-            this.cargarFeed();
+
+            if (this._editandoProductoId) {
+                btn.textContent = '⏳ Guardando cambios...';
+                var { error } = await supabase.from('productos').update({
+                    titulo: datos.titulo,
+                    descripcion: datos.descripcionFinal,
+                    categoria: datos.categoria,
+                    modalidad: datos.modalidad,
+                    precio: datos.precio,
+                    alcance: datos.alcance,
+                    fotos: fotos,
+                    texto_ocr_fotos: this._textoOCRAcumulado || null,
+                    nivel_alerta_ocr: niveles.nivel_ocr,
+                    nivel_alerta_legal: niveles.nivel_legal,
+                    video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
+                    video_url: this._videoVerificado ? this._videoVerificado.url : null,
+                    video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
+                    video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null
+                }).eq('id', this._editandoProductoId).eq('usuario_id', usuarioActual.id);
+                if (error) throw error;
+                this.volverAlFeedDesdeVistaPrevia();
+                this.mostrarToast('✅ Cambios guardados.');
+                this.limpiarFormularioPublicar();
+                this._datosPublicacionPendiente = null;
+                this.cargarMisPublicaciones();
+            } else {
+                btn.textContent = '⏳ Publicando...';
+                var { error } = await supabase.from('productos').insert({
+                    usuario_id: usuarioActual.id,
+                    titulo: datos.titulo,
+                    descripcion: datos.descripcionFinal,
+                    categoria: datos.categoria,
+                    modalidad: datos.modalidad,
+                    precio: datos.precio,
+                    moneda: 'PEN',
+                    ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
+                    pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
+                    alcance: datos.alcance,
+                    fotos: fotos,
+                    estado: 'aprobado', // auto-aprobado: no hay Panel de Moderador todavía (queda pendiente para más adelante)
+                    ia_scan_status: 'pendiente',
+                    acepto_declaracion_jurada: true,
+                    fecha_aceptacion_jurada: new Date().toISOString(),
+                    texto_ocr_fotos: this._textoOCRAcumulado || null,
+                    nivel_alerta_ocr: niveles.nivel_ocr,
+                    nivel_alerta_legal: niveles.nivel_legal,
+                    video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
+                    video_url: this._videoVerificado ? this._videoVerificado.url : null,
+                    video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
+                    video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null
+                });
+                if (error) throw error;
+                this.volverAlFeedDesdeVistaPrevia();
+                this.mostrarToast('✅ ¡Publicación creada y ya visible en el feed!');
+                this.limpiarFormularioPublicar();
+                this._datosPublicacionPendiente = null;
+                this.cargarFeed();
+            }
         } catch (e) {
             mostrarError('Error al publicar: ' + (e.message || 'Intenta de nuevo'));
         } finally {
@@ -3192,6 +3281,9 @@ var PanelUsuario = {
         document.getElementById('pubVideoPreview').innerHTML = '';
         this._videoVerificado = null;
         this._fotosSeleccionadas = [];
+        this._fotosExistentesEdit = [];
+        this._editandoProductoId = null;
+        document.getElementById('modalPublicarTitulo').textContent = '📦 Publicar';
         this._textoOCRAcumulado = '';
         this.renderFotosPreview();
         this.onTipoPublicacionChange();
