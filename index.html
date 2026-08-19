@@ -631,7 +631,6 @@ select.form-input { cursor: pointer; }
 <button class="user-menu-item active" data-action="inicio" onclick="PanelUsuario.menuClick('inicio')"><span>🏠</span> <span id="menuTextInicio">Inicio</span></button>
 <button class="user-menu-item" data-action="perfil" onclick="PanelUsuario.menuClick('perfil')"><span>👤</span> <span id="menuTextPerfil">Mi Perfil</span></button>
 <button class="user-menu-item" data-action="publicaciones" onclick="PanelUsuario.menuClick('publicaciones')"><span>📦</span> <span id="menuTextPublicaciones">Mis Publicaciones</span></button>
-<button class="user-menu-item" data-action="blog" onclick="PanelUsuario.menuClick('blog')"><span>✍️</span> <span id="menuTextBlog">Mi Blog</span></button>
 <button class="user-menu-item" data-action="mensajes" onclick="PanelUsuario.menuClick('mensajes')"><span>💬</span> <span id="menuTextMensajes">Mensajes</span> <span class="menu-badge" id="mensajesBadge">0</span></button>
 <button class="user-menu-item" data-action="favoritos" onclick="PanelUsuario.menuClick('favoritos')"><span>❤️</span> <span id="menuTextFavoritos">Favoritos</span></button>
 <button class="user-menu-item" data-action="config" onclick="PanelUsuario.menuClick('config')"><span>⚙️</span> <span id="menuTextConfig">Configuración</span></button>
@@ -1011,13 +1010,21 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
 <!-- MODAL DE CONFIGURACIÓN (intereses y localidad) -->
 <!-- ============================================ -->
 <div id="modalConfiguracion" class="modal-overlay">
-<div class="modal-fb">
+<div class="modal-fb" style="max-width:520px;max-height:85vh;overflow-y:auto;">
     <div class="modal-fb-header">
         <div style="display:flex;align-items:center;gap:8px;">⚙️ <span>Configuración</span></div>
         <button class="modal-close" onclick="PanelUsuario.cerrarModalConfiguracion()">✕</button>
     </div>
     <div class="modal-fb-body">
-        <label class="form-label">Tus intereses</label>
+
+        <label class="form-label">📍 Tu localidad</label>
+        <div style="font-size:12px;color:var(--texto-secundario);margin-bottom:8px;">Se usa para mostrarte publicaciones cercanas y sugerir el alcance de las tuyas.</div>
+        <div style="display:flex;gap:8px;margin-bottom:20px;">
+            <input type="text" id="configCiudad" class="form-input" placeholder="Ciudad (ej: Trujillo)">
+            <input type="text" id="configPais" class="form-input" placeholder="País (ej: Perú)">
+        </div>
+
+        <label class="form-label">🏷️ Tus intereses</label>
         <div style="font-size:12px;color:var(--texto-secundario);margin-bottom:10px;">
             Selecciona las categorías que te interesan. Con esto el Asistente IA puede sugerirte publicaciones y sugerirte a otros usuarios cuando ellos compartan algo relacionado.
         </div>
@@ -1033,18 +1040,43 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
             <label class="config-interes-chip"><input type="checkbox" value="Otros"> Otros</label>
         </div>
 
-        <label class="form-label">Tu localidad</label>
-        <div style="font-size:12px;color:var(--texto-secundario);margin-bottom:8px;">Detectada automáticamente. Próximamente podrás editarla aquí.</div>
-        <input type="text" id="configLocalidad" class="form-input" placeholder="Ej: Trujillo, Perú" disabled style="opacity:0.6;">
+        <label class="form-label">🔔 Notificaciones</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" id="configNotifMensajes"> Mensajes nuevos</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" id="configNotifComentarios"> Comentarios en mis publicaciones</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" id="configNotifLikes"> Me gusta en mis publicaciones</label>
+        </div>
 
-        <div id="configAlert" class="alert" style="display:none;margin-top:12px;"></div>
+        <label class="form-label">🔒 Privacidad</label>
+        <div style="font-size:12px;color:var(--texto-secundario);margin-bottom:8px;">¿Quién puede enviarte mensajes?</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="configPrivacidad" value="todos"> Cualquier persona</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="radio" name="configPrivacidad" value="solo_seguidos"> Solo personas que sigo</label>
+        </div>
 
-        <div class="modal-fb-botones" style="margin-top:20px;">
+        <div id="configAlert" class="alert" style="display:none;margin-top:4px;"></div>
+        <div class="modal-fb-botones" style="margin-top:10px;">
             <button class="btn-cancelar" onclick="PanelUsuario.cerrarModalConfiguracion()">Cancelar</button>
             <button class="btn-compartir" onclick="PanelUsuario.guardarConfiguracion()">
                 <i class="fas fa-save"></i> Guardar
             </button>
         </div>
+
+        <div style="border-top:1px solid var(--borde-suave);margin:22px 0 16px;padding-top:16px;">
+            <label class="form-label">👤 Cuenta</label>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <input type="password" id="configNuevaPassword" class="form-input" placeholder="Nueva contraseña">
+                <button class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.cambiarPasswordCuenta()">Cambiar</button>
+            </div>
+            <div id="configPasswordAlert" class="alert" style="display:none;margin-top:8px;"></div>
+
+            <div style="display:flex;gap:8px;margin-top:14px;">
+                <input type="email" id="configNuevoCorreo" class="form-input" placeholder="Nuevo correo electrónico">
+                <button class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.cambiarCorreoCuenta()">Cambiar</button>
+            </div>
+            <div id="configCorreoAlert" class="alert" style="display:none;margin-top:8px;"></div>
+        </div>
+
     </div>
 </div>
 </div>
@@ -1168,7 +1200,7 @@ function obtenerIdiomaPreferido() {
 // ============================================
 const UI_TRANSLATIONS = {
     es: { account_btn: "Mi Cuenta", content_title: "🌱 Catálogo de Economía Circular", content_subtitle: "Descubre artículos disponibles para intercambio en tu zona", featured_title: "Artículos Destacados", search_placeholder: "¿Qué estás buscando hoy? Ej: camisa, laptop, carros...", login_tab: "Iniciar Sesión", register_tab: "Registrarse", assistant_header: "🤖 Asistente IA", footer_desc: "Conectando comercios y vecinos de forma inteligente.",
-        menu_inicio: "Inicio", menu_perfil: "Mi Perfil", menu_publicaciones: "Mis Publicaciones", menu_blog: "Mi Blog", menu_mensajes: "Mensajes", menu_favoritos: "Favoritos", menu_config: "Configuración",
+        menu_inicio: "Inicio", menu_perfil: "Mi Perfil", menu_publicaciones: "Mis Publicaciones", menu_mensajes: "Mensajes", menu_favoritos: "Favoritos", menu_config: "Configuración",
         panel_alcance: "Tu Alcance", panel_intereses: "Tus Intereses", btn_publicar: "Publicar",
         quick_publicar: "¿Cómo publico?", quick_vender: "¿Cómo vendo?", quick_seguridad: "Seguridad", quick_reportar: "Reportar", btn_limpiar: "Limpiar Conversación" },
     en: { account_btn: "My Account", content_title: " Circular Economy Catalog", content_subtitle: "Discover items available for exchange in your area", featured_title: "Featured Items", search_placeholder: "What are you looking for today? Ex: shirt, laptop, cars...", login_tab: "Sign In", register_tab: "Sign Up", assistant_header: "🤖 AI Assistant", footer_desc: "Connecting businesses and neighbors smartly.",
@@ -1199,7 +1231,7 @@ function aplicarTraduccionUI(lang) {
     const footerDesc = document.getElementById('footerDesc'); if (footerDesc) footerDesc.textContent = t.footer_desc;
 
     // Menú lateral
-    var mapaMenu = { menuTextInicio: 'menu_inicio', menuTextPerfil: 'menu_perfil', menuTextPublicaciones: 'menu_publicaciones', menuTextBlog: 'menu_blog', menuTextMensajes: 'menu_mensajes', menuTextFavoritos: 'menu_favoritos', menuTextConfig: 'menu_config',
+    var mapaMenu = { menuTextInicio: 'menu_inicio', menuTextPerfil: 'menu_perfil', menuTextPublicaciones: 'menu_publicaciones', menuTextMensajes: 'menu_mensajes', menuTextFavoritos: 'menu_favoritos', menuTextConfig: 'menu_config',
         panelTextAlcance: 'panel_alcance', panelTextIntereses: 'panel_intereses', btnPublicarTexto: 'btn_publicar',
         quickTextPublicar: 'quick_publicar', quickTextVender: 'quick_vender', quickTextSeguridad: 'quick_seguridad', quickTextReportar: 'quick_reportar', btnLimpiarTexto: 'btn_limpiar' };
     Object.keys(mapaMenu).forEach(function(elId) {
@@ -1757,7 +1789,6 @@ var PanelUsuario = {
         if (action === 'inicio') this.cargarFeed();
         else if (action === 'perfil') this.cargarMiPerfilFB();
         else if (action === 'publicaciones') this.cargarMisPublicaciones();
-        else if (action === 'blog') alert('✍️ Mi Blog — próximo paso');
         else if (action === 'mensajes') this.cargarConversaciones();
         else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') this.abrirModalConfiguracion();
@@ -1986,7 +2017,6 @@ var PanelUsuario = {
                     <button class="perfil-tab active" data-tab="publicaciones" onclick="PanelUsuario.cambiarPestanaPerfil('publicaciones')"><i class="fas fa-newspaper"></i> Publicaciones</button>
                     <button class="perfil-tab" data-tab="acerca" onclick="PanelUsuario.cambiarPestanaPerfil('acerca')"><i class="fas fa-info-circle"></i> Acerca de</button>
                     <button class="perfil-tab" data-tab="resenas" onclick="PanelUsuario.cambiarPestanaPerfil('resenas')"><i class="fas fa-star"></i> Reseñas</button>
-                    <button class="perfil-tab" data-tab="blog" onclick="PanelUsuario.cambiarPestanaPerfil('blog')"><i class="fas fa-blog"></i> Blog</button>
                 </div>
 
                 <div id="perfilContenido">
@@ -2070,13 +2100,6 @@ var PanelUsuario = {
             `;
         } else if (tab === 'resenas') {
             this.cargarResenasPerfil(this._perfilViendoId);
-        } else if (tab === 'blog') {
-            container.innerHTML = `
-                <div style="background:#fff;border-radius:12px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                    <div style="font-size:48px;margin-bottom:12px;">✍️</div>
-                    <p style="color:var(--texto-secundario);">Los artículos del blog aparecerán aquí</p>
-                </div>
-            `;
         }
     },
 
@@ -2347,8 +2370,19 @@ var PanelUsuario = {
         document.querySelectorAll('#configInteresesGrid input[type=checkbox]').forEach(function(chk) {
             chk.checked = actuales.indexOf(chk.value) !== -1;
         });
-        document.getElementById('configLocalidad').value = usuarioActual.ciudad || '';
+        document.getElementById('configCiudad').value = usuarioActual.ciudad || (typeof UbicacionUsuario !== 'undefined' ? UbicacionUsuario.ciudad.replace('🌍 ', '') : '') || '';
+        document.getElementById('configPais').value = usuarioActual.pais || (typeof UbicacionUsuario !== 'undefined' ? UbicacionUsuario.pais : '') || '';
+        document.getElementById('configNotifMensajes').checked = usuarioActual.notif_mensajes !== false;
+        document.getElementById('configNotifComentarios').checked = usuarioActual.notif_comentarios !== false;
+        document.getElementById('configNotifLikes').checked = usuarioActual.notif_likes !== false;
+        var privacidadActual = usuarioActual.privacidad_mensajes || 'todos';
+        var radioPriv = document.querySelector('input[name="configPrivacidad"][value="' + privacidadActual + '"]');
+        if (radioPriv) radioPriv.checked = true;
+        document.getElementById('configNuevaPassword').value = '';
+        document.getElementById('configNuevoCorreo').value = '';
         document.getElementById('configAlert').style.display = 'none';
+        document.getElementById('configPasswordAlert').style.display = 'none';
+        document.getElementById('configCorreoAlert').style.display = 'none';
         document.getElementById('modalConfiguracion').style.display = 'flex';
     },
 
@@ -2360,17 +2394,88 @@ var PanelUsuario = {
         var alertEl = document.getElementById('configAlert');
         var seleccionados = Array.from(document.querySelectorAll('#configInteresesGrid input[type=checkbox]:checked')).map(function(chk) { return chk.value; });
         var categoria = seleccionados.length ? seleccionados.join(', ') : 'General';
+        var ciudad = document.getElementById('configCiudad').value.trim();
+        var pais = document.getElementById('configPais').value.trim();
+        var notifMensajes = document.getElementById('configNotifMensajes').checked;
+        var notifComentarios = document.getElementById('configNotifComentarios').checked;
+        var notifLikes = document.getElementById('configNotifLikes').checked;
+        var privacidadRadio = document.querySelector('input[name="configPrivacidad"]:checked');
+        var privacidad = privacidadRadio ? privacidadRadio.value : 'todos';
         try {
-            var { error } = await supabase.from('usuarios').update({ categoria: categoria }).eq('id', usuarioActual.id);
+            var { error } = await supabase.from('usuarios').update({
+                categoria: categoria,
+                ciudad: ciudad || null,
+                pais: pais || null,
+                notif_mensajes: notifMensajes,
+                notif_comentarios: notifComentarios,
+                notif_likes: notifLikes,
+                privacidad_mensajes: privacidad
+            }).eq('id', usuarioActual.id);
             if (error) throw error;
             usuarioActual.categoria = categoria;
+            usuarioActual.ciudad = ciudad || null;
+            usuarioActual.pais = pais || null;
+            usuarioActual.notif_mensajes = notifMensajes;
+            usuarioActual.notif_comentarios = notifComentarios;
+            usuarioActual.notif_likes = notifLikes;
+            usuarioActual.privacidad_mensajes = privacidad;
             window.usuarioActual = usuarioActual;
+            if (ciudad && typeof UbicacionUsuario !== 'undefined') {
+                UbicacionUsuario.ciudad = ciudad;
+                UbicacionUsuario.pais = pais || UbicacionUsuario.pais;
+                UbicacionUsuario.actualizarUI();
+            }
             this.actualizarTarjetasUsuario();
-            this.mostrarToast('✅ Intereses guardados');
+            this.mostrarToast('✅ Configuración guardada');
             this.cerrarModalConfiguracion();
         } catch (e) {
             alertEl.className = 'alert alert-error';
             alertEl.textContent = 'Error al guardar: ' + (e.message || 'intenta de nuevo');
+            alertEl.style.display = 'block';
+        }
+    },
+
+    cambiarPasswordCuenta: async function() {
+        var alertEl = document.getElementById('configPasswordAlert');
+        var nueva = document.getElementById('configNuevaPassword').value;
+        if (!nueva || nueva.length < 6) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+            alertEl.style.display = 'block';
+            return;
+        }
+        try {
+            var { error } = await supabase.auth.updateUser({ password: nueva });
+            if (error) throw error;
+            document.getElementById('configNuevaPassword').value = '';
+            alertEl.className = 'alert alert-success';
+            alertEl.textContent = '✅ Contraseña actualizada';
+            alertEl.style.display = 'block';
+        } catch (e) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = 'No se pudo cambiar: ' + (e.message || 'intenta de nuevo');
+            alertEl.style.display = 'block';
+        }
+    },
+
+    cambiarCorreoCuenta: async function() {
+        var alertEl = document.getElementById('configCorreoAlert');
+        var nuevo = document.getElementById('configNuevoCorreo').value.trim();
+        if (!nuevo || nuevo.indexOf('@') === -1) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = 'Ingresa un correo válido';
+            alertEl.style.display = 'block';
+            return;
+        }
+        try {
+            var { error } = await supabase.auth.updateUser({ email: nuevo });
+            if (error) throw error;
+            alertEl.className = 'alert alert-success';
+            alertEl.textContent = '✅ Revisa tu correo actual y el nuevo para confirmar el cambio';
+            alertEl.style.display = 'block';
+        } catch (e) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = 'No se pudo cambiar: ' + (e.message || 'intenta de nuevo');
             alertEl.style.display = 'block';
         }
     },
