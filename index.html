@@ -306,7 +306,7 @@ select.form-input { cursor: pointer; }
 /* PERFIL ESTILO FACEBOOK */
 /* ============================================ */
 .perfil-container { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 16px; }
-.perfil-portada { height: 200px; background: linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza)); position: relative; overflow: hidden; cursor: pointer; }
+.perfil-portada { height: 300px; background: linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza)); position: relative; overflow: hidden; cursor: pointer; }
 .perfil-portada img { width: 100%; height: 100%; object-fit: cover; }
 .perfil-portada-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: none; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600; }
 .perfil-portada:hover .perfil-portada-hover { display: flex; }
@@ -314,7 +314,7 @@ select.form-input { cursor: pointer; }
 .perfil-portada-btn:hover { background: rgba(0,0,0,0.8); }
 .perfil-info { padding: 0 16px 16px; position: relative; }
 .perfil-avatar-wrapper { margin-top: -60px; position: relative; display: inline-block; }
-.perfil-avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; background: linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza)); }
+.perfil-avatar { width: 168px; height: 168px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; background: linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza)); }
 .perfil-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .perfil-avatar-text { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: #fff; }
 .perfil-avatar-btn { position: absolute; bottom: 4px; right: 4px; background: var(--purpura-ia); color: #fff; border: 3px solid #fff; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; }
@@ -1508,7 +1508,7 @@ var PanelUsuario = {
         }
         var nombre = autor ? ((autor.nombres || '') + ' ' + (autor.apellidos || '')).trim() : 'Usuario';
         var inicial = nombre.charAt(0).toUpperCase() || 'U';
-        var avatarHtml = (autor && autor.foto_perfil) ? '<img src="' + this.escHtml(autor.foto_perfil) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">' : '<div class="feed-post-avatar">' + inicial + '</div>';
+        var avatarHtml = (autor && autor.foto_perfil) ? '<img src="' + this.escHtml(autor.foto_perfil) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + this.escHtml(item.usuario_id || '') + '\')">' : '<div class="feed-post-avatar" style="cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + this.escHtml(item.usuario_id || '') + '\')">' + inicial + '</div>';
         var ciudad = item.ciudad || item.localidad || UbicacionUsuario.ciudad || '';
         var vistas = item.vistas || 0;
         var likesCount = item.likes_count || 0;
@@ -1539,7 +1539,7 @@ var PanelUsuario = {
         }
         return '<article class="feed-post" data-id="' + id + '" data-autor="' + autorUid + '">' +
             '<div class="feed-post-header">' + avatarHtml +
-            '<div class="feed-post-meta"><div class="feed-post-name">' + this.escHtml(nombre) + '</div>' +
+            '<div class="feed-post-meta"><div class="feed-post-name" style="cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + autorUid + '\')">' + this.escHtml(nombre) + '</div>' +
             '<div class="feed-post-time">' + this.tiempoRelativo(item.created_at || item.fecha_creacion) + '</div>' +
             (ciudad ? '<div class="feed-post-location">📍 ' + this.escHtml(ciudad) + '</div>' : '') + '</div>' + menuAutorHtml + '</div>' +
             imgHtml +
@@ -1863,141 +1863,176 @@ var PanelUsuario = {
 
     // === PERFIL ESTILO FACEBOOK === [FASE 7 - Perfil de Usuario Completo]
     cargarMiPerfilFB: async function() {
+        this.cargarPerfilUsuario(usuarioActual ? usuarioActual.id : null);
+    },
+    cargarPerfilUsuario: async function(usuarioId) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
+        if (!usuarioId) usuarioId = usuarioActual.id;
+        var esMiPerfil = usuarioId === usuarioActual.id;
+        this._perfilViendoId = usuarioId;
         var container = document.getElementById('userFeedContainer');
         if (this._scrollObserver) this._scrollObserver.disconnect();
-        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando tu perfil...</p></div>';
-        
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando perfil...</p></div>';
+
         try {
             var { data: usuario, error } = await supabase
                 .from('usuarios')
                 .select('*')
-                .eq('id', usuarioActual.id)
+                .eq('id', usuarioId)
                 .single();
             if (error) throw error;
-            
-            // Contar publicaciones
-            var { count: totalPublicaciones } = await supabase
-                .from('productos')
-                .select('id', { count: 'exact', head: true })
-                .eq('usuario_id', usuarioActual.id);
-                
-            // Contar seguidores
-            var { count: totalSeguidores } = await supabase
-                .from('seguidores')
-                .select('id', { count: 'exact', head: true })
-                .eq('seguido_id', usuarioActual.id);
-                
-            // Contar siguiendo
-            var { count: totalSiguiendo } = await supabase
-                .from('seguidores')
-                .select('id', { count: 'exact', head: true })
-                .eq('seguidor_id', usuarioActual.id);
-                
-            // Total de likes recibidos
-            var { data: productos } = await supabase
-                .from('productos')
-                .select('likes_count')
-                .eq('usuario_id', usuarioActual.id);
-            var totalLikes = (productos || []).reduce(function(sum, p) { 
-                return sum + (p.likes_count || 0); 
-            }, 0);
-            
+
+            // Contar publicaciones (solo aprobadas si es el perfil de otra persona)
+            var qPublicaciones = supabase.from('productos').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId);
+            if (!esMiPerfil) qPublicaciones = qPublicaciones.eq('estado', 'aprobado');
+            var { count: totalPublicaciones } = await qPublicaciones;
+
+            var { count: totalSeguidores } = await supabase.from('seguidores').select('id', { count: 'exact', head: true }).eq('seguido_id', usuarioId);
+            var { count: totalSiguiendo } = await supabase.from('seguidores').select('id', { count: 'exact', head: true }).eq('seguidor_id', usuarioId);
+
+            var { data: productos } = await supabase.from('productos').select('likes_count').eq('usuario_id', usuarioId);
+            var totalLikes = (productos || []).reduce(function(sum, p) { return sum + (p.likes_count || 0); }, 0);
+
+            // Tarjeta de Confianza: calificaciones
+            var promedioEstrellas = null, totalResenas = 0;
+            try {
+                var { data: calif } = await supabase.from('calificaciones').select('estrellas').eq('usuario_calificado_id', usuarioId);
+                if (calif && calif.length) {
+                    totalResenas = calif.length;
+                    promedioEstrellas = (calif.reduce(function(s, c) { return s + c.estrellas; }, 0) / totalResenas);
+                }
+            } catch (e) { /* tabla calificaciones aún no creada en Supabase */ }
+
+            var yaSigo = false;
+            if (!esMiPerfil) {
+                try {
+                    var { data: sig } = await supabase.from('seguidores').select('id').eq('seguidor_id', usuarioActual.id).eq('seguido_id', usuarioId).maybeSingle();
+                    yaSigo = !!sig;
+                } catch (e) {}
+            }
+
             var nombreCompleto = ((usuario.nombres || '') + ' ' + (usuario.apellidos || '')).trim() || 'Usuario';
             var inicial = nombreCompleto.charAt(0).toUpperCase();
             var fechaRegistro = usuario.created_at ? new Date(usuario.created_at).toLocaleDateString('es-PE', { year: 'numeric', month: 'long' }) : '';
             var fotoPerfil = usuario.foto_perfil || '';
             var fotoPortada = usuario.foto_portada || '';
             var ubicacion = usuario.ciudad ? '📍 ' + usuario.ciudad + (usuario.pais ? ', ' + usuario.pais : '') : '📍 Sin ubicación';
-            
-            var html = `
-                <div class="perfil-container">
-                    <!-- PORTADA -->
-                    <div class="perfil-portada" onclick="document.getElementById('inputPortada').click()">
+            var nombreUsuarioHandle = '@' + (usuario.nombre_usuario || (usuario.correo_electronico || 'usuario').split('@')[0]);
+
+            var portadaHtml = esMiPerfil
+                ? `<div class="perfil-portada" onclick="document.getElementById('inputPortada').click()">
                         ${fotoPortada ? `<img src="${fotoPortada}" alt="Portada">` : ''}
                         <div class="perfil-portada-hover">🖼️ Haz clic para cambiar portada</div>
                         <div class="perfil-portada-btn"><i class="fas fa-camera"></i> Editar portada</div>
                         <input type="file" id="inputPortada" accept="image/*" style="display:none;" onchange="PanelUsuario.subirPortada(this.files[0])">
-                    </div>
+                   </div>`
+                : `<div class="perfil-portada">${fotoPortada ? `<img src="${fotoPortada}" alt="Portada">` : ''}</div>`;
 
-                    <!-- FOTO DE PERFIL Y DATOS -->
+            var avatarHtml = esMiPerfil
+                ? `<div class="perfil-avatar-wrapper">
+                        <div class="perfil-avatar">${fotoPerfil ? `<img src="${fotoPerfil}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${inicial}</div>`}</div>
+                        <div class="perfil-avatar-btn" onclick="event.stopPropagation();document.getElementById('inputFotoPerfil').click()"><i class="fas fa-camera"></i></div>
+                        <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;" onchange="PanelUsuario.subirFotoPerfil(this.files[0])">
+                   </div>`
+                : `<div class="perfil-avatar-wrapper"><div class="perfil-avatar">${fotoPerfil ? `<img src="${fotoPerfil}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${inicial}</div>`}</div></div>`;
+
+            var botonesHtml = esMiPerfil
+                ? `<button class="perfil-btn perfil-btn-secondary" onclick="PanelUsuario.editarPerfil()"><i class="fas fa-edit"></i> Editar perfil</button>`
+                : `<button class="perfil-btn ${yaSigo ? 'perfil-btn-secondary' : 'perfil-btn-primary'}" id="perfilBtnSeguir" onclick="PanelUsuario.toggleSeguirDesdePerfil('${usuarioId}')">${yaSigo ? '✓ Siguiendo' : '➕ Seguir'}</button>
+                   <button class="perfil-btn perfil-btn-secondary" onclick="PanelUsuario.iniciarChatDesdePerfil('${usuarioId}')"><i class="fas fa-comment"></i> Mensaje</button>`;
+
+            var estrellasHtml = '';
+            if (promedioEstrellas != null) {
+                for (var s = 1; s <= 5; s++) estrellasHtml += '<span style="color:' + (s <= Math.round(promedioEstrellas) ? '#F59E0B' : '#D1D5DB') + ';">★</span>';
+            }
+
+            var html = `
+                <div class="perfil-container">
+                    ${portadaHtml}
                     <div class="perfil-info">
                         <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
-                            <div class="perfil-avatar-wrapper">
-                                <div class="perfil-avatar">
-                                    ${fotoPerfil ? `<img src="${fotoPerfil}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${inicial}</div>`}
-                                </div>
-                                <div class="perfil-avatar-btn" onclick="event.stopPropagation();document.getElementById('inputFotoPerfil').click()">
-                                    <i class="fas fa-camera"></i>
-                                </div>
-                                <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;" onchange="PanelUsuario.subirFotoPerfil(this.files[0])">
-                            </div>
-                            
+                            ${avatarHtml}
                             <div style="flex:1;min-width:200px;">
                                 <h2 class="perfil-nombre">${this.escHtml(nombreCompleto)}</h2>
+                                <div style="color:var(--texto-secundario);font-size:14px;margin-bottom:2px;">${this.escHtml(nombreUsuarioHandle)}</div>
                                 <div class="perfil-datos">
                                     <span>${ubicacion}</span>
                                     ${fechaRegistro ? `<span>🗓️ Miembro desde ${fechaRegistro}</span>` : ''}
                                 </div>
                             </div>
-
-                            <div class="perfil-botones">
-                                <button class="perfil-btn perfil-btn-secondary" onclick="PanelUsuario.editarPerfil()">
-                                    <i class="fas fa-edit"></i> Editar perfil
-                                </button>
-                            </div>
+                            <div class="perfil-botones">${botonesHtml}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ESTADÍSTICAS -->
-                <div class="perfil-estadisticas">
-                    <div class="perfil-estadistica">
-                        <strong>${totalPublicaciones || 0}</strong>
-                        <span>Publicaciones</span>
+                <!-- TARJETA DE CONFIANZA -->
+                <div style="background:#fff;border-radius:12px;padding:18px 20px;margin:12px 0;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;flex-wrap:wrap;gap:20px;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        ${promedioEstrellas != null ? `<span style="font-size:16px;">${estrellasHtml}</span><strong>${promedioEstrellas.toFixed(1)}/5</strong><span style="color:var(--texto-terciario);font-size:13px;">(${totalResenas})</span>` : `<span style="color:var(--texto-terciario);font-size:13px;">⭐ Sin calificaciones aún</span>`}
                     </div>
-                    <div class="perfil-estadistica">
-                        <strong>${totalSeguidores || 0}</strong>
-                        <span>Seguidores</span>
-                    </div>
-                    <div class="perfil-estadistica">
-                        <strong>${totalSiguiendo || 0}</strong>
-                        <span>Siguiendo</span>
-                    </div>
-                    <div class="perfil-estadistica">
-                        <strong>${totalLikes || 0}</strong>
-                        <span>Me gusta</span>
-                    </div>
+                    <div style="color:var(--texto-secundario);font-size:13px;">📦 ${totalPublicaciones || 0} publicaciones</div>
+                    <div style="color:var(--texto-secundario);font-size:13px;">⏱️ Responde en menos de 1 hora</div>
+                    ${usuario.biografia ? `<div style="width:100%;color:var(--texto-secundario);font-size:13px;border-top:1px solid var(--borde-suave);padding-top:10px;margin-top:4px;">${this.escHtml((usuario.biografia || '').substring(0, 200))}</div>` : ''}
                 </div>
 
-                <!-- PESTAÑAS -->
+                <div class="perfil-estadisticas">
+                    <div class="perfil-estadistica"><strong>${totalPublicaciones || 0}</strong><span>Publicaciones</span></div>
+                    <div class="perfil-estadistica"><strong>${totalSeguidores || 0}</strong><span>Seguidores</span></div>
+                    <div class="perfil-estadistica"><strong>${totalSiguiendo || 0}</strong><span>Siguiendo</span></div>
+                    <div class="perfil-estadistica"><strong>${totalLikes || 0}</strong><span>Me gusta</span></div>
+                </div>
+
                 <div class="perfil-tabs">
-                    <button class="perfil-tab active" data-tab="publicaciones" onclick="PanelUsuario.cambiarPestanaPerfil('publicaciones')">
-                        <i class="fas fa-newspaper"></i> Publicaciones
-                    </button>
-                    <button class="perfil-tab" data-tab="acerca" onclick="PanelUsuario.cambiarPestanaPerfil('acerca')">
-                        <i class="fas fa-info-circle"></i> Acerca de
-                    </button>
-                    <button class="perfil-tab" data-tab="fotos" onclick="PanelUsuario.cambiarPestanaPerfil('fotos')">
-                        <i class="fas fa-images"></i> Fotos
-                    </button>
-                    <button class="perfil-tab" data-tab="blog" onclick="PanelUsuario.cambiarPestanaPerfil('blog')">
-                        <i class="fas fa-blog"></i> Blog
-                    </button>
+                    <button class="perfil-tab active" data-tab="publicaciones" onclick="PanelUsuario.cambiarPestanaPerfil('publicaciones')"><i class="fas fa-newspaper"></i> Publicaciones</button>
+                    <button class="perfil-tab" data-tab="acerca" onclick="PanelUsuario.cambiarPestanaPerfil('acerca')"><i class="fas fa-info-circle"></i> Acerca de</button>
+                    <button class="perfil-tab" data-tab="resenas" onclick="PanelUsuario.cambiarPestanaPerfil('resenas')"><i class="fas fa-star"></i> Reseñas</button>
+                    <button class="perfil-tab" data-tab="blog" onclick="PanelUsuario.cambiarPestanaPerfil('blog')"><i class="fas fa-blog"></i> Blog</button>
                 </div>
 
                 <div id="perfilContenido">
-                    <div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>
+                    <div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando...</p></div>
                 </div>
             `;
-            
+
             container.innerHTML = html;
+            this._perfilUsuarioObjActual = usuario;
             this.cambiarPestanaPerfil('publicaciones');
-            
+
         } catch (e) {
             console.warn('Error cargando perfil:', e);
             container.innerHTML = '<div class="feed-empty"><p>No se pudo cargar el perfil.</p></div>';
         }
+    },
+
+    toggleSeguirDesdePerfil: async function(usuarioId) {
+        var btn = document.getElementById('perfilBtnSeguir');
+        try {
+            var { data: existente } = await supabase.from('seguidores').select('id').eq('seguidor_id', usuarioActual.id).eq('seguido_id', usuarioId).maybeSingle();
+            if (existente) {
+                await supabase.from('seguidores').delete().eq('id', existente.id);
+                if (btn) { btn.textContent = '➕ Seguir'; btn.classList.remove('perfil-btn-secondary'); btn.classList.add('perfil-btn-primary'); }
+            } else {
+                await supabase.from('seguidores').insert({ seguidor_id: usuarioActual.id, seguido_id: usuarioId });
+                if (btn) { btn.textContent = '✓ Siguiendo'; btn.classList.remove('perfil-btn-primary'); btn.classList.add('perfil-btn-secondary'); }
+            }
+        } catch (e) { this.mostrarToast('No se pudo actualizar. Intenta de nuevo.'); }
+    },
+
+    iniciarChatDesdePerfil: async function(usuarioId) {
+        try {
+            var { data: convExistente } = await supabase.from('conversaciones').select('id')
+                .or('and(comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + usuarioId + '),and(comprador_id.eq.' + usuarioId + ',vendedor_id.eq.' + usuarioActual.id + ')')
+                .maybeSingle();
+            var convId = convExistente ? convExistente.id : null;
+            if (!convId) {
+                var { data: nueva, error } = await supabase.from('conversaciones').insert({ comprador_id: usuarioActual.id, vendedor_id: usuarioId }).select('id').single();
+                if (error) throw error;
+                convId = nueva.id;
+            }
+            this.menuClick('mensajes');
+            var self = this;
+            setTimeout(function() { self.abrirConversacion(convId); }, 300);
+        } catch (e) { this.mostrarToast('No se pudo iniciar el chat.'); }
     },
 
     cambiarPestanaPerfil: function(tab) {
@@ -2006,39 +2041,91 @@ var PanelUsuario = {
         });
         var tabEl = document.querySelector('.perfil-tab[data-tab="' + tab + '"]');
         if (tabEl) tabEl.classList.add('active');
-        
+
+        var esMiPerfil = this._perfilViendoId === usuarioActual.id;
+        var u = this._perfilUsuarioObjActual || usuarioActual;
         var container = document.getElementById('perfilContenido');
         if (tab === 'publicaciones') {
-            container.innerHTML = `
-                <div style="background:#fff;border-radius:12px;padding:32px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                    <div style="font-size:48px;margin-bottom:12px;">📦</div>
-                    <p style="color:var(--texto-secundario);margin-bottom:16px;">Administra tus publicaciones (incluye borradores) desde "Mis Publicaciones" en el menú.</p>
-                    <button class="btn-publicar" onclick="PanelUsuario.menuClick('publicaciones')">Ir a Mis Publicaciones</button>
-                </div>
-            `;
+            if (esMiPerfil) {
+                container.innerHTML = `
+                    <div style="background:#fff;border-radius:12px;padding:32px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="font-size:48px;margin-bottom:12px;">📦</div>
+                        <p style="color:var(--texto-secundario);margin-bottom:16px;">Administra tus publicaciones (incluye borradores) desde "Mis Publicaciones" en el menú.</p>
+                        <button class="btn-publicar" onclick="PanelUsuario.menuClick('publicaciones')">Ir a Mis Publicaciones</button>
+                    </div>
+                `;
+            } else {
+                this.cargarPublicacionesDeOtro(this._perfilViendoId);
+            }
         } else if (tab === 'acerca') {
             container.innerHTML = `
                 <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
                     <h3 style="margin-bottom:12px;"><i class="fas fa-info-circle"></i> Acerca de</h3>
-                    <p style="color:var(--texto-secundario);">${usuarioActual.biografia || 'Este usuario aún no ha escrito una biografía.'}</p>
-                    ${usuarioActual.telefono ? `<p style="margin-top:12px;color:var(--texto-secundario);"><i class="fas fa-phone"></i> ${usuarioActual.telefono}</p>` : ''}
-                    <p style="margin-top:12px;color:var(--texto-secundario);"><i class="fas fa-envelope"></i> ${usuarioActual.correo_electronico || ''}</p>
+                    <p style="color:var(--texto-secundario);">${this.escHtml(u.biografia || 'Este usuario aún no ha escrito una biografía.')}</p>
+                    ${u.ciudad ? `<p style="margin-top:12px;color:var(--texto-secundario);"><i class="fas fa-map-marker-alt"></i> ${this.escHtml(u.ciudad)}${u.pais ? ', ' + this.escHtml(u.pais) : ''}</p>` : ''}
+                    ${u.sitio_web ? `<p style="margin-top:12px;"><i class="fas fa-globe"></i> <a href="${this.escHtml(u.sitio_web)}" target="_blank" rel="noopener">${this.escHtml(u.sitio_web)}</a></p>` : ''}
+                    ${u.red_social ? `<p style="margin-top:12px;"><i class="fas fa-share-alt"></i> ${this.escHtml(u.red_social)}</p>` : ''}
+                    ${esMiPerfil ? `<p style="margin-top:12px;color:var(--texto-secundario);"><i class="fas fa-envelope"></i> ${this.escHtml(u.correo_electronico || '')}</p>` : ''}
                 </div>
             `;
-        } else if (tab === 'fotos') {
-            container.innerHTML = `
-                <div style="background:#fff;border-radius:12px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                    <div style="font-size:48px;margin-bottom:12px;">🖼️</div>
-                    <p style="color:var(--texto-secundario);">Tus fotos aparecerán aquí</p>
-                </div>
-            `;
+        } else if (tab === 'resenas') {
+            this.cargarResenasPerfil(this._perfilViendoId);
         } else if (tab === 'blog') {
             container.innerHTML = `
                 <div style="background:#fff;border-radius:12px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
                     <div style="font-size:48px;margin-bottom:12px;">✍️</div>
-                    <p style="color:var(--texto-secundario);">Tus artículos del blog aparecerán aquí</p>
+                    <p style="color:var(--texto-secundario);">Los artículos del blog aparecerán aquí</p>
                 </div>
             `;
+        }
+    },
+
+    cargarPublicacionesDeOtro: async function(usuarioId) {
+        var container = document.getElementById('perfilContenido');
+        try {
+            var { data: productos } = await supabase.from('productos').select('*').eq('usuario_id', usuarioId).eq('estado', 'aprobado').order('created_at', { ascending: false });
+            if (!productos || !productos.length) {
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">📭</div><p>Este usuario aún no tiene publicaciones.</p></div>';
+                return;
+            }
+            var self = this;
+            var html = '';
+            for (var i = 0; i < productos.length; i++) {
+                var autor = await self.obtenerAutor(productos[i].usuario_id);
+                html += self.renderPost(productos[i], autor, false);
+            }
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="feed-empty"><p>Error al cargar publicaciones.</p></div>';
+        }
+    },
+
+    cargarResenasPerfil: async function(usuarioId) {
+        var container = document.getElementById('perfilContenido');
+        var self = this;
+        try {
+            var { data: resenas } = await supabase.from('calificaciones').select('*').eq('usuario_calificado_id', usuarioId).order('created_at', { ascending: false });
+            if (!resenas || !resenas.length) {
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">⭐</div><p>Sin reseñas todavía.</p></div>';
+                return;
+            }
+            var promedio = resenas.reduce(function(s, r) { return s + r.estrellas; }, 0) / resenas.length;
+            var html = '<div style="background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><strong style="font-size:18px;">' + promedio.toFixed(1) + '/5</strong> <span style="color:var(--texto-secundario);font-size:13px;">(' + resenas.length + ' reseñas)</span></div>';
+            for (var i = 0; i < resenas.length; i++) {
+                var r = resenas[i];
+                var autor = await self.obtenerAutor(r.usuario_califica_id);
+                var nombre = autor ? ((autor.nombres || '') + ' ' + (autor.apellidos || '')).trim() : 'Usuario';
+                var estrellasHtml = '';
+                for (var s = 1; s <= 5; s++) estrellasHtml += '<span style="color:' + (s <= r.estrellas ? '#F59E0B' : '#D1D5DB') + ';">★</span>';
+                html += '<div style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;"><strong style="font-size:14px;">' + self.escHtml(nombre) + '</strong><span style="font-size:12px;color:var(--texto-terciario);">' + self.tiempoRelativo(r.created_at) + '</span></div>' +
+                    '<div style="margin:4px 0;">' + estrellasHtml + '</div>' +
+                    (r.comentario ? '<div style="font-size:13px;color:var(--texto-secundario);">' + self.escHtml(r.comentario) + '</div>' : '') +
+                    '</div>';
+            }
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="feed-empty"><p>Sin reseñas todavía.</p></div>';
         }
     },
 
