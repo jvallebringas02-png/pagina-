@@ -2320,28 +2320,39 @@ var PanelUsuario = {
         }
     },
 
+    // Contactos recientes del chat: prioridad #1 en las sugerencias de Compartir, igual que Facebook
+    obtenerContactosRecientes: async function(limite) {
+        try {
+            var bloqueados = await this.obtenerBloqueados();
+            var { data: convs, error } = await supabase.from('conversaciones').select('comprador_id, vendedor_id, updated_at')
+                .or('comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + usuarioActual.id)
+                .order('updated_at', { ascending: false }).limit(15);
+            if (error) throw error;
+            var vistos = {};
+            var contactos = [];
+            for (var i = 0; i < (convs || []).length && contactos.length < (limite || 5); i++) {
+                var otroId = convs[i].comprador_id === usuarioActual.id ? convs[i].vendedor_id : convs[i].comprador_id;
+                if (vistos[otroId] || bloqueados.indexOf(otroId) !== -1) continue;
+                vistos[otroId] = true;
+                var otro = await this.obtenerAutor(otroId);
+                if (otro) contactos.push({ id: otroId, nombres: otro.nombres, apellidos: otro.apellidos, foto_perfil: otro.foto_perfil });
+            }
+            return contactos;
+        } catch (e) {
+            console.warn('Error obteniendo contactos recientes:', e);
+            return [];
+        }
+    },
+
     // Sugerencia de IA: busca usuarios cuyos intereses coinciden con la categoría del producto
     sugerirPersonasInteresadas: async function(categoria) {
         var cont = document.getElementById('compartirSugerenciasIA');
         if (!cont) return;
-        if (!categoria) { cont.innerHTML = ''; return; }
-        cont.innerHTML = '<div class="user-picker-empty">🤖 Buscando personas interesadas...</div>';
-        try {
-            var bloqueados = await this.obtenerBloqueados();
-            var { data, error } = await supabase
-                .from('usuarios')
-                .select('id, nombres, apellidos, foto_perfil, categoria')
-                .ilike('categoria', '%' + categoria + '%')
-                .neq('id', usuarioActual.id)
-                .limit(5);
-            if (error) throw error;
-            var candidatos = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
-            if (!candidatos.length) {
-                cont.innerHTML = '<div class="user-picker-empty">🤖 Aún no hay personas con interés registrado en "' + this.escHtml(categoria) + '". Prueba buscando por nombre arriba.</div>';
-                return;
-            }
-            var self = this;
-            cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:</div>' +
+        cont.innerHTML = '<div class="user-picker-empty">🤖 Buscando sugerencias...</div>';
+        var self = this;
+        function pintar(titulo, candidatos, etiquetaFn) {
+            if (!candidatos.length) return false;
+            cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">' + titulo + '</div>' +
                 candidatos.map(function(u) {
                     var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                     var inicial = nombre.charAt(0).toUpperCase() || 'U';
@@ -2350,11 +2361,32 @@ var PanelUsuario = {
                     return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
                         fotoHtml +
                         '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div>' +
-                        '<div class="user-picker-email">✨ Interesado en ' + self.escHtml(u.categoria || categoria) + '</div></div></div>';
+                        '<div class="user-picker-email">' + etiquetaFn(u) + '</div></div></div>';
                 }).join('');
+            return true;
+        }
+        try {
+            // Prioridad 1: gente con la que ya chateaste antes, igual que en Facebook
+            var recientes = await this.obtenerContactosRecientes(5);
+            if (pintar('🕑 Contactos recientes:', recientes, function() { return 'Conversación reciente'; })) return;
+
+            // Prioridad 2: si no hay contactos, gente interesada en la categoría del producto
+            if (categoria) {
+                var bloqueados = await this.obtenerBloqueados();
+                var { data, error } = await supabase
+                    .from('usuarios')
+                    .select('id, nombres, apellidos, foto_perfil, categoria')
+                    .ilike('categoria', '%' + categoria + '%')
+                    .neq('id', usuarioActual.id)
+                    .limit(5);
+                if (error) throw error;
+                var candidatos = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
+                if (pintar('✨ Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:', candidatos, function(u) { return '✨ Interesado en ' + self.escHtml(u.categoria || categoria); })) return;
+            }
+            cont.innerHTML = '<div class="user-picker-empty">💡 Busca por nombre, categoría o zona arriba (ej: "gente de tecnología cerca de mí").</div>';
         } catch (e) {
             cont.innerHTML = '';
-            console.warn('No se pudo cargar sugerencias de IA:', e);
+            console.warn('No se pudo cargar sugerencias:', e);
         }
     },
 
@@ -3644,6 +3676,8 @@ var PanelUsuario = {
     volverListaConversaciones: function() {
         var layout = document.getElementById('messengerLayout');
         if (layout) layout.classList.remove('chat-activo');
+        if (this._canalConversacionActivo) { supabase.removeChannel(this._canalConversacionActivo); this._canalConversacionActivo = null; }
+        this._conversacionAbiertaId = null;
     },
 
     abrirConversacion: async function(convId) {
@@ -3671,42 +3705,168 @@ var PanelUsuario = {
             if (itemActivo2) { var badge = itemActivo2.querySelector('.conv-badge'); if (badge) badge.remove(); }
 
             var { data: mensajes } = await supabase.from('mensajes').select('*').eq('conversacion_id', convId).order('created_at', { ascending: true });
-            var self = this;
-            var msgsHtml = '';
+            this._conversacionAbiertaId = convId;
+            this._otroIdConversacionAbierta = otroId;
+            this._mensajesActuales = mensajes || [];
             var traduccionActivaMsgs = this.tieneTraduccionChatActiva();
-            (mensajes || []).forEach(function(m) {
-                var esMio = m.emisor_id === usuarioActual.id;
-                var textoMostrar = m.texto_original;
-                if (!esMio && traduccionActivaMsgs && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
-                var traducidoHtml = (!esMio && textoMostrar === m.texto_traducido && m.idioma_original) ? '<div style="font-size:11px;color:var(--texto-terciario);margin-top:2px;">Traducido del ' + self.escHtml(self.NOMBRES_IDIOMAS[m.idioma_original] || m.idioma_original) + '</div>' : '';
-                var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
-                var checkHtml = esMio ? '<span class="chat-bubble-check' + (m.leido ? ' leido' : '') + '">' + (m.leido ? '✓✓' : '✓') + '</span>' : '';
-                msgsHtml += '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '"><div><div class="chat-bubble">' + self.escHtml(textoMostrar) + '</div>' + traducidoHtml + '<div class="chat-bubble-hora">' + hora + checkHtml + '</div></div></div>';
-            });
+            var msgsHtml = this._mensajesActuales.map(function(m) { return PanelUsuario._renderBurbuja(m, traduccionActivaMsgs); }).join('');
 
             var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
             var enLinea = otro && otro.ultima_conexion && (Date.now() - new Date(otro.ultima_conexion).getTime() < 120000);
-            var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">🟢 En línea</span>' : '<span>⚫ Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
+            var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">🟢 En línea</span>' : '<span id="estadoConexionOtro">⚫ Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
             var traduccionActiva = this.tieneTraduccionChatActiva();
 
             panel.innerHTML = '<div class="chat-header"><button class="chat-back-btn messenger-back-movil" onclick="PanelUsuario.volverListaConversaciones()">← Volver</button>' +
                 '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0;">' + avatarHtml + '</div>' +
-                '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
+                '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);" id="chatEstadoLinea">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
+                '<button type="button" title="Buscar en la conversación" onclick="PanelUsuario.toggleBuscarEnChat()" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🔍</button>' +
                 '<button type="button" title="' + (traduccionActiva ? 'Desactivar traducción automática' : 'Activar traducción automática') + '" onclick="PanelUsuario.toggleTraduccionChat(\'' + convId + '\', \'' + otroId + '\')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;opacity:' + (traduccionActiva ? '1' : '0.4') + ';" >🌐</button>' +
                 '<button type="button" title="Reportar usuario" onclick="PanelUsuario.abrirModalReportarUsuario(\'' + otroId + '\', \'' + this.escHtml(nombreOtro) + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚩</button>' +
                 '<button type="button" title="Bloquear usuario" onclick="PanelUsuario.toggleBloqueado(\'' + otroId + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚫</button>' +
                 '</div>' +
+                '<div id="chatBuscarRow" style="display:none;padding:8px 12px;border-bottom:1px solid var(--borde);"><input type="text" id="chatBuscarInput" class="form-input" placeholder="Buscar en esta conversación..." oninput="PanelUsuario.buscarEnChatAbierto(this.value)"></div>' +
                 '<div class="chat-messages" id="chatMessages">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
+                '<div id="chatEscribiendo" style="display:none;padding:0 12px;font-size:12px;color:var(--texto-terciario);">✍️ ' + this.escHtml(nombreOtro) + ' está escribiendo...</div>' +
                 '<div id="chatModAlert" class="alert" style="margin:0 12px;"></div>' +
-                '<div class="chat-input-row"><input type="text" id="chatInput" class="form-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\')}"><button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\')"><i class="fas fa-paper-plane"></i></button></div>';
+                '<div class="chat-input-row">' +
+                '<input type="file" id="chatFotoInput" accept="image/*" style="display:none;" onchange="PanelUsuario.enviarFotoChat(\'' + convId + '\', \'' + otroId + '\', this.files[0])">' +
+                '<button type="button" title="Enviar foto" onclick="document.getElementById(\'chatFotoInput\').click()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 8px;">📷</button>' +
+                '<input type="text" id="chatInput" class="form-input" placeholder="Escribe un mensaje..." oninput="PanelUsuario.avisarEscribiendo()" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\')}">' +
+                '<button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\')"><i class="fas fa-paper-plane"></i></button></div>';
 
             var msgsBox = document.getElementById('chatMessages');
             if (msgsBox) msgsBox.scrollTop = msgsBox.scrollHeight;
+            this._activarCanalConversacion(convId);
         } catch (e) {
             console.warn('Error cargando conversación:', e);
             panel.innerHTML = '<div class="feed-empty"><p>No se pudo cargar la conversación.</p></div>';
         }
     },
+
+    // --- Mejora 1: canal en vivo de la conversación abierta (mensajes nuevos + "escribiendo...") ---
+    _canalConversacionActivo: null,
+    _activarCanalConversacion: function(convId) {
+        if (this._canalConversacionActivo) supabase.removeChannel(this._canalConversacionActivo);
+        this._canalConversacionActivo = supabase.channel('conv-' + convId)
+            .on('broadcast', { event: 'escribiendo' }, function(payload) {
+                if (payload.payload.userId === usuarioActual.id) return;
+                var el = document.getElementById('chatEscribiendo');
+                if (!el) return;
+                el.style.display = 'block';
+                clearTimeout(PanelUsuario._timeoutEscribiendo);
+                PanelUsuario._timeoutEscribiendo = setTimeout(function() { el.style.display = 'none'; }, 3000);
+            })
+            .subscribe();
+    },
+    _timeoutEscribiendo: null,
+    _timeoutAvisoEscribiendo: null,
+    avisarEscribiendo: function() {
+        if (!this._canalConversacionActivo || this._timeoutAvisoEscribiendo) return; // se avisa como máximo cada 2.5s
+        this._canalConversacionActivo.send({ type: 'broadcast', event: 'escribiendo', payload: { userId: usuarioActual.id } });
+        this._timeoutAvisoEscribiendo = setTimeout(function() { PanelUsuario._timeoutAvisoEscribiendo = null; }, 2500);
+    },
+
+    // Pinta un mensaje nuevo que llegó por Realtime sin recargar toda la conversación
+    agregarMensajeEnVivo: function(m) {
+        this._mensajesActuales.push(m);
+        var box = document.getElementById('chatMessages');
+        if (!box) return;
+        var vacio = box.querySelector('p');
+        if (vacio) box.innerHTML = '';
+        box.insertAdjacentHTML('beforeend', this._renderBurbuja(m, this.tieneTraduccionChatActiva()));
+        box.scrollTop = box.scrollHeight;
+        var elEscribiendo = document.getElementById('chatEscribiendo');
+        if (elEscribiendo) elEscribiendo.style.display = 'none';
+    },
+
+    // Arma el HTML de una burbuja de mensaje (texto o foto), con acciones de editar/borrar si es mío
+    _renderBurbuja: function(m, traduccionActivaMsgs) {
+        var esMio = m.emisor_id === usuarioActual.id;
+        var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
+        var checkHtml = esMio ? '<span class="chat-bubble-check' + (m.leido ? ' leido' : '') + '">' + (m.leido ? '✓✓' : '✓') + '</span>' : '';
+        if (m.eliminado) {
+            return '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '" data-msg-id="' + m.id + '"><div><div class="chat-bubble" style="font-style:italic;opacity:0.6;">🚫 Mensaje eliminado</div><div class="chat-bubble-hora">' + hora + checkHtml + '</div></div></div>';
+        }
+        var contenidoHtml;
+        if (m.imagen_url) {
+            contenidoHtml = '<div class="chat-bubble" style="padding:4px;"><img src="' + m.imagen_url + '" style="max-width:200px;border-radius:8px;display:block;cursor:pointer;" onclick="window.open(\'' + m.imagen_url + '\',\'_blank\')"></div>';
+        } else {
+            var textoMostrar = m.texto_original;
+            if (!esMio && traduccionActivaMsgs && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
+            var traducidoHtml = (!esMio && textoMostrar === m.texto_traducido && m.idioma_original) ? '<div style="font-size:11px;color:var(--texto-terciario);margin-top:2px;">Traducido del ' + this.escHtml(this.NOMBRES_IDIOMAS[m.idioma_original] || m.idioma_original) + '</div>' : '';
+            var editadoHtml = m.editado ? ' <span style="font-size:11px;opacity:0.6;">(editado)</span>' : '';
+            contenidoHtml = '<div class="chat-bubble">' + this.escHtml(textoMostrar) + editadoHtml + '</div>' + traducidoHtml;
+        }
+        var accionesHtml = (esMio && !m.imagen_url) ? '<div class="chat-bubble-acciones" style="display:flex;gap:6px;font-size:11px;opacity:0.6;">' +
+            '<span style="cursor:pointer;" onclick="PanelUsuario.editarMensajeChat(\'' + m.id + '\')">✏️</span>' +
+            '<span style="cursor:pointer;" onclick="PanelUsuario.borrarMensajeChat(\'' + m.id + '\')">🗑️</span></div>' : '';
+        return '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '" data-msg-id="' + m.id + '" data-texto="' + this.escHtml((m.texto_original || '').toLowerCase()) + '"><div>' + contenidoHtml + '<div class="chat-bubble-hora">' + hora + checkHtml + '</div>' + accionesHtml + '</div></div>';
+    },
+
+    // --- Mejora 6: buscar dentro de la conversación abierta ---
+    toggleBuscarEnChat: function() {
+        var row = document.getElementById('chatBuscarRow');
+        if (!row) return;
+        var mostrar = row.style.display === 'none';
+        row.style.display = mostrar ? 'block' : 'none';
+        if (mostrar) { document.getElementById('chatBuscarInput').focus(); } else { this.buscarEnChatAbierto(''); }
+    },
+    buscarEnChatAbierto: function(texto) {
+        var q = (texto || '').toLowerCase().trim();
+        document.querySelectorAll('#chatMessages .chat-bubble-row').forEach(function(row) {
+            var coincide = !q || (row.dataset.texto || '').indexOf(q) !== -1;
+            row.style.display = coincide ? '' : 'none';
+        });
+    },
+
+    // --- Mejora 3: enviar foto en el chat ---
+    enviarFotoChat: async function(convId, otroId, archivo) {
+        if (!archivo) return;
+        var alertEl = document.getElementById('chatModAlert');
+        try {
+            alertEl.className = 'alert';
+            alertEl.textContent = '⏳ Enviando foto...';
+            alertEl.style.display = 'block';
+            var ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase();
+            var path = 'chat/' + usuarioActual.id + '/' + Date.now() + '.' + ext;
+            var { error: errSubida } = await supabase.storage.from('publicaciones').upload(path, archivo);
+            if (errSubida) throw errSubida;
+            var { data: urlData } = supabase.storage.from('publicaciones').getPublicUrl(path);
+            var { data: nuevoMsg, error } = await supabase.from('mensajes').insert({ conversacion_id: convId, emisor_id: usuarioActual.id, imagen_url: urlData.publicUrl, texto_original: '📷 Foto', leido: false }).select().single();
+            if (error) throw error;
+            alertEl.style.display = 'none';
+            this.agregarMensajeEnVivo(nuevoMsg);
+            await supabase.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', convId);
+        } catch (e) {
+            alertEl.className = 'alert alert-error';
+            alertEl.textContent = '❌ No se pudo enviar la foto. Intenta de nuevo.';
+            alertEl.style.display = 'block';
+        }
+    },
+
+    // --- Mejora 7: editar / borrar un mensaje propio ---
+    editarMensajeChat: async function(msgId) {
+        var msg = (this._mensajesActuales || []).find(function(m) { return m.id === msgId; });
+        if (!msg) return;
+        var nuevoTexto = prompt('Editar mensaje:', msg.texto_original);
+        if (nuevoTexto === null || !nuevoTexto.trim() || nuevoTexto === msg.texto_original) return;
+        var { error } = await supabase.from('mensajes').update({ texto_original: nuevoTexto.trim(), editado: true }).eq('id', msgId);
+        if (error) { this.mostrarToast('No se pudo editar el mensaje.'); return; }
+        msg.texto_original = nuevoTexto.trim();
+        msg.editado = true;
+        var row = document.querySelector('.chat-bubble-row[data-msg-id="' + msgId + '"]');
+        if (row) row.outerHTML = this._renderBurbuja(msg, this.tieneTraduccionChatActiva());
+    },
+    borrarMensajeChat: async function(msgId) {
+        if (!confirm('¿Eliminar este mensaje para ambos?')) return;
+        var { error } = await supabase.from('mensajes').update({ eliminado: true }).eq('id', msgId);
+        if (error) { this.mostrarToast('No se pudo eliminar el mensaje.'); return; }
+        var msg = (this._mensajesActuales || []).find(function(m) { return m.id === msgId; });
+        if (msg) msg.eliminado = true;
+        var row = document.querySelector('.chat-bubble-row[data-msg-id="' + msgId + '"]');
+        if (row && msg) row.outerHTML = this._renderBurbuja(msg, this.tieneTraduccionChatActiva());
+    },
+
 
     NOMBRES_IDIOMAS: { 'en': 'inglés', 'pt': 'portugués', 'fr': 'francés', 'de': 'alemán', 'it': 'italiano', 'zh': 'chino', 'ja': 'japonés', 'ko': 'coreano', 'ar': 'árabe', 'hi': 'hindi', 'nl': 'holandés', 'tr': 'turco', 'es': 'español' },
 
@@ -3786,11 +3946,11 @@ var PanelUsuario = {
             textoTraducido = await this.traducirTextoIA(texto, idiomaDestino);
         }
         try {
-            var { error } = await supabase.from('mensajes').insert({ conversacion_id: convId, emisor_id: usuarioActual.id, texto_original: texto, texto_traducido: textoTraducido, idioma_original: idiomaOrigen, idioma_destino: idiomaDestino, leido: false });
+            var { data: nuevoMsg, error } = await supabase.from('mensajes').insert({ conversacion_id: convId, emisor_id: usuarioActual.id, texto_original: texto, texto_traducido: textoTraducido, idioma_original: idiomaOrigen, idioma_destino: idiomaDestino, leido: false }).select().single();
             if (error) throw error;
             await supabase.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', convId);
             input.value = '';
-            this.abrirConversacion(convId);
+            this.agregarMensajeEnVivo(nuevoMsg);
         } catch (e) {
             alertEl.className = 'alert alert-error';
             alertEl.textContent = 'Error al enviar: ' + (e.message || 'intenta de nuevo');
@@ -3960,7 +4120,7 @@ var PanelUsuario = {
                 headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
                 body: JSON.stringify({
                     messages: [
-                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\n' + contextoProducto + 'Responde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
+                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\nLas categorías disponibles en la base de datos son: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro / Alimentos, Servicios, Libros, Otros. NO exijas que el usuario escriba estas palabras exactas: reconoce sinónimos y términos relacionados y mapéalos a la categoría más cercana. Ejemplos: "celulares", "laptops", "consolas", "audífonos" → Tecnología; "muebles", "sofás", "sillones", "cocina", "decoración" → Hogar; "zapatillas", "casacas", "moda" → Ropa; "bicicletas", "pelotas", "gimnasio" → Deportes; "autos", "motos", "carros" → Vehículos; "comida", "verduras", "mascotas", "plantas" → Agro / Alimentos; "clases", "reparaciones", "limpieza" → Servicios; "cuadernos", "revistas" → Libros. Si de verdad no encaja en ninguna, usa "Otros" en vez de rechazar la búsqueda.\n\n' + contextoProducto + 'Responde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro / Alimentos, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
                         { role: 'user', content: texto }
                     ]
                 })
@@ -4345,6 +4505,8 @@ function updateUIForUser(usuario) {
         PanelUsuario.actualizarBadgesMensajes();
         toggleVistaUsuario(true);
         iniciarLatidoConexion();
+        iniciarCanalMensajesGlobal();
+        pedirPermisoNotificaciones();
     } else {
         usuarioActual = null;
         window.usuarioActual = null;
@@ -4359,6 +4521,7 @@ function updateUIForUser(usuario) {
         if (btnPublicarHeader) btnPublicarHeader.classList.remove('activo');
         PanelUsuario.cerrarMenuPerfil();
         detenerLatidoConexion();
+        detenerCanalMensajesGlobal();
     }
 }
 
@@ -4374,6 +4537,41 @@ function iniciarLatidoConexion() {
 }
 function detenerLatidoConexion() {
     if (_latidoConexionInterval) { clearInterval(_latidoConexionInterval); _latidoConexionInterval = null; }
+}
+
+// === CHAT EN TIEMPO REAL (Mejora 1 y 5) ===
+// Escucha CADA mensaje nuevo insertado en la base de datos y filtra en el navegador
+// si pertenece a una conversación del usuario actual (no se puede filtrar por RLS/columna
+// directamente porque 'mensajes' no guarda el destinatario, solo la conversación).
+var _canalMensajesGlobal = null;
+function iniciarCanalMensajesGlobal() {
+    if (_canalMensajesGlobal || !usuarioActual) return;
+    _canalMensajesGlobal = supabase.channel('mensajes-global-' + usuarioActual.id)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, async function(payload) {
+            var m = payload.new;
+            if (m.emisor_id === usuarioActual.id) return; // mensaje propio, ya lo vemos al enviarlo
+            var { data: conv } = await supabase.from('conversaciones').select('comprador_id, vendedor_id').eq('id', m.conversacion_id).maybeSingle();
+            if (!conv || (conv.comprador_id !== usuarioActual.id && conv.vendedor_id !== usuarioActual.id)) return; // no es para mí
+
+            if (typeof PanelUsuario !== 'undefined') PanelUsuario.actualizarBadgesMensajes();
+
+            // Si tengo esa conversación abierta ahora mismo, la pinto sin recargar
+            if (PanelUsuario._conversacionAbiertaId === m.conversacion_id) {
+                PanelUsuario.agregarMensajeEnVivo(m);
+                supabase.from('mensajes').update({ leido: true }).eq('id', m.id);
+            } else if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                var autor = await PanelUsuario.obtenerAutor(m.emisor_id);
+                var nombreAutor = autor ? ((autor.nombres || '') + ' ' + (autor.apellidos || '')).trim() : 'Nuevo mensaje';
+                new Notification(nombreAutor, { body: m.texto_original, icon: autor && autor.foto_perfil || undefined });
+            }
+        })
+        .subscribe();
+}
+function detenerCanalMensajesGlobal() {
+    if (_canalMensajesGlobal) { supabase.removeChannel(_canalMensajesGlobal); _canalMensajesGlobal = null; }
+}
+function pedirPermisoNotificaciones() {
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 }
 
 async function logout() {
