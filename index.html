@@ -3032,9 +3032,23 @@ var PanelUsuario = {
     },
 
     // === NIVELES DE ALERTA (contacto externo + contenido ilegal) — solo registra, no bloquea ===
+    // Primera capa de defensa: coincidencia directa de palabras obviamente prohibidas.
+    // No depende de la IA, así que sigue funcionando aunque la llamada a Groq falle o esté caída.
+    PALABRAS_PROHIBIDAS: ['porno', 'pornografia', 'pornografía', 'xxx', 'sexo pago', 'servicio sexual', 'servicios sexuales', 'escort', 'arma de fuego', 'municion', 'municiones', 'droga', 'drogas', 'cocaina', 'cocaína', 'marihuana'],
+    contieneContenidoProhibido: function(texto) {
+        var limpio = (texto || '').toLowerCase();
+        return this.PALABRAS_PROHIBIDAS.some(function(p) { return limpio.indexOf(p) !== -1; });
+    },
+
     evaluarNivelesAlerta: async function(titulo, descripcion, textoOCR) {
         var resultado = { nivel_ocr: null, nivel_legal: null };
         var contenidoCompleto = (titulo || '') + ' | ' + (descripcion || '') + (textoOCR ? ' | Texto en fotos: ' + textoOCR : '');
+
+        // Filtro rápido por palabra clave, antes de gastar una llamada a la IA
+        if (this.contieneContenidoProhibido(contenidoCompleto)) {
+            resultado.nivel_legal = 'alto';
+            return resultado;
+        }
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, {
                 method: 'POST',
@@ -3043,7 +3057,7 @@ var PanelUsuario = {
                     messages: [
                         { role: 'system', content: 'Eres un revisor de seguridad de remarket-db. Analiza el título, descripción y texto detectado en fotos de una publicación, y clasifica DOS riesgos por separado, cada uno en "bajo", "medio" o "alto":\n\n' +
                             '1) "riesgo_contacto": ¿el contenido intenta dar un número de teléfono, WhatsApp, o cualquier forma de contactar/pagar fuera de la plataforma? Un número de modelo, talla, año o código de producto es riesgo bajo (normal). Un número de teléfono suelto sin contexto es riesgo medio. Un número junto a "cobro adelantado", "solo WhatsApp", o lenguaje de presión es riesgo alto.\n\n' +
-                            '2) "riesgo_legal": ¿el producto o servicio corresponde a alguna categoría prohibida por ley? Categorías graves (riesgo alto): armas/municiones, drogas, explotación o contenido de menores, documentos falsos, bienes robados, trata de personas, animales protegidos. Categorías moderadas (riesgo medio): medicamentos con receta sin autorización, productos falsificados/réplicas de marcas, alcohol/tabaco sin licencia, vehículos sin papeles. Todo lo demás (productos y servicios normales) es riesgo bajo.\n\n' +
+                            '2) "riesgo_legal": ¿el producto o servicio corresponde a alguna categoría prohibida por ley? Categorías graves (riesgo alto): armas/municiones, drogas, explotación o contenido de menores, documentos falsos, bienes robados, trata de personas, animales protegidos, contenido sexual/pornográfico o servicios sexuales de cualquier tipo. Categorías moderadas (riesgo medio): medicamentos con receta sin autorización, productos falsificados/réplicas de marcas, alcohol/tabaco sin licencia, vehículos sin papeles. Todo lo demás (productos y servicios normales) es riesgo bajo.\n\n' +
                             'Responde ÚNICAMENTE en JSON válido, sin texto adicional: {"riesgo_contacto":"bajo|medio|alto","riesgo_legal":"bajo|medio|alto"}' },
                         { role: 'user', content: contenidoCompleto }
                     ]
