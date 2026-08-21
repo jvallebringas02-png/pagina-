@@ -450,6 +450,23 @@ select.form-input { cursor: pointer; }
     .messenger-back-movil { display: inline; }
 }
 .conv-item { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--borde-suave, #E5E7EB); cursor: pointer; align-items: center; }
+
+/* === CHAT FLOTANTE (estilo Facebook Messenger) === */
+.floating-chat-window { display: none; position: fixed; bottom: 96px; right: 24px; width: 340px; height: 480px; background: #fff; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.28); overflow: hidden; z-index: 301; flex-direction: column; }
+.floating-chat-window.activo { display: flex; }
+.floating-chat-window-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza)); color: #fff; flex-shrink: 0; }
+.floating-chat-window-header strong { font-size: 15px; }
+.floating-chat-window-header button { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 14px; margin-left: 6px; }
+.floating-chat-window-header button:hover { background: rgba(255,255,255,0.3); }
+.floating-chat-window-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.floating-chat-window-body .messenger-layout { height: 100%; border-radius: 0; box-shadow: none; position: relative; }
+.floating-chat-window-body .messenger-list { width: 100%; border-right: none; }
+.floating-chat-window-body .messenger-chat-panel { display: none; position: absolute; inset: 0; background: #fff; }
+.floating-chat-window-body .messenger-layout.chat-activo .messenger-list { display: none; }
+.floating-chat-window-body .messenger-layout.chat-activo .messenger-chat-panel { display: flex; }
+@media (max-width: 480px) {
+    .floating-chat-window { width: 100vw; height: 100vh; bottom: 0; right: 0; border-radius: 0; }
+}
 .conv-item:hover { background: var(--fondo-terciario, #F3F4F6); }
 .conv-item:last-child { border-bottom: none; }
 .conv-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--purpura-ia, #8B5CF6), var(--azul-confianza, #3B82F6)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
@@ -664,9 +681,19 @@ select.form-input { cursor: pointer; }
 </div>
 </aside>
 </div>
-<button class="floating-chat-btn" id="floatingChatBtn" onclick="PanelUsuario.menuClick('mensajes')" title="Mensajes">
+<button class="floating-chat-btn" id="floatingChatBtn" onclick="toggleChatFlotante()" title="Mensajes">
     💬<span class="floating-chat-badge" id="floatingChatBadge">0</span>
 </button>
+<div class="floating-chat-window" id="floatingChatWindow">
+    <div class="floating-chat-window-header">
+        <strong>💬 Mensajes</strong>
+        <div>
+            <button onclick="expandirChatFlotante()" title="Abrir en pantalla completa">⤢</button>
+            <button onclick="cerrarChatFlotante()" title="Cerrar">✕</button>
+        </div>
+    </div>
+    <div class="floating-chat-window-body" id="floatMsgBody"></div>
+</div>
 </div>
 
 <!-- ============================================ -->
@@ -1845,7 +1872,7 @@ var PanelUsuario = {
         if (action === 'inicio') this.cargarFeed();
         else if (action === 'perfil') this.cargarMiPerfilFB();
         else if (action === 'publicaciones') this.cargarMisPublicaciones();
-        else if (action === 'mensajes') this.cargarConversaciones();
+        else if (action === 'mensajes') { this.cargarConversaciones(this._convIdParaExpandir); this._convIdParaExpandir = null; }
         else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') this.abrirModalConfiguracion();
     },
@@ -3634,19 +3661,23 @@ var PanelUsuario = {
     },
 
     // === CHAT === [FASE 6 - Chat con Moderación + Traducción]
-    cargarConversaciones: async function(convIdAbrir) {
+    cargarConversaciones: async function(convIdAbrir, modo) {
+        modo = modo || 'panel';
+        this._modoChatActivo = modo;
         if (!usuarioActual) { toggleAuthModal(true); return; }
-        var container = document.getElementById('userFeedContainer');
-        if (this._scrollObserver) this._scrollObserver.disconnect();
+        var container = document.getElementById(modo === 'flotante' ? 'floatMsgBody' : 'userFeedContainer');
+        if (!container) return;
+        if (modo === 'panel' && this._scrollObserver) this._scrollObserver.disconnect();
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando tus mensajes...</p></div>';
         try {
             var { data: convs, error } = await supabase.from('conversaciones').select('*').or('comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + usuarioActual.id).order('updated_at', { ascending: false });
             if (error) throw error;
             convs = convs || [];
             this._conversacionesCache = convs;
+            var prefijoItem = modo === 'flotante' ? 'floatConvItem-' : 'convItem-';
 
             if (!convs.length) {
-                container.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div>' +
+                container.innerHTML = (modo === 'panel' ? '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div>' : '') +
                     '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">💬</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">Sin conversaciones todavía</h3><p>Cuando compartas o te escriban sobre una publicación, aparecerá aquí.</p></div>';
                 return;
             }
@@ -3664,43 +3695,55 @@ var PanelUsuario = {
                 var ultimo = ultimosMsjs && ultimosMsjs[0];
                 var { count: noLeidos } = await supabase.from('mensajes').select('id', { count: 'exact', head: true }).eq('conversacion_id', c.id).eq('leido', false).neq('emisor_id', usuarioActual.id);
                 var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" alt="${nombreOtro}">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
-                listaHtml += '<div class="conv-item" id="convItem-' + c.id + '" onclick="PanelUsuario.abrirConversacion(\'' + c.id + '\')">' +
+                listaHtml += '<div class="conv-item" id="' + prefijoItem + c.id + '" onclick="PanelUsuario.abrirConversacion(\'' + c.id + '\', \'' + modo + '\')">' +
                     '<div class="conv-avatar">' + avatarHtml + '</div>' +
                     '<div class="conv-info"><div class="conv-name">' + this.escHtml(nombreOtro) + (noLeidos ? ' <span class="conv-badge">' + noLeidos + '</span>' : '') + '</div>' +
                     '<div class="conv-producto">' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div>' +
                     '<div class="conv-preview">' + (ultimo ? this.escHtml((ultimo.texto_original || '').substring(0, 60)) : 'Sin mensajes aún') + '</div></div></div>';
             }
 
-            var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div>' +
-                '<div class="messenger-layout" id="messengerLayout">' +
+            var ctx = this._ctxChat(modo);
+            var html = (modo === 'panel' ? '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn-auth btn-auth-primary" style="width:auto;padding:8px 16px;" onclick="PanelUsuario.abrirModalNuevoMensaje()">✉️ Nuevo mensaje</button></div>' : '') +
+                '<div class="messenger-layout" id="' + ctx.layout + '">' +
                 '<div class="messenger-list"><div class="conv-list">' + listaHtml + '</div></div>' +
-                '<div class="messenger-chat-panel" id="messengerChatPanel">' +
+                '<div class="messenger-chat-panel" id="' + ctx.chatPanel + '">' +
                 '<div class="messenger-vacio"><div style="font-size:40px;">💬</div><p>Selecciona una conversación para empezar a chatear.</p></div>' +
                 '</div></div>';
             container.innerHTML = html;
             this.actualizarBadgesMensajes();
 
-            if (convIdAbrir) this.abrirConversacion(convIdAbrir);
+            if (convIdAbrir) this.abrirConversacion(convIdAbrir, modo);
         } catch (e) {
             console.warn('Error cargando conversaciones:', e);
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus mensajes.</p></div>';
         }
     },
 
-    volverListaConversaciones: function() {
-        var layout = document.getElementById('messengerLayout');
+    // Devuelve los IDs de los elementos según dónde se está mostrando el chat:
+    // dentro del panel "Mensajes" (panel) o en la ventana flotante tipo Facebook (flotante)
+    _ctxChat: function(modo) {
+        if (modo === 'flotante') return { layout: 'floatMsgLayout', chatPanel: 'floatMsgChatPanel', messages: 'floatChatMessages', input: 'floatChatInput', escribiendo: 'floatChatEscribiendo', modAlert: 'floatChatModAlert', buscarRow: 'floatChatBuscarRow', buscarInput: 'floatChatBuscarInput', fotoInput: 'floatChatFotoInput' };
+        return { layout: 'messengerLayout', chatPanel: 'messengerChatPanel', messages: 'chatMessages', input: 'chatInput', escribiendo: 'chatEscribiendo', modAlert: 'chatModAlert', buscarRow: 'chatBuscarRow', buscarInput: 'chatBuscarInput', fotoInput: 'chatFotoInput' };
+    },
+
+    volverListaConversaciones: function(modo) {
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
+        var layout = document.getElementById(ctx.layout);
         if (layout) layout.classList.remove('chat-activo');
         if (this._canalConversacionActivo) { supabase.removeChannel(this._canalConversacionActivo); this._canalConversacionActivo = null; }
         this._conversacionAbiertaId = null;
     },
 
-    abrirConversacion: async function(convId) {
-        var panel = document.getElementById('messengerChatPanel');
-        if (!panel) { this.cargarConversaciones(convId); return; } // si aún no está el layout (ej: recién entrando), lo carga primero
-        var layout = document.getElementById('messengerLayout');
-        if (layout) layout.classList.add('chat-activo'); // en celular, muestra el chat y oculta la lista
+    abrirConversacion: async function(convId, modo) {
+        modo = modo || 'panel';
+        this._modoChatActivo = modo;
+        var ctx = this._ctxChat(modo);
+        var panel = document.getElementById(ctx.chatPanel);
+        if (!panel) { this.cargarConversaciones(convId, modo); return; } // si aún no está el layout (ej: recién entrando), lo carga primero
+        var layout = document.getElementById(ctx.layout);
+        if (layout) layout.classList.add('chat-activo'); // en celular (o en la ventana flotante), muestra el chat y oculta la lista
         document.querySelectorAll('.conv-item.activo').forEach(function(el) { el.classList.remove('activo'); });
-        var itemActivo = document.getElementById('convItem-' + convId);
+        var itemActivo = document.getElementById((modo === 'flotante' ? 'floatConvItem-' : 'convItem-') + convId);
         if (itemActivo) itemActivo.classList.add('activo');
         panel.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando conversación...</p></div>';
         try {
@@ -3715,7 +3758,7 @@ var PanelUsuario = {
 
             await supabase.from('mensajes').update({ leido: true }).eq('conversacion_id', convId).neq('emisor_id', usuarioActual.id).eq('leido', false);
             this.actualizarBadgesMensajes();
-            var itemActivo2 = document.getElementById('convItem-' + convId);
+            var itemActivo2 = document.getElementById((modo === 'flotante' ? 'floatConvItem-' : 'convItem-') + convId);
             if (itemActivo2) { var badge = itemActivo2.querySelector('.conv-badge'); if (badge) badge.remove(); }
 
             var { data: mensajes } = await supabase.from('mensajes').select('*').eq('conversacion_id', convId).order('created_at', { ascending: true });
@@ -3729,28 +3772,29 @@ var PanelUsuario = {
             var enLinea = otro && otro.ultima_conexion && (Date.now() - new Date(otro.ultima_conexion).getTime() < 120000);
             var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">🟢 En línea</span>' : '<span id="estadoConexionOtro">⚫ Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
             var traduccionActiva = this.tieneTraduccionChatActiva();
+            var volverBtn = modo === 'flotante' ? '<button class="chat-back-btn" onclick="PanelUsuario.volverListaConversaciones(\'flotante\')" title="Ver lista">←</button>' : '<button class="chat-back-btn messenger-back-movil" onclick="PanelUsuario.volverListaConversaciones()">← Volver</button>';
 
-            panel.innerHTML = '<div class="chat-header"><button class="chat-back-btn messenger-back-movil" onclick="PanelUsuario.volverListaConversaciones()">← Volver</button>' +
+            panel.innerHTML = '<div class="chat-header">' + volverBtn +
                 '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0;">' + avatarHtml + '</div>' +
-                '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);" id="chatEstadoLinea">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
-                '<button type="button" title="Buscar en la conversación" onclick="PanelUsuario.toggleBuscarEnChat()" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🔍</button>' +
+                '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);" id="' + ctx.chatPanel + '_estadoLinea">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
+                '<button type="button" title="Buscar en la conversación" onclick="PanelUsuario.toggleBuscarEnChat(\'' + modo + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🔍</button>' +
                 '<button type="button" title="' + (traduccionActiva ? 'Desactivar traducción automática' : 'Activar traducción automática') + '" onclick="PanelUsuario.toggleTraduccionChat(\'' + convId + '\', \'' + otroId + '\')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;opacity:' + (traduccionActiva ? '1' : '0.4') + ';" >🌐</button>' +
                 '<button type="button" title="Reportar usuario" onclick="PanelUsuario.abrirModalReportarUsuario(\'' + otroId + '\', \'' + this.escHtml(nombreOtro) + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚩</button>' +
                 '<button type="button" title="Bloquear usuario" onclick="PanelUsuario.toggleBloqueado(\'' + otroId + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚫</button>' +
                 '</div>' +
-                '<div id="chatBuscarRow" style="display:none;padding:8px 12px;border-bottom:1px solid var(--borde);"><input type="text" id="chatBuscarInput" class="form-input" placeholder="Buscar en esta conversación..." oninput="PanelUsuario.buscarEnChatAbierto(this.value)"></div>' +
-                '<div class="chat-messages" id="chatMessages">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
-                '<div id="chatEscribiendo" style="display:none;padding:0 12px;font-size:12px;color:var(--texto-terciario);">✍️ ' + this.escHtml(nombreOtro) + ' está escribiendo...</div>' +
-                '<div id="chatModAlert" class="alert" style="margin:0 12px;"></div>' +
+                '<div id="' + ctx.buscarRow + '" style="display:none;padding:8px 12px;border-bottom:1px solid var(--borde);"><input type="text" id="' + ctx.buscarInput + '" class="form-input" placeholder="Buscar en esta conversación..." oninput="PanelUsuario.buscarEnChatAbierto(this.value, \'' + modo + '\')"></div>' +
+                '<div class="chat-messages" id="' + ctx.messages + '">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
+                '<div id="' + ctx.escribiendo + '" style="display:none;padding:0 12px;font-size:12px;color:var(--texto-terciario);">✍️ ' + this.escHtml(nombreOtro) + ' está escribiendo...</div>' +
+                '<div id="' + ctx.modAlert + '" class="alert" style="margin:0 12px;"></div>' +
                 '<div class="chat-input-row">' +
-                '<input type="file" id="chatFotoInput" accept="image/*" style="display:none;" onchange="PanelUsuario.enviarFotoChat(\'' + convId + '\', \'' + otroId + '\', this.files[0])">' +
-                '<button type="button" title="Enviar foto" onclick="document.getElementById(\'chatFotoInput\').click()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 8px;">📷</button>' +
-                '<input type="text" id="chatInput" class="form-input" placeholder="Escribe un mensaje..." oninput="PanelUsuario.avisarEscribiendo()" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\')}">' +
-                '<button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\')"><i class="fas fa-paper-plane"></i></button></div>';
+                '<input type="file" id="' + ctx.fotoInput + '" accept="image/*" style="display:none;" onchange="PanelUsuario.enviarFotoChat(\'' + convId + '\', \'' + otroId + '\', this.files[0], \'' + modo + '\')">' +
+                '<button type="button" title="Enviar foto" onclick="document.getElementById(\'' + ctx.fotoInput + '\').click()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 8px;">📷</button>' +
+                '<input type="text" id="' + ctx.input + '" class="form-input" placeholder="Escribe un mensaje..." oninput="PanelUsuario.avisarEscribiendo(\'' + modo + '\')" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\',\'' + modo + '\')}">' +
+                '<button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\', \'' + modo + '\')"><i class="fas fa-paper-plane"></i></button></div>';
 
-            var msgsBox = document.getElementById('chatMessages');
+            var msgsBox = document.getElementById(ctx.messages);
             if (msgsBox) msgsBox.scrollTop = msgsBox.scrollHeight;
-            this._activarCanalConversacion(convId);
+            this._activarCanalConversacion(convId, modo);
         } catch (e) {
             console.warn('Error cargando conversación:', e);
             panel.innerHTML = '<div class="feed-empty"><p>No se pudo cargar la conversación.</p></div>';
@@ -3759,12 +3803,13 @@ var PanelUsuario = {
 
     // --- Mejora 1: canal en vivo de la conversación abierta (mensajes nuevos + "escribiendo...") ---
     _canalConversacionActivo: null,
-    _activarCanalConversacion: function(convId) {
+    _activarCanalConversacion: function(convId, modo) {
+        var ctx = this._ctxChat(modo);
         if (this._canalConversacionActivo) supabase.removeChannel(this._canalConversacionActivo);
         this._canalConversacionActivo = supabase.channel('conv-' + convId)
             .on('broadcast', { event: 'escribiendo' }, function(payload) {
                 if (payload.payload.userId === usuarioActual.id) return;
-                var el = document.getElementById('chatEscribiendo');
+                var el = document.getElementById(ctx.escribiendo);
                 if (!el) return;
                 el.style.display = 'block';
                 clearTimeout(PanelUsuario._timeoutEscribiendo);
@@ -3774,22 +3819,23 @@ var PanelUsuario = {
     },
     _timeoutEscribiendo: null,
     _timeoutAvisoEscribiendo: null,
-    avisarEscribiendo: function() {
+    avisarEscribiendo: function(modo) {
         if (!this._canalConversacionActivo || this._timeoutAvisoEscribiendo) return; // se avisa como máximo cada 2.5s
         this._canalConversacionActivo.send({ type: 'broadcast', event: 'escribiendo', payload: { userId: usuarioActual.id } });
         this._timeoutAvisoEscribiendo = setTimeout(function() { PanelUsuario._timeoutAvisoEscribiendo = null; }, 2500);
     },
 
     // Pinta un mensaje nuevo que llegó por Realtime sin recargar toda la conversación
-    agregarMensajeEnVivo: function(m) {
+    agregarMensajeEnVivo: function(m, modo) {
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
         this._mensajesActuales.push(m);
-        var box = document.getElementById('chatMessages');
+        var box = document.getElementById(ctx.messages);
         if (!box) return;
         var vacio = box.querySelector('p');
         if (vacio) box.innerHTML = '';
         box.insertAdjacentHTML('beforeend', this._renderBurbuja(m, this.tieneTraduccionChatActiva()));
         box.scrollTop = box.scrollHeight;
-        var elEscribiendo = document.getElementById('chatEscribiendo');
+        var elEscribiendo = document.getElementById(ctx.escribiendo);
         if (elEscribiendo) elEscribiendo.style.display = 'none';
     },
 
@@ -3818,25 +3864,28 @@ var PanelUsuario = {
     },
 
     // --- Mejora 6: buscar dentro de la conversación abierta ---
-    toggleBuscarEnChat: function() {
-        var row = document.getElementById('chatBuscarRow');
+    toggleBuscarEnChat: function(modo) {
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
+        var row = document.getElementById(ctx.buscarRow);
         if (!row) return;
         var mostrar = row.style.display === 'none';
         row.style.display = mostrar ? 'block' : 'none';
-        if (mostrar) { document.getElementById('chatBuscarInput').focus(); } else { this.buscarEnChatAbierto(''); }
+        if (mostrar) { document.getElementById(ctx.buscarInput).focus(); } else { this.buscarEnChatAbierto('', modo); }
     },
-    buscarEnChatAbierto: function(texto) {
+    buscarEnChatAbierto: function(texto, modo) {
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
         var q = (texto || '').toLowerCase().trim();
-        document.querySelectorAll('#chatMessages .chat-bubble-row').forEach(function(row) {
+        document.querySelectorAll('#' + ctx.messages + ' .chat-bubble-row').forEach(function(row) {
             var coincide = !q || (row.dataset.texto || '').indexOf(q) !== -1;
             row.style.display = coincide ? '' : 'none';
         });
     },
 
     // --- Mejora 3: enviar foto en el chat ---
-    enviarFotoChat: async function(convId, otroId, archivo) {
+    enviarFotoChat: async function(convId, otroId, archivo, modo) {
         if (!archivo) return;
-        var alertEl = document.getElementById('chatModAlert');
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
+        var alertEl = document.getElementById(ctx.modAlert);
         try {
             alertEl.className = 'alert';
             alertEl.textContent = '⏳ Enviando foto...';
@@ -3849,7 +3898,7 @@ var PanelUsuario = {
             var { data: nuevoMsg, error } = await supabase.from('mensajes').insert({ conversacion_id: convId, emisor_id: usuarioActual.id, imagen_url: urlData.publicUrl, texto_original: '📷 Foto', leido: false }).select().single();
             if (error) throw error;
             alertEl.style.display = 'none';
-            this.agregarMensajeEnVivo(nuevoMsg);
+            this.agregarMensajeEnVivo(nuevoMsg, modo);
             await supabase.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', convId);
         } catch (e) {
             alertEl.className = 'alert alert-error';
@@ -3893,7 +3942,7 @@ var PanelUsuario = {
         document.getElementById('modalDeclaracionChat').style.display = 'none';
         var pendiente = this._chatPendiente;
         this._chatPendiente = null;
-        if (pendiente) this.enviarMensajeChat(pendiente.convId, pendiente.otroId);
+        if (pendiente) this.enviarMensajeChat(pendiente.convId, pendiente.otroId, pendiente.modo);
     },
     cancelarDeclaracionChat: function() {
         document.getElementById('modalDeclaracionChat').style.display = 'none';
@@ -3920,18 +3969,20 @@ var PanelUsuario = {
         return { permitido: true };
     },
 
-    enviarMensajeChat: async function(convId, otroId) {
-        var input = document.getElementById('chatInput');
+    enviarMensajeChat: async function(convId, otroId, modo) {
+        modo = modo || this._modoChatActivo;
+        var ctx = this._ctxChat(modo);
+        var input = document.getElementById(ctx.input);
         var texto = input ? input.value.trim() : '';
         if (!texto) return;
         if (!this.tieneDeclaracionChatAceptada()) {
-            this._chatPendiente = { convId: convId, otroId: otroId };
+            this._chatPendiente = { convId: convId, otroId: otroId, modo: modo };
             document.getElementById('chatDeclaracionCheckbox').checked = false;
             document.getElementById('btnAceptarDeclaracionChat').disabled = true;
             document.getElementById('modalDeclaracionChat').style.display = 'flex';
             return;
         }
-        var alertEl = document.getElementById('chatModAlert');
+        var alertEl = document.getElementById(ctx.modAlert);
         alertEl.style.display = 'none';
         var mod = this.moderarMensaje(texto);
         if (!mod.permitido) {
@@ -3964,7 +4015,7 @@ var PanelUsuario = {
             if (error) throw error;
             await supabase.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', convId);
             input.value = '';
-            this.agregarMensajeEnVivo(nuevoMsg);
+            this.agregarMensajeEnVivo(nuevoMsg, modo);
         } catch (e) {
             alertEl.className = 'alert alert-error';
             alertEl.textContent = 'Error al enviar: ' + (e.message || 'intenta de nuevo');
@@ -4320,7 +4371,8 @@ var PanelUsuario = {
                 if (error) throw error;
                 convId = nuevaConv.id;
             }
-            this.abrirConversacion(convId);
+            abrirChatFlotante();
+            this.cargarConversaciones(convId, 'flotante');
         } catch (e) {
             this.mostrarToast('Error al iniciar la conversación');
         }
@@ -4571,7 +4623,7 @@ function iniciarCanalMensajesGlobal() {
 
             // Si tengo esa conversación abierta ahora mismo, la pinto sin recargar
             if (PanelUsuario._conversacionAbiertaId === m.conversacion_id) {
-                PanelUsuario.agregarMensajeEnVivo(m);
+                PanelUsuario.agregarMensajeEnVivo(m, PanelUsuario._modoChatActivo);
                 supabase.from('mensajes').update({ leido: true }).eq('id', m.id);
             } else if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
                 var autor = await PanelUsuario.obtenerAutor(m.emisor_id);
@@ -4586,6 +4638,44 @@ function detenerCanalMensajesGlobal() {
 }
 function pedirPermisoNotificaciones() {
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+}
+
+// === VENTANA FLOTANTE DE CHAT (estilo Facebook Messenger) ===
+// El botón 💬 de la esquina ahora abre esta ventana encima de lo que estés viendo,
+// en vez de mandarte a la sección "Mensajes" del panel.
+function toggleChatFlotante() {
+    if (!usuarioActual) { toggleAuthModal(true); return; }
+    var win = document.getElementById('floatingChatWindow');
+    if (!win) return;
+    var abriendo = !win.classList.contains('activo');
+    win.classList.toggle('activo');
+    if (abriendo) PanelUsuario.cargarConversaciones(null, 'flotante');
+    else cerrarChatFlotanteInterno();
+}
+function abrirChatFlotante() {
+    if (!usuarioActual) { toggleAuthModal(true); return; }
+    var win = document.getElementById('floatingChatWindow');
+    if (win) win.classList.add('activo');
+}
+function cerrarChatFlotante() {
+    var win = document.getElementById('floatingChatWindow');
+    if (win) win.classList.remove('activo');
+    cerrarChatFlotanteInterno();
+}
+function cerrarChatFlotanteInterno() {
+    // Libera el canal en vivo de la conversación si estaba abierta en la ventana flotante
+    if (PanelUsuario._modoChatActivo === 'flotante' && PanelUsuario._canalConversacionActivo) {
+        supabase.removeChannel(PanelUsuario._canalConversacionActivo);
+        PanelUsuario._canalConversacionActivo = null;
+        PanelUsuario._conversacionAbiertaId = null;
+    }
+}
+// "Abrir en pantalla completa": pasa la conversación actual a la sección "Mensajes" del panel
+function expandirChatFlotante() {
+    var convId = (PanelUsuario._modoChatActivo === 'flotante') ? PanelUsuario._conversacionAbiertaId : null;
+    cerrarChatFlotante();
+    PanelUsuario._convIdParaExpandir = convId;
+    PanelUsuario.menuClick('mensajes');
 }
 
 async function logout() {
