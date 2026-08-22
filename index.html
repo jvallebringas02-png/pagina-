@@ -404,6 +404,8 @@ select.form-input { cursor: pointer; }
 /* USER PICKER (buscador de personas) */
 /* ============================================ */
 .user-picker-results { max-height: 220px; overflow-y: auto; margin-top: 6px; border-radius: 10px; }
+.compartir-filtro-zona { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--borde); background: #fff; font-size: 12px; cursor: pointer; color: var(--texto-secundario); }
+.compartir-filtro-zona.activo { background: var(--purpura-ia, #8B5CF6); color: #fff; border-color: var(--purpura-ia, #8B5CF6); }
 .user-picker-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s; border-bottom: 1px solid var(--borde-suave, #f0f0f0); }
 .user-picker-item:last-child { border-bottom: none; }
 .user-picker-item:hover { background: var(--fondo-secundario, #F3F4F6); }
@@ -856,7 +858,25 @@ select.form-input { cursor: pointer; }
             <div style="font-weight:600;font-size:14px;margin-bottom:10px;">✉️ Enviar por Mensaje Privado</div>
             <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
             <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-            <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Nombre de la persona, o el tema (ej: correas, sillas)..." autocomplete="off"
+
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                <button type="button" id="filtroZona-local" data-nivel="local" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('local')">📍 Local</button>
+                <button type="button" id="filtroZona-regional" data-nivel="regional" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('regional')">🗺️ Regional</button>
+                <button type="button" id="filtroZona-pais" data-nivel="pais" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('pais')">🌎 País</button>
+                <select id="compartirFiltroRubro" class="form-input" style="width:auto;flex:1;min-width:120px;padding:6px 8px;font-size:13px;" onchange="PanelUsuario.filtrarCompartirPorRubro()">
+                    <option value="">Cualquier rubro</option>
+                    <option value="Tecnología">Tecnología</option>
+                    <option value="Hogar">Hogar</option>
+                    <option value="Ropa">Ropa</option>
+                    <option value="Deportes">Deportes</option>
+                    <option value="Vehículos">Vehículos</option>
+                    <option value="Agro">Agro / Alimentos</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Libros">Libros</option>
+                </select>
+            </div>
+
+            <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar por nombre..." autocomplete="off"
                 oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
             <div id="compartirResultadosPersona" class="user-picker-results"></div>
             <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
@@ -1370,7 +1390,7 @@ function showAssistantProactive(message) {
 // SYSTEM PROMPTS
 // ============================================
 var SYSTEM_PROMPTS = {
-    es: 'Eres el Asistente Experto de remarket-db, tu orientador y asesor de confianza en economía circular.\n\nTUS BONDADES:\n1. Disponibilidad 24/7.\n2. Búsqueda inteligente con jerga local.\n3. Consejos de trueque y sostenibilidad.\n\nSi el usuario menciona un producto, responde brevemente y termina con: [ACCION: BUSCAR | PRODUCTO: (producto)]\n\nSi el usuario está buscando a una PERSONA por su nombre (no un producto) para contactarla o ver su perfil, responde brevemente y termina con: [ACCION: BUSCAR_PERSONA | NOMBRE: (nombre)]\n\nSI TE PREGUNTAN ALGO FUERA DE TU FUNCIÓN (clima, noticias, datos personales de otros que no sea su nombre público, temas sin relación con comprar/vender/trueque/donar): NO inventes una respuesta y NO te quedes en silencio. Responde con amabilidad explicando que no puedes ayudar con eso, y redirige ofreciendo algo concreto que sí puedas hacer. Ejemplo: "Soy el asistente de remarket-db y me especializo en economía circular. No tengo acceso a eso, pero si me dices qué producto buscas o quieres publicar, te ayudo enseguida. ¿En qué te ayudo?"\n\nIMPORTANTE: Responde SIEMPRE en español.',
+    es: 'Eres el Asistente Experto de remarket-db, tu orientador y asesor de confianza en economía circular.\n\nTUS BONDADES:\n1. Disponibilidad 24/7.\n2. Búsqueda inteligente con jerga local.\n3. Consejos de trueque y sostenibilidad.\n\nSi el usuario menciona un producto o servicio específico, responde brevemente y termina con: [ACCION: BUSCAR | PRODUCTO: (producto)]\n\nSi el usuario está buscando a una PERSONA por su nombre (no un producto) para contactarla o ver su perfil, responde brevemente y termina con: [ACCION: BUSCAR_PERSONA | NOMBRE: (nombre)]\n\nSi el usuario quiere ver las publicaciones más recientes o explorar sin buscar nada en particular (ej: "los últimos anuncios", "qué hay nuevo", "muéstrame todo"), responde brevemente y termina con: [ACCION: RECIENTES]\n\nSi el usuario quiere explorar por una categoría general, sin un producto específico (ej: "ropa", "tecnología", "cosas de hogar"), responde brevemente y termina con: [ACCION: CATEGORIA | CATEGORIA: (categoria)]\n\nSI TE PREGUNTAN ALGO FUERA DE TU FUNCIÓN (clima, noticias, datos personales de otros que no sea su nombre público, temas sin relación con comprar/vender/trueque/donar): NO inventes una respuesta y NO te quedes en silencio. Responde con amabilidad explicando que no puedes ayudar con eso, y redirige ofreciendo algo concreto que sí puedas hacer. Ejemplo: "Soy el asistente de remarket-db y me especializo en economía circular. No tengo acceso a eso, pero si me dices qué producto buscas o quieres publicar, te ayudo enseguida. ¿En qué te ayudo?"\n\nIMPORTANTE: Responde SIEMPRE en español.',
     en: 'You are the Expert Assistant of remarket-db, your trusted guide in circular economy.\n\nYOUR BENEFITS:\n1. 24/7 Availability.\n2. Smart search.\n3. Barter and sustainability advice.\n\nIf the user mentions a product, respond briefly and end with: [ACCION: BUSCAR | PRODUCTO: (product)]\n\nIf the user is looking for a PERSON by name (not a product) to contact them or view their profile, respond briefly and end with: [ACCION: BUSCAR_PERSONA | NOMBRE: (name)]\n\nIF ASKED SOMETHING OUTSIDE YOUR SCOPE (weather, news, other people\'s personal data beyond their public name, unrelated topics): do NOT invent an answer and do NOT stay silent. Kindly explain you can\'t help with that, and redirect by offering something concrete you can do instead.\n\nIMPORTANT: ALWAYS respond in English.',
     de: 'Du bist der Experten-Assistent von remarket-db, dein vertrauenswürdiger Berater für Kreislaufwirtschaft.\n\nWenn der Nutzer ein Produkt erwähnt, antworte kurz und beende mit: [ACCION: BUSCAR | PRODUCTO: (Produkt)]\n\nWenn der Nutzer eine PERSON namentlich sucht, um sie zu kontaktieren, antworte kurz und beende mit: [ACCION: BUSCAR_PERSONA | NOMBRE: (Name)]\n\nBei Fragen außerhalb deines Bereichs (Wetter, Nachrichten, persönliche Daten anderer): erkläre freundlich, dass du dabei nicht helfen kannst, und biete etwas Konkretes an, das du tun kannst.\n\nWICHTIG: Antworte IMMER auf Deutsch.',
     it: 'Sei l\'Assistente Esperto di remarket-db, la tua guida di fiducia nell\'economia circolare.\n\nSe l\'utente menziona un prodotto, rispondi brevemente e termina con: [ACCION: BUSCAR | PRODUCTO: (prodotto)]\n\nSe l\'utente cerca una PERSONA per nome per contattarla, rispondi brevemente e termina con: [ACCION: BUSCAR_PERSONA | NOMBRE: (nome)]\n\nSe ti chiedono qualcosa fuori dal tuo ambito (meteo, notizie, dati personali altrui): spiega gentilmente che non puoi aiutare con questo, e reindirizza offrendo qualcosa di concreto.\n\nIMPORTANTE: Rispondi SEMPRE in italiano.',
@@ -2299,6 +2319,8 @@ var PanelUsuario = {
         document.getElementById('compartirResultadosPersona').innerHTML = '';
         document.getElementById('compartirSugerenciasIA').innerHTML = '';
         document.getElementById('compartirAlert').style.display = 'none';
+        document.getElementById('compartirFiltroRubro').value = '';
+        document.querySelectorAll('.compartir-filtro-zona').forEach(function(b) { b.classList.remove('activo'); });
         this._destinatariosSeleccionados = [];
         this.renderChipsSeleccionados();
 
@@ -4065,19 +4087,23 @@ var PanelUsuario = {
 
     // === BUSCADOR DE PERSONAS MEJORADO === [FASE 6 - Búsqueda de Usuarios en Tiempo Real]
     buscarUsuariosPorNombre: async function(q) {
-        if (!usuarioActual || !q || q.trim().length < 2) return [];
+        if (!usuarioActual || !q || !q.trim().length) return [];
+        var termino = q.trim().toLowerCase();
+        var primeraPalabra = termino.split(/\s+/)[0];
         var bloqueados = await this.obtenerBloqueados();
         try {
             var { data } = await supabase
                 .from('usuarios')
                 .select('id, nombres, apellidos, correo_electronico, foto_perfil')
-                .or(`nombres.ilike.%${q.trim()}%,apellidos.ilike.%${q.trim()}%`)
-                .limit(8);
+                .or(`nombres.ilike.%${primeraPalabra}%,apellidos.ilike.%${primeraPalabra}%`)
+                .limit(30);
             return (data || [])
-                .filter(function(u) { 
-                    return u.id !== usuarioActual.id && 
-                           bloqueados.indexOf(u.id) === -1; 
+                .filter(function(u) {
+                    if (u.id === usuarioActual.id || bloqueados.indexOf(u.id) !== -1) return false;
+                    var nombreCompleto = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim().toLowerCase();
+                    return nombreCompleto.indexOf(termino) !== -1;
                 })
+                .slice(0, 8)
                 .map(function(u) {
                     u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
                     return u;
@@ -4088,20 +4114,59 @@ var PanelUsuario = {
         }
     },
 
-    // Espera a que el usuario termine de escribir (500ms) antes de buscar,
+    // Filtros explícitos por zona (Local/Regional/País) y por rubro, visibles en el modal de Compartir
+    filtrarCompartirPorZona: async function(nivel) {
+        var btn = document.getElementById('filtroZona-' + nivel);
+        var yaActivo = btn && btn.classList.contains('activo');
+        document.querySelectorAll('.compartir-filtro-zona').forEach(function(b) { b.classList.remove('activo'); });
+        if (btn && !yaActivo) btn.classList.add('activo');
+        this._aplicarFiltrosCompartir();
+    },
+    filtrarCompartirPorRubro: function() {
+        this._aplicarFiltrosCompartir();
+    },
+    _aplicarFiltrosCompartir: async function() {
+        var el = document.getElementById('compartirResultadosPersona');
+        var zonaActiva = document.querySelector('.compartir-filtro-zona.activo');
+        var nivel = zonaActiva ? zonaActiva.dataset.nivel : null;
+        var rubro = document.getElementById('compartirFiltroRubro').value;
+        if (!nivel && !rubro) { this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo); return; }
+        if (nivel && !usuarioActual.localidad_id) {
+            el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no tienes tu localidad definida. Ve a Configuración para definirla, o usa solo el filtro de rubro.</div>';
+            return;
+        }
+        el.innerHTML = '<div class="user-picker-empty">Buscando...</div>';
+        var candidatos = await this.buscarUsuariosCompartir(rubro || null, nivel);
+        var self = this;
+        if (!candidatos.length) {
+            el.innerHTML = '<div class="user-picker-empty">😕 No encontré personas con esos filtros.</div>';
+            return;
+        }
+        el.innerHTML = candidatos.map(function(u) {
+            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:36px;height:36px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+            return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                fotoHtml + '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div></div></div>';
+        }).join('');
+    },
+
+    // Espera a que el usuario termine de escribir (350ms) antes de buscar,
     // así no se llama a la IA en cada letra que teclea.
     onBuscarPersonaInput: function(valor, contexto) {
         clearTimeout(this._debounceBusqueda);
         this._debounceBusqueda = setTimeout(function() {
             PanelUsuario.buscarPersonaPicker(valor, contexto);
-        }, 500);
+        }, 350);
     },
 
     buscarPersonaPicker: async function(q, contexto) {
         var el = document.getElementById(contexto + 'ResultadosPersona');
         if (!el) return;
-        if (!q || q.trim().length < 2) { 
-            el.innerHTML = '<div class="user-picker-empty">💡 Escribe al menos 2 letras para buscar...</div>'; 
+        if (!q || !q.trim().length) { 
+            if (contexto === 'compartir') this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo);
+            else el.innerHTML = '<div class="user-picker-empty">💡 Escribe para buscar...</div>';
             return;
         }
         var usuarios = await this.buscarUsuariosPorNombre(q);
@@ -4388,24 +4453,80 @@ var PanelUsuario = {
         document.getElementById('sidebarOverlay').classList.remove('show');
     },
 
-    buscarEnFeed: async function(query) {
-        var posts = document.querySelectorAll('.feed-post');
-        var q = query.toLowerCase();
-        var algunoVisible = false;
-        posts.forEach(function(post) {
-            var text = post.textContent.toLowerCase();
-            var visible = !q || text.includes(q);
-            post.style.display = visible ? '' : 'none';
-            if (visible) algunoVisible = true;
-        });
-        // Si el filtro rápido no encontró nada, consultamos al Asistente IA para que ayude de verdad
-        if (q && !algunoVisible && typeof AIService !== 'undefined' && AIService.enviarMensaje) {
-            var respuestaIA = await AIService.enviarMensaje(query);
-            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) {
-                UIController.mostrarRespuestaIA('🔎 No encontré "' + query + '" entre las publicaciones visibles ahora mismo. ' + respuestaIA, 'assistant');
-            }
+    // Buscador del header dentro del panel: le manda el texto completo a la IA,
+    // que decide la intención (producto, persona, recientes, categoría, o fuera de tema)
+    ejecutarBusquedaConIA: async function(query) {
+        var container = document.getElementById('userFeedContainer');
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 El Asistente IA está pensando...</p></div>';
+        var respuestaIA = await AIService.enviarMensaje(query);
+        var esError = respuestaIA === 'Error al conectar con la IA.' || respuestaIA === 'Error de conexión.';
+        if (esError) {
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>No pude conectarme con el Asistente en este momento. Intenta de nuevo en unos segundos.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+            return;
         }
-    }
+        var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i);
+        var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : '';
+
+        if (accion === 'BUSCAR') {
+            var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var producto = prodMatch ? prodMatch[1].trim() : query;
+            await this.buscarProductosReales(producto, 'titulo_desc');
+        } else if (accion === 'CATEGORIA') {
+            var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
+            var categoria = catMatch ? catMatch[1].trim() : query;
+            await this.buscarProductosReales(categoria, 'categoria');
+        } else if (accion === 'BUSCAR_PERSONA') {
+            var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
+            var nombre = nombreMatch ? nombreMatch[1].trim() : query;
+            var usuarios = await this.buscarUsuariosPorNombre(nombre);
+            this.renderResultadosPersonasEnFeed(usuarios, nombre);
+        } else if (accion === 'RECIENTES') {
+            this.cargarFeed();
+        } else {
+            // Respuesta conversacional (o pregunta fuera de tema): se muestra en el Asistente IA lateral
+            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(respuestaIA, 'assistant');
+            this.cargarFeed();
+        }
+    },
+
+    buscarProductosReales: async function(termino, modo) {
+        var container = document.getElementById('userFeedContainer');
+        try {
+            var q = supabase.from('productos').select('*').eq('estado', 'aprobado');
+            q = (modo === 'categoria') ? q.ilike('categoria', '%' + termino + '%') : q.or('titulo.ilike.%' + termino + '%,descripcion.ilike.%' + termino + '%');
+            var { data: productos } = await q.order('created_at', { ascending: false }).limit(30);
+            if (!productos || !productos.length) {
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🔎</div><p>No encontré publicaciones para "' + this.escHtml(termino) + '".</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+                return;
+            }
+            var self = this;
+            var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🔎 Resultados para "' + this.escHtml(termino) + '" · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
+            for (var i = 0; i < productos.length; i++) {
+                var autor = await self.obtenerAutor(productos[i].usuario_id);
+                html += self.renderPost(productos[i], autor, false);
+            }
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="feed-empty"><p>Error al buscar. Intenta de nuevo.</p></div>';
+        }
+    },
+
+    renderResultadosPersonasEnFeed: function(usuarios, nombreBuscado) {
+        var container = document.getElementById('userFeedContainer');
+        if (!usuarios || !usuarios.length) {
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">👤</div><p>No encontré a nadie llamado "' + this.escHtml(nombreBuscado) + '".</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+            return;
+        }
+        var self = this;
+        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">👤 Personas que coinciden con "' + this.escHtml(nombreBuscado) + '" · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
+        html += '<div style="background:#fff;border-radius:12px;padding:8px;">' + usuarios.map(function(u) {
+            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">' : '<div class="feed-post-avatar">' + inicial + '</div>';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px;cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + fotoHtml + '<div style="font-weight:600;">' + self.escHtml(nombre) + '</div></div>';
+        }).join('') + '</div>';
+        container.innerHTML = html;
+    },
 };
 
 // ============================================
@@ -4773,7 +4894,7 @@ var UIController = {
 
 var EventController = {
     manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : mensaje; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : mensaje; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
-    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.buscarEnFeed(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : query; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : query; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
+    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.ejecutarBusquedaConIA(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : query; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : query; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
     manejarLimpiarChat: function() { if (confirm("¿Borrar conversación?")) { AIService.limpiarHistorial(); document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>'; } }
 };
 
