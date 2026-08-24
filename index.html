@@ -2847,16 +2847,29 @@ var PanelUsuario = {
         var privacidadRadio = document.querySelector('input[name="configPrivacidad"]:checked');
         var privacidad = privacidadRadio ? privacidadRadio.value : 'todos';
         try {
-            var { error } = await supabase.from('usuarios').update({
+            var localidadId = null;
+            var avisoLocalidadNoEncontrada = false;
+            if (ciudad) {
+                try {
+                    var { data: locEncontrada } = await supabase.from('localidades').select('id').ilike('nombre', ciudad).limit(1).maybeSingle();
+                    if (locEncontrada) localidadId = locEncontrada.id;
+                    else avisoLocalidadNoEncontrada = true;
+                } catch (eLoc) {
+                    console.warn('No se pudo resolver localidad_id (revisa que exista la tabla "localidades"):', eLoc);
+                    avisoLocalidadNoEncontrada = true;
+                }
+            }
+            var payloadUpdate = {
                 categoria: categoria,
-                ciudad: ciudad || null,
-                pais: pais || null,
                 notif_mensajes: notifMensajes,
                 notif_comentarios: notifComentarios,
                 notif_likes: notifLikes,
                 privacidad_mensajes: privacidad
-            }).eq('id', usuarioActual.id);
+            };
+            if (localidadId) payloadUpdate.localidad_id = localidadId;
+            var { error } = await supabase.from('usuarios').update(payloadUpdate).eq('id', usuarioActual.id);
             if (error) throw error;
+            if (localidadId) usuarioActual.localidad_id = localidadId;
             usuarioActual.categoria = categoria;
             usuarioActual.ciudad = ciudad || null;
             usuarioActual.pais = pais || null;
@@ -2871,8 +2884,14 @@ var PanelUsuario = {
                 UbicacionUsuario.actualizarUI();
             }
             this.actualizarTarjetasUsuario();
-            this.mostrarToast('✅ Configuración guardada');
-            this.cerrarModalConfiguracion();
+            if (avisoLocalidadNoEncontrada) {
+                alertEl.className = 'alert alert-error';
+                alertEl.textContent = '✅ Se guardó tu configuración, pero "' + ciudad + '" todavía no existe en el catálogo de localidades del sistema, así que la búsqueda por zona no podrá usarla todavía. Contacta al administrador para agregarla.';
+                alertEl.style.display = 'block';
+            } else {
+                this.mostrarToast('✅ Configuración guardada');
+                this.cerrarModalConfiguracion();
+            }
         } catch (e) {
             alertEl.className = 'alert alert-error';
             alertEl.textContent = 'Error al guardar: ' + (e.message || 'intenta de nuevo');
