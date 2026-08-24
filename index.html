@@ -405,6 +405,24 @@ select.form-input { cursor: pointer; }
 /* ============================================ */
 .user-picker-results { max-height: 220px; overflow-y: auto; margin-top: 6px; border-radius: 10px; }
 .compartir-filtro-zona { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--borde); background: #fff; font-size: 12px; cursor: pointer; color: var(--texto-secundario); }
+.compartir-opcion { border-bottom: 1px solid var(--borde-suave, #E5E7EB); }
+.compartir-opcion:last-child { border-bottom: none; }
+.compartir-opcion-header { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 4px; background: none; border: none; cursor: pointer; text-align: left; font-size: 15px; color: var(--texto-principal); border-radius: 8px; }
+.compartir-opcion-header:hover { background: var(--fondo-terciario, #F3F4F6); }
+.compartir-opcion-icono { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
+.compartir-opcion-label { flex: 1; font-weight: 500; }
+.compartir-opcion-chevron { color: var(--texto-terciario, #9CA3AF); transition: transform .2s; font-size: 18px; }
+.compartir-opcion.abierta .compartir-opcion-chevron { transform: rotate(90deg); }
+.compartir-opcion-contenido { display: none; padding: 4px 4px 16px 38px; }
+.compartir-opcion.abierta .compartir-opcion-contenido { display: block; }
+.compartir-contactos-row { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 10px; }
+.compartir-contacto-circulo { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex-shrink: 0; width: 60px; }
+.compartir-contacto-avatar-wrap { position: relative; }
+.compartir-contacto-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--purpura-ia, #8B5CF6), var(--azul-confianza, #3B82F6)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; overflow: hidden; }
+.compartir-contacto-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.compartir-contacto-nombre { font-size: 11px; color: var(--texto-secundario); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.compartir-contacto-check { display: none; position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px; border-radius: 50%; background: var(--purpura-ia, #8B5CF6); color: #fff; font-size: 11px; align-items: center; justify-content: center; border: 2px solid #fff; }
+.compartir-contacto-circulo.seleccionado .compartir-contacto-check { display: flex; }
 .compartir-filtro-zona.activo { background: var(--purpura-ia, #8B5CF6); color: #fff; border-color: var(--purpura-ia, #8B5CF6); }
 .user-picker-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s; border-bottom: 1px solid var(--borde-suave, #f0f0f0); }
 .user-picker-item:last-child { border-bottom: none; }
@@ -661,6 +679,7 @@ select.form-input { cursor: pointer; }
 <button class="user-menu-item active" data-action="inicio" onclick="PanelUsuario.menuClick('inicio')"><span>🏠</span> <span id="menuTextInicio">Inicio</span></button>
 <button class="user-menu-item" data-action="perfil" onclick="PanelUsuario.menuClick('perfil')"><span>👤</span> <span id="menuTextPerfil">Mi Perfil</span></button>
 <button class="user-menu-item" data-action="publicaciones" onclick="PanelUsuario.menuClick('publicaciones')"><span>📦</span> <span id="menuTextPublicaciones">Mis Publicaciones</span></button>
+<button class="user-menu-item" data-action="buscarpersonas" onclick="PanelUsuario.menuClick('buscarpersonas')"><span>🔍</span> <span id="menuTextBuscarPersonas">Buscar Personas</span></button>
 <button class="user-menu-item" data-action="mensajes" onclick="PanelUsuario.menuClick('mensajes')"><span>💬</span> <span id="menuTextMensajes">Mensajes</span> <span class="menu-badge" id="mensajesBadge">0</span></button>
 <button class="user-menu-item" data-action="favoritos" onclick="PanelUsuario.menuClick('favoritos')"><span>❤️</span> <span id="menuTextFavoritos">Favoritos</span></button>
 <button class="user-menu-item" data-action="config" onclick="PanelUsuario.menuClick('config')"><span>⚙️</span> <span id="menuTextConfig">Configuración</span></button>
@@ -864,56 +883,72 @@ select.form-input { cursor: pointer; }
 
         <div id="compartirAlert" class="alert" style="display:none;margin-top:12px;"></div>
 
-        <!-- OPCIÓN 1: Enviar por Mensaje Privado (prioritaria) -->
-        <div style="margin-top:16px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
-            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">✉️ Enviar por Mensaje Privado</div>
-            <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
-            <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <div class="compartir-opciones" style="margin-top:8px;">
 
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                <button type="button" id="filtroZona-local" data-nivel="local" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('local')">📍 Local</button>
-                <button type="button" id="filtroZona-regional" data-nivel="regional" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('regional')">🗺️ Regional</button>
-                <button type="button" id="filtroZona-pais" data-nivel="pais" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('pais')">🌎 País</button>
-                <select id="compartirFiltroRubro" class="form-input" style="width:auto;flex:1;min-width:120px;padding:6px 8px;font-size:13px;" onchange="PanelUsuario.filtrarCompartirPorRubro()">
-                    <option value="">Cualquier rubro</option>
-                    <option value="Tecnología">Tecnología</option>
-                    <option value="Hogar">Hogar</option>
-                    <option value="Ropa">Ropa</option>
-                    <option value="Deportes">Deportes</option>
-                    <option value="Vehículos">Vehículos</option>
-                    <option value="Agro">Agro / Alimentos</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Libros">Libros</option>
-                </select>
-            </div>
-
-            <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar por nombre..." autocomplete="off"
-                oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
-            <div id="compartirResultadosPersona" class="user-picker-results"></div>
-            <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
-                onclick="PanelUsuario.enviarCompartirMensajePrivado()">
-                <i class="fas fa-paper-plane"></i> Enviar
+        <!-- OPCIÓN 1: Enviar por Mensaje Privado (prioritaria, abierta por defecto) -->
+        <div class="compartir-opcion abierta" id="compartirOpcionMensaje">
+            <button type="button" class="compartir-opcion-header" onclick="PanelUsuario.toggleOpcionCompartir('mensaje')">
+                <span class="compartir-opcion-icono">✉️</span>
+                <span class="compartir-opcion-label">Enviar por mensaje privado</span>
+                <span class="compartir-opcion-chevron">›</span>
             </button>
+            <div class="compartir-opcion-contenido" id="compartirContenidoMensaje">
+                <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
+                <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <button type="button" id="filtroZona-local-compartir" data-nivel="local" data-contexto="compartir" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('local')">📍 Local</button>
+                    <button type="button" id="filtroZona-regional-compartir" data-nivel="regional" data-contexto="compartir" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('regional')">🗺️ Regional</button>
+                    <button type="button" id="filtroZona-pais-compartir" data-nivel="pais" data-contexto="compartir" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('pais')">🌎 País</button>
+                    <select id="compartirFiltroRubro" class="form-input" style="width:auto;flex:1;min-width:120px;padding:6px 8px;font-size:13px;" onchange="PanelUsuario.filtrarCompartirPorRubro()">
+                        <option value="">Cualquier rubro</option>
+                        <option value="Tecnología">Tecnología</option>
+                        <option value="Hogar">Hogar</option>
+                        <option value="Ropa">Ropa</option>
+                        <option value="Deportes">Deportes</option>
+                        <option value="Vehículos">Vehículos</option>
+                        <option value="Agro">Agro / Alimentos</option>
+                        <option value="Servicios">Servicios</option>
+                        <option value="Libros">Libros</option>
+                    </select>
+                </div>
+
+                <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar por nombre..." autocomplete="off"
+                    oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
+                <div id="compartirResultadosPersona" class="user-picker-results"></div>
+                <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
+                    onclick="PanelUsuario.enviarCompartirMensajePrivado()">
+                    <i class="fas fa-paper-plane"></i> Enviar
+                </button>
+            </div>
         </div>
 
         <!-- OPCIÓN 2: Copiar Enlace -->
-        <div style="margin-top:12px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
-            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">🔗 Copiar Enlace</div>
-            <button type="button" class="btn-auth" style="width:100%;" onclick="PanelUsuario.copiarEnlaceCompartir()">
-                <i class="fas fa-link"></i> Copiar enlace de la publicación
+        <div class="compartir-opcion">
+            <button type="button" class="compartir-opcion-header" onclick="PanelUsuario.copiarEnlaceCompartir()">
+                <span class="compartir-opcion-icono">🔗</span>
+                <span class="compartir-opcion-label">Copiar enlace</span>
             </button>
-            <div style="margin-top:8px;padding:8px 10px;background:#FEF3C7;color:#92400E;border-radius:6px;font-size:12px;">
-                ⚠️ No compartas datos bancarios ni pagues fuera de remarket-db.
-            </div>
+        </div>
+        <div style="margin:2px 4px 10px 44px;padding:8px 10px;background:#FEF3C7;color:#92400E;border-radius:6px;font-size:12px;">
+            ⚠️ No compartas datos bancarios ni pagues fuera de remarket-db.
         </div>
 
         <!-- OPCIÓN 3: Repostear en Mi Perfil -->
-        <div style="margin-top:12px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
-            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">📌 Repostear en Mi Perfil</div>
-            <textarea id="compartirTexto" class="modal-fb-textarea" rows="2" placeholder="Agrega un comentario (opcional)..."></textarea>
-            <button class="btn-compartir" style="width:100%;margin-top:8px;" onclick="PanelUsuario.confirmarCompartirFB()">
-                <i class="fas fa-share-alt"></i> Repostear ahora
+        <div class="compartir-opcion">
+            <button type="button" class="compartir-opcion-header" onclick="PanelUsuario.toggleOpcionCompartir('repostear')">
+                <span class="compartir-opcion-icono">📌</span>
+                <span class="compartir-opcion-label">Compartir en tu muro</span>
+                <span class="compartir-opcion-chevron">›</span>
             </button>
+            <div class="compartir-opcion-contenido" id="compartirContenidoRepostear">
+                <textarea id="compartirTexto" class="modal-fb-textarea" rows="2" placeholder="Agrega un comentario (opcional)..."></textarea>
+                <button class="btn-compartir" style="width:100%;margin-top:8px;" onclick="PanelUsuario.confirmarCompartirFB()">
+                    <i class="fas fa-share-alt"></i> Compartir ahora
+                </button>
+            </div>
+        </div>
+
         </div>
 
         <div class="modal-fb-botones">
@@ -1253,6 +1288,44 @@ function obtenerIdiomaPreferido() {
     return detectarIdiomaNavegador();
 }
 
+// Permite pedirle al chat que cambie el idioma escribiéndolo, ej: "cambia el idioma a inglés", "switch to english".
+var NOMBRES_IDIOMA_DISPLAY = { es: 'Español', en: 'English', bg: 'Български', fr: 'Français', pt: 'Português', de: 'Deutsch', it: 'Italiano', ru: 'Русский', zh: '中文', ja: '日本語', qu: 'Quechua', ay: 'Aymara', ko: '한국어', ar: 'العربية', hi: 'हिन्दी', nl: 'Nederlands', tr: 'Türkçe' };
+var MAPA_IDIOMAS_DETECCION = {
+    'espanol': 'es', 'castellano': 'es', 'spanish': 'es',
+    'ingles': 'en', 'english': 'en',
+    'frances': 'fr', 'french': 'fr',
+    'portugues': 'pt', 'portuguese': 'pt',
+    'aleman': 'de', 'german': 'de', 'deutsch': 'de',
+    'italiano': 'it', 'italian': 'it',
+    'ruso': 'ru', 'russian': 'ru',
+    'chino': 'zh', 'chinese': 'zh', 'mandarin': 'zh',
+    'japones': 'ja', 'japanese': 'ja',
+    'quechua': 'qu',
+    'aymara': 'ay',
+    'coreano': 'ko', 'korean': 'ko',
+    'arabe': 'ar', 'arabic': 'ar',
+    'hindi': 'hi',
+    'holandes': 'nl', 'neerlandes': 'nl', 'dutch': 'nl',
+    'turco': 'tr', 'turkish': 'tr',
+    'bulgaro': 'bg', 'bulgarian': 'bg'
+};
+// Devuelve el código de idioma detectado en el mensaje si el usuario está pidiendo un cambio de idioma, o null si no.
+function detectarCambioIdiomaEnMensaje(mensaje) {
+    var sinTildes = function(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+    var texto = ' ' + sinTildes(mensaje) + ' ';
+    var disparadores = ['cambia', 'cambiar', 'cambiame', 'pon el idioma', 'poner el idioma', 'switch to', 'change language', 'change the language', 'set language', 'habla en', 'hablame en', 'responde en', 'responder en', 'idioma a', 'language to'];
+    var tieneDisparador = disparadores.some(function(d) { return texto.indexOf(d) !== -1; });
+    if (!tieneDisparador) return null;
+    for (var palabra in MAPA_IDIOMAS_DETECCION) {
+        if (texto.indexOf(' ' + palabra) !== -1) return MAPA_IDIOMAS_DETECCION[palabra];
+    }
+    return null;
+}
+// Aplica el cambio de idioma pedido desde el chat, reutilizando la misma función del panel visual.
+function aplicarCambioIdiomaDesdeChat(codigo) {
+    changeLanguage(codigo, NOMBRES_IDIOMA_DISPLAY[codigo] || codigo.toUpperCase(), null);
+}
+
 // ============================================
 // TRADUCCIONES UI
 // ============================================
@@ -1347,13 +1420,15 @@ function aplicarTraduccionUI(lang) {
 // ============================================
 function toggleLanguageDropdown() { document.getElementById('languageDropdown').classList.toggle('show'); }
 
-function changeLanguage(lang, nombre) {
+function changeLanguage(lang, nombre, elementoClic) {
     idiomaDetectado = lang;
     try { localStorage.setItem('idioma_preferido', lang); } catch (e) { console.warn('No se pudo guardar idioma_preferido:', e); }
     document.getElementById('selectedLanguage').textContent = nombre || lang.toUpperCase();
     document.querySelectorAll('.language-dropdown-item').forEach(i => i.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    document.getElementById('languageDropdown').classList.remove('show');
+    var origenClic = elementoClic || (typeof event !== 'undefined' && event ? event.currentTarget : null);
+    if (origenClic && origenClic.classList) origenClic.classList.add('active');
+    var dropdownEl = document.getElementById('languageDropdown');
+    if (dropdownEl) dropdownEl.classList.remove('show');
     
     var saludos = {
         'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?',
@@ -1907,6 +1982,7 @@ var PanelUsuario = {
         if (action === 'inicio') this.cargarFeed();
         else if (action === 'perfil') this.cargarMiPerfilFB();
         else if (action === 'publicaciones') this.cargarMisPublicaciones();
+        else if (action === 'buscarpersonas') this.cargarBuscarPersonas();
         else if (action === 'mensajes') { this.cargarConversaciones(this._convIdParaExpandir); this._convIdParaExpandir = null; }
         else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') this.abrirModalConfiguracion();
@@ -1926,12 +2002,55 @@ var PanelUsuario = {
             '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div>' + alertaHtml + '</div>' +
             '<div style="display:flex;gap:6px;flex-shrink:0;">' +
             (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
+            '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.verVistaPreviaPublicacion(\'' + p.id + '\')">👁️ Vista previa</button>' +
             '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.editarPublicacion(\'' + p.id + '\')">✏️ Editar</button>' +
             '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
             '</div></div>';
     },
+    // Vista previa de solo lectura de una publicación ya existente (o borrador), sin entrar a editarla.
+    verVistaPreviaPublicacion: function(id) {
+        var p = (this._cacheAdminPublicaciones || {})[id];
+        if (!p) { this.mostrarToast('😕 No se pudo cargar la vista previa.'); return; }
+        var modal = document.getElementById('modalVistaPreviaExistente');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalVistaPreviaExistente';
+            modal.className = 'modal-overlay';
+            document.body.appendChild(modal);
+        }
+        var nombreCompleto = ((usuarioActual.nombres || '') + ' ' + (usuarioActual.apellidos || '')).trim() || 'Usuario';
+        var fotos = p.fotos || [];
+        var imagenHtml = fotos.length ? '<img src="' + this.escHtml(fotos[0]) + '" style="width:100%;max-height:260px;object-fit:cover;border-radius:8px;">' : '<div class="preview-compartir-imagen">📷</div>';
+        var precioTexto = p.precio ? 'S/ ' + p.precio : (p.modalidad ? p.modalidad.charAt(0).toUpperCase() + p.modalidad.slice(1) : '');
+        modal.innerHTML = '<div class="modal-content" style="max-width:480px;padding:20px;">' +
+            '<button class="modal-close-btn" onclick="PanelUsuario.cerrarVistaPreviaPublicacion()">&times;</button>' +
+            '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:10px;">👁️ <strong style="color:var(--texto-principal);">Vista previa</strong> — así la ven los demás usuarios.</div>' +
+            '<div class="preview-compartir">' +
+                '<div class="preview-compartir-header">' +
+                    '<div class="preview-compartir-avatar">' + this.escHtml(nombreCompleto.charAt(0).toUpperCase()) + '</div>' +
+                    '<div><div class="preview-compartir-nombre">' + this.escHtml(nombreCompleto) + '</div><div class="preview-compartir-fecha">' + this.escHtml(precioTexto) + '</div></div>' +
+                '</div>' +
+                '<div class="preview-compartir-body">' +
+                    '<div class="preview-compartir-titulo">' + this.escHtml(p.titulo || 'Sin título') + '</div>' +
+                    '<div class="preview-compartir-desc">' + this.escHtml(p.descripcion || '') + '</div>' +
+                '</div>' +
+                imagenHtml +
+            '</div>' +
+            '<div style="display:flex;gap:8px;margin-top:16px;">' +
+                '<button class="btn-cancelar" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPublicacion()">Cerrar</button>' +
+                '<button class="btn-auth btn-auth-primary" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPublicacion();PanelUsuario.editarPublicacion(\'' + p.id + '\')">✏️ Editar</button>' +
+            '</div></div>';
+        modal.style.display = 'flex';
+    },
+    cerrarVistaPreviaPublicacion: function() {
+        var modal = document.getElementById('modalVistaPreviaExistente');
+        if (modal) modal.style.display = 'none';
+    },
     renderListaAdminPublicaciones: function(productos) {
         productos = productos || [];
+        this._cacheAdminPublicaciones = {};
+        var self2 = this;
+        productos.forEach(function(p) { self2._cacheAdminPublicaciones[p.id] = p; });
         var borradores = productos.filter(function(p) { return p.estado === 'borrador'; });
         var publicadas = productos.filter(function(p) { return p.estado !== 'borrador'; });
         var self = this;
@@ -1983,6 +2102,70 @@ var PanelUsuario = {
         }
     },
 
+    // === BUSCAR PERSONAS (sección dedicada del Panel de Usuario) ===
+    // Usa el mismo motor (buscarUsuariosPorNombre) que Compartir, Nuevo mensaje y el Chat/buscador principal.
+    cargarBuscarPersonas: function() {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var container = document.getElementById('userFeedContainer');
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        container.innerHTML =
+            '<div style="max-width:600px;margin:0 auto;padding:16px;">' +
+            '<h3 style="margin-bottom:12px;">🔍 Buscar Personas</h3>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+                '<button type="button" id="filtroZona-local-panelPersonas" data-nivel="local" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'local\')">📍 Local</button>' +
+                '<button type="button" id="filtroZona-regional-panelPersonas" data-nivel="regional" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'regional\')">🗺️ Regional</button>' +
+                '<button type="button" id="filtroZona-pais-panelPersonas" data-nivel="pais" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'pais\')">🌎 País</button>' +
+            '</div>' +
+            '<input type="text" id="panelPersonasBuscarInput" class="form-input" placeholder="Nombre, apellido o iniciales (ej: J P)..." autocomplete="off" oninput="PanelUsuario.onBuscarPanelPersonasInput(this.value)">' +
+            '<div id="panelPersonasResultados" style="margin-top:16px;"></div>' +
+            '</div>';
+        document.getElementById('panelPersonasResultados').innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
+    },
+    onBuscarPanelPersonasInput: function(valor) {
+        clearTimeout(this._debouncePanelPersonas);
+        this._debouncePanelPersonas = setTimeout(function() { PanelUsuario.buscarEnPanelPersonas(valor); }, 350);
+    },
+    buscarEnPanelPersonas: async function(valorForzado, nivelClickeado) {
+        var inputEl = document.getElementById('panelPersonasBuscarInput');
+        if (nivelClickeado) {
+            var btn = document.getElementById('filtroZona-' + nivelClickeado + '-panelPersonas');
+            var yaActivo = btn && btn.classList.contains('activo');
+            document.querySelectorAll('.compartir-filtro-zona[data-contexto="panelPersonas"]').forEach(function(b) { b.classList.remove('activo'); });
+            if (btn && !yaActivo) btn.classList.add('activo');
+        }
+        var texto = (valorForzado !== null && valorForzado !== undefined) ? valorForzado : (inputEl ? inputEl.value : '');
+        var nivelZona = this._obtenerNivelZonaActivo('panelPersonas');
+        var resultadosEl = document.getElementById('panelPersonasResultados');
+        if (!resultadosEl) return;
+        if (!texto.trim() && !nivelZona) {
+            resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
+            return;
+        }
+        resultadosEl.innerHTML = '<div style="text-align:center;padding:20px;"><div class="search-loading-spinner" style="margin:0 auto;"></div></div>';
+        var usuarios = await this.buscarUsuariosPorNombre(texto, nivelZona);
+        if (!usuarios || !usuarios.length) {
+            resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">😕 No encontramos a nadie con esos criterios. Prueba con otro nombre, iniciales, o quita el filtro de zona.</div>';
+            return;
+        }
+        var self = this;
+        resultadosEl.innerHTML = usuarios.map(function(u) {
+            var nombre = u.nombre_completo || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var fotoHtml = u.foto_perfil
+                ? '<img src="' + u.foto_perfil + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">'
+                : '<div class="user-picker-avatar" style="width:48px;height:48px;font-size:18px;">' + inicial + '</div>';
+            return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
+                fotoHtml +
+                '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;">' + self.escHtml(nombre) + '</div>' +
+                (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '') +
+                '</div>' +
+                '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">👁️ Vista previa</button>' +
+                '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                '</div></div>';
+        }).join('');
+    },
+
     // === FAVORITOS === [FASE 4.2 / FASE 5 - Guardar en Favoritos]
     cargarFavoritos: async function() {
         if (!usuarioActual) { toggleAuthModal(true); return; }
@@ -2008,6 +2191,54 @@ var PanelUsuario = {
         } catch (e) {
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus favoritos.</p></div>';
         }
+    },
+
+    // Vista previa rápida de un usuario (avatar, nombre, zona, interés) antes de entrar a su perfil completo.
+    // Usada desde los resultados de persona del buscador principal y del chat IA.
+    abrirVistaPreviaPersona: async function(id) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var modal = document.getElementById('modalVistaPreviaPersona');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalVistaPreviaPersona';
+            modal.className = 'modal-overlay';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = '<div class="modal-content" style="max-width:340px;padding:24px;text-align:center;">' +
+            '<button class="modal-close-btn" onclick="PanelUsuario.cerrarVistaPreviaPersona()">&times;</button>' +
+            '<div id="previaPersonaCuerpo"><div class="user-picker-empty">Cargando...</div></div>' +
+            '</div>';
+        modal.style.display = 'flex';
+        try {
+            var { data: u, error } = await supabase.from('usuarios').select('id, nombres, apellidos, foto_perfil, localidad_id, categoria').eq('id', id).maybeSingle();
+            if (error || !u) throw error || new Error('Usuario no encontrado');
+            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var fotoHtml = u.foto_perfil
+                ? '<img src="' + u.foto_perfil + '" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto 12px;">'
+                : '<div class="user-picker-avatar" style="width:84px;height:84px;font-size:30px;margin:0 auto 12px;">' + inicial + '</div>';
+            var localidadTexto = '';
+            if (u.localidad_id) {
+                var { data: loc } = await supabase.from('localidades').select('nombre, region').eq('id', u.localidad_id).maybeSingle();
+                if (loc) localidadTexto = '📍 ' + (loc.nombre || loc.region || '');
+            }
+            document.getElementById('previaPersonaCuerpo').innerHTML =
+                fotoHtml +
+                '<div style="font-weight:700;font-size:17px;">' + this.escHtml(nombre) + '</div>' +
+                (localidadTexto ? '<div style="color:var(--texto-secundario);font-size:13px;margin-top:4px;">' + this.escHtml(localidadTexto) + '</div>' : '') +
+                (u.categoria ? '<div style="color:var(--texto-secundario);font-size:13px;">✨ Interesado en ' + this.escHtml(u.categoria) + '</div>' : '') +
+                '<div style="display:flex;gap:8px;margin-top:16px;">' +
+                '<button class="btn-auth btn-auth-primary" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPersona();PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">Ver perfil</button>' +
+                '<button class="btn-auth" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPersona();PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                '</div>';
+        } catch (e) {
+            console.warn('Error cargando vista previa de persona:', e);
+            document.getElementById('previaPersonaCuerpo').innerHTML = '<div class="user-picker-empty">😕 No se pudo cargar la vista previa.</div>';
+        }
+    },
+    cerrarVistaPreviaPersona: function() {
+        var modal = document.getElementById('modalVistaPreviaPersona');
+        if (modal) modal.style.display = 'none';
     },
 
     // === PERFIL ESTILO FACEBOOK === [FASE 7 - Perfil de Usuario Completo]
@@ -2339,8 +2570,22 @@ var PanelUsuario = {
         this._destinatariosSeleccionados = [];
         this.renderChipsSeleccionados();
 
+        // El acordeón siempre nace con "Enviar por mensaje" abierto, y las demás cerradas
+        document.querySelectorAll('.compartir-opcion').forEach(function(el) { el.classList.remove('abierta'); });
+        document.getElementById('compartirOpcionMensaje').classList.add('abierta');
+
         this.cargarVistaPreviaCompartir(productoId);
         document.getElementById('modalCompartirFB').style.display = 'flex';
+    },
+
+    toggleOpcionCompartir: function(nombre) {
+        var idContenido = nombre === 'mensaje' ? 'compartirContenidoMensaje' : 'compartirContenidoRepostear';
+        var opcion = document.getElementById(idContenido).closest('.compartir-opcion');
+        var yaAbierta = opcion.classList.contains('abierta');
+
+        // Acordeón: solo una sección expandida a la vez, como en Facebook
+        document.querySelectorAll('.compartir-opcion').forEach(function(el) { el.classList.remove('abierta'); });
+        if (!yaAbierta) opcion.classList.add('abierta');
     },
 
     cerrarModalCompartir: function() {
@@ -2414,7 +2659,21 @@ var PanelUsuario = {
         if (!cont) return;
         cont.innerHTML = '<div class="user-picker-empty">🤖 Buscando sugerencias...</div>';
         var self = this;
-        function pintar(titulo, candidatos, etiquetaFn) {
+        function pintarCirculos(titulo, candidatos) {
+            if (!candidatos.length) return false;
+            cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:4px;">' + titulo + '</div>' +
+                '<div class="compartir-contactos-row">' + candidatos.map(function(u) {
+                    var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                    var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                    var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '">' : inicial;
+                    return '<div class="compartir-contacto-circulo" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                        '<div class="compartir-contacto-avatar-wrap"><div class="compartir-contacto-avatar">' + fotoHtml + '</div><span class="compartir-contacto-check">✓</span></div>' +
+                        '<div class="compartir-contacto-nombre">' + self.escHtml(nombre.split(' ')[0]) + '</div></div>';
+                }).join('') + '</div>';
+            return true;
+        }
+        function pintarLista(titulo, candidatos, etiquetaFn) {
             if (!candidatos.length) return false;
             cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">' + titulo + '</div>' +
                 candidatos.map(function(u) {
@@ -2430,9 +2689,9 @@ var PanelUsuario = {
             return true;
         }
         try {
-            // Prioridad 1: gente con la que ya chateaste antes, igual que en Facebook
-            var recientes = await this.obtenerContactosRecientes(5);
-            if (pintar('🕑 Contactos recientes:', recientes, function() { return 'Conversación reciente'; })) return;
+            // Prioridad 1: gente con la que ya chateaste antes, como círculos, igual que en Facebook
+            var recientes = await this.obtenerContactosRecientes(6);
+            if (pintarCirculos('🕑 Contactos recientes', recientes)) return;
 
             // Prioridad 2: si no hay contactos, gente interesada en la categoría del producto
             if (categoria) {
@@ -2445,7 +2704,7 @@ var PanelUsuario = {
                     .limit(5);
                 if (error) throw error;
                 var candidatos = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
-                if (pintar('✨ Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:', candidatos, function(u) { return '✨ Interesado en ' + self.escHtml(u.categoria || categoria); })) return;
+                if (pintarLista('✨ Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:', candidatos, function(u) { return '✨ Interesado en ' + self.escHtml(u.categoria || categoria); })) return;
             }
             cont.innerHTML = '<div class="user-picker-empty">💡 Busca por nombre, categoría o zona arriba (ej: "gente de tecnología cerca de mí").</div>';
         } catch (e) {
@@ -4145,9 +4404,7 @@ var PanelUsuario = {
         document.getElementById('nuevoMsjBuscarPersona').value = '';
         document.getElementById('nuevoMsjResultadosPersona').innerHTML = '';
         document.getElementById('nuevoMsjAlert').style.display = 'none';
-        // Limpiamos la categoría de un producto compartido anteriormente: aquí no se está
-        // compartiendo ningún producto, así que no debe influir en la búsqueda de personas.
-        this._categoriaProductoCompartiendo = null;
+        document.querySelectorAll('.compartir-filtro-zona[data-contexto="nuevoMsj"]').forEach(function(b) { b.classList.remove('activo'); });
         document.getElementById('modalNuevoMensaje').style.display = 'flex';
     },
 
@@ -4156,48 +4413,88 @@ var PanelUsuario = {
     },
 
     // === BUSCADOR DE PERSONAS MEJORADO === [FASE 6 - Búsqueda de Usuarios en Tiempo Real]
-    buscarUsuariosPorNombre: async function(q) {
-        if (!usuarioActual || !q || !q.trim().length) return [];
-        var termino = q.trim().toLowerCase();
-        var primeraPalabra = termino.split(/\s+/)[0];
+    // Motor único de búsqueda de personas. Reutilizado por: Compartir, Nuevo mensaje, Buscador principal y el Chat IA.
+    // - q: texto escrito (nombre completo, nombre parcial o INICIALES, ej: "J P", "JP", "J.P.")
+    // - nivelZona: 'local' | 'regional' | 'pais' | null -> combinable con el texto
+    buscarUsuariosPorNombre: async function(q, nivelZona) {
+        if (!usuarioActual) return [];
+        var termino = (q || '').trim().toLowerCase().replace(/\./g, '');
+        if (!termino && !nivelZona) return [];
         var bloqueados = await this.obtenerBloqueados();
         try {
-            var { data } = await supabase
+            var query = supabase
                 .from('usuarios')
-                .select('id, nombres, apellidos, correo_electronico, foto_perfil')
-                .or(`nombres.ilike.%${primeraPalabra}%,apellidos.ilike.%${primeraPalabra}%`)
-                .limit(30);
-            return (data || [])
-                .filter(function(u) {
-                    if (u.id === usuarioActual.id || bloqueados.indexOf(u.id) !== -1) return false;
+                .select('id, nombres, apellidos, correo_electronico, foto_perfil, localidad_id')
+                .neq('id', usuarioActual.id)
+                .limit(60);
+
+            if (termino) {
+                var primeraPalabra = termino.split(/\s+/)[0];
+                var soloLetras = termino.replace(/\s+/g, '');
+                var primeraLetra = soloLetras.charAt(0);
+                // Se pide al servidor: nombre/apellido que contenga la primera palabra escrita,
+                // O que empiece con la primera letra (para no perder coincidencias por iniciales, ej: "J P").
+                query = query.or(
+                    'nombres.ilike.%' + primeraPalabra + '%,' +
+                    'apellidos.ilike.%' + primeraPalabra + '%,' +
+                    'nombres.ilike.' + primeraLetra + '%,' +
+                    'apellidos.ilike.' + primeraLetra + '%'
+                );
+            }
+
+            if (nivelZona) {
+                var idsLocalidades = await this.obtenerLocalidadIdsPorNivel(nivelZona);
+                if (idsLocalidades && idsLocalidades.length) query = query.in('localidad_id', idsLocalidades);
+                else return []; // pidió una zona pero no hay localidades que califiquen
+            }
+
+            var { data, error } = await query;
+            if (error) throw error;
+
+            var resultados = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
+
+            if (termino) {
+                var terminoSinEspacios = termino.replace(/\s+/g, '');
+                resultados = resultados.filter(function(u) {
                     var nombreCompleto = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim().toLowerCase();
-                    return nombreCompleto.indexOf(termino) !== -1;
-                })
-                .slice(0, 8)
-                .map(function(u) {
-                    u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
-                    return u;
+                    if (!nombreCompleto) return false;
+                    if (nombreCompleto.indexOf(termino) !== -1) return true; // coincidencia normal por texto
+                    // Coincidencia por iniciales: "jp" o "j p" -> "Juan Perez"
+                    var iniciales = nombreCompleto.split(/\s+/).filter(Boolean).map(function(p) { return p.charAt(0); }).join('');
+                    return iniciales.indexOf(terminoSinEspacios) !== -1;
                 });
-        } catch (e) { 
+            }
+
+            return resultados.slice(0, 12).map(function(u) {
+                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
+                return u;
+            });
+        } catch (e) {
             console.warn('Error buscando usuarios:', e);
-            return []; 
+            return [];
         }
     },
 
     // Filtros explícitos por zona (Local/Regional/País) y por rubro, visibles en el modal de Compartir
     filtrarCompartirPorZona: async function(nivel) {
-        var btn = document.getElementById('filtroZona-' + nivel);
+        var btn = document.getElementById('filtroZona-' + nivel + '-compartir');
         var yaActivo = btn && btn.classList.contains('activo');
-        document.querySelectorAll('.compartir-filtro-zona').forEach(function(b) { b.classList.remove('activo'); });
+        document.querySelectorAll('.compartir-filtro-zona[data-contexto="compartir"]').forEach(function(b) { b.classList.remove('activo'); });
         if (btn && !yaActivo) btn.classList.add('activo');
-        this._aplicarFiltrosCompartir();
+        var inputEl = document.getElementById('compartirBuscarPersona');
+        if (inputEl && inputEl.value.trim()) {
+            // Ya hay texto escrito: combinar zona + texto con el motor unificado, en vez del flujo de sugerencias por rubro
+            this.buscarPersonaPicker(inputEl.value, 'compartir');
+        } else {
+            this._aplicarFiltrosCompartir();
+        }
     },
     filtrarCompartirPorRubro: function() {
         this._aplicarFiltrosCompartir();
     },
     _aplicarFiltrosCompartir: async function() {
         var el = document.getElementById('compartirResultadosPersona');
-        var zonaActiva = document.querySelector('.compartir-filtro-zona.activo');
+        var zonaActiva = document.querySelector('.compartir-filtro-zona[data-contexto="compartir"].activo');
         var nivel = zonaActiva ? zonaActiva.dataset.nivel : null;
         var rubro = document.getElementById('compartirFiltroRubro').value;
         if (!nivel && !rubro) { this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo); return; }
@@ -4231,39 +4528,69 @@ var PanelUsuario = {
         }, 350);
     },
 
+    // Lee el botón de zona (Local/Regional/País) activo para un contexto dado, si existe.
+    _obtenerNivelZonaActivo: function(contexto) {
+        var activo = document.querySelector('.compartir-filtro-zona[data-contexto="' + contexto + '"].activo');
+        if (!activo && contexto === 'compartir') activo = document.querySelector('.compartir-filtro-zona.activo'); // compatibilidad con los botones originales de Compartir
+        return activo ? activo.dataset.nivel : null;
+    },
+
+    // Botón genérico de filtro de zona, usado en Nuevo mensaje y en los resultados de persona del buscador/IA.
+    setFiltroZonaPersona: function(contexto, nivel) {
+        var btn = document.getElementById('filtroZona-' + nivel + '-' + contexto);
+        var yaActivo = btn && btn.classList.contains('activo');
+        document.querySelectorAll('.compartir-filtro-zona[data-contexto="' + contexto + '"]').forEach(function(b) { b.classList.remove('activo'); });
+        if (btn && !yaActivo) btn.classList.add('activo');
+        var inputEl = document.getElementById(contexto + 'BuscarPersona');
+        var valor = inputEl ? inputEl.value : '';
+        this.buscarPersonaPicker(valor, contexto);
+    },
+
+    // Pinta la lista de tarjetas de personas encontradas (nombre, avatar, correo) para cualquier contexto.
+    _renderResultadosPersonaPicker: function(usuarios, contexto, el) {
+        var self = this;
+        el.innerHTML = usuarios.map(function(u) {
+            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var email = u.correo_electronico || '';
+            var foto = u.foto_perfil || '';
+            var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+            var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` :
+                                 `<div class="user-picker-avatar">${inicial}</div>`;
+            return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
+                ${fotoHtml}
+                <div style="flex:1;">
+                    <div class="user-picker-name">${self.escHtml(nombre)}</div>
+                    <div class="user-picker-email">${email ? '✉️ ' + self.escHtml(email) : ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+    },
+
     buscarPersonaPicker: async function(q, contexto) {
         var el = document.getElementById(contexto + 'ResultadosPersona');
         if (!el) return;
-        if (!q || !q.trim().length) { 
+        var nivelZona = this._obtenerNivelZonaActivo(contexto);
+        if (!q || !q.trim().length) {
+            if (nivelZona) {
+                // Sin texto pero con zona activa: mostrar personas de esa zona directamente
+                el.innerHTML = '<div class="user-picker-empty">Buscando...</div>';
+                var soloZona = await this.buscarUsuariosPorNombre('', nivelZona);
+                this._renderResultadosPersonaPicker(soloZona, contexto, el);
+                return;
+            }
             if (contexto === 'compartir') this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo);
-            else el.innerHTML = '<div class="user-picker-empty">💡 Escribe para buscar...</div>';
+            else el.innerHTML = '<div class="user-picker-empty">💡 Escribe para buscar, o filtra por zona...</div>';
             return;
         }
-        var usuarios = await this.buscarUsuariosPorNombre(q);
+        var usuarios = await this.buscarUsuariosPorNombre(q, nivelZona);
         if (usuarios && usuarios.length) {
-            var self = this;
-            el.innerHTML = usuarios.map(function(u) {
-                var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-                var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                var email = u.correo_electronico || '';
-                var foto = u.foto_perfil || '';
-                var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-                var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` : 
-                                     `<div class="user-picker-avatar">${inicial}</div>`;
-                return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
-                    ${fotoHtml}
-                    <div style="flex:1;">
-                        <div class="user-picker-name">${self.escHtml(nombre)}</div>
-                        <div class="user-picker-email">${email ? '✉️ ' + self.escHtml(email) : ''}</div>
-                    </div>
-                </div>`;
-            }).join('');
+            this._renderResultadosPersonaPicker(usuarios, contexto, el);
             return;
         }
-        // 🤖 No hubo coincidencia por nombre: le pedimos criterio a la IA real (Compartir y Nuevo mensaje
-        // comparten esta misma inteligencia) — puede devolver una búsqueda (categoría y/o localidad,
-        // o "sin filtro" si pide ver gente en general) o un mensaje conversacional.
-        if (contexto === 'compartir' || contexto === 'nuevoMsj') {
+        // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, le pedimos
+        // criterio a la IA real: puede devolver una búsqueda (categoría y/o localidad), o un mensaje conversacional.
+        if (contexto === 'compartir') {
             el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
             var resultado = await this.consultarAsistenteCompartir(q, this._categoriaProductoCompartiendo);
             if (resultado.tipo === 'mensaje') {
@@ -4281,8 +4608,7 @@ var PanelUsuario = {
             var etiquetaZona = nivelZona ? NOMBRES_NIVEL[nivelZona] : null;
             var etiqueta = categoriaDetectada && etiquetaZona ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong> de ' + etiquetaZona
                 : categoriaDetectada ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>'
-                : etiquetaZona ? 'de ' + etiquetaZona
-                : 'de remarket-db'; // sin categoría ni zona: pidió ver gente en general
+                : 'de ' + etiquetaZona;
             if (candidatos && candidatos.length) {
                 var self2 = this;
                 el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas ' + etiqueta + ':</div>' +
@@ -4294,14 +4620,11 @@ var PanelUsuario = {
                         return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
                             fotoHtml +
                             '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
-                            '<div class="user-picker-email">✨ ' + (categoriaDetectada ? 'Interesado en ' + self2.escHtml(categoriaDetectada) : etiquetaZona ? 'De ' + etiquetaZona : 'Usuario de remarket-db') + '</div></div></div>';
+                            '<div class="user-picker-email">✨ ' + (categoriaDetectada ? 'Interesado en ' + self2.escHtml(categoriaDetectada) : 'De ' + etiquetaZona) + '</div></div></div>';
                     }).join('');
                 return;
             } else {
-                var sugerenciaExtra = categoriaDetectada || nivelZona
-                    ? ' ¿Quieres que busque sin ese filtro, por ejemplo "cualquiera" o "todos"?'
-                    : ' Prueba por ejemplo "gente de mi zona" o "interesados en tecnología".';
-                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no encontré personas ' + etiqueta + '.' + sugerenciaExtra + ' También puedes buscar por nombre, o compartir con todos usando "Copiar Enlace".</div>';
+                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no encontré personas ' + etiqueta + '. Prueba buscando por nombre, o comparte con todos usando "Copiar Enlace".</div>';
                 return;
             }
         }
@@ -4325,7 +4648,7 @@ var PanelUsuario = {
                 headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY },
                 body: JSON.stringify({
                     messages: [
-                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\nLas categorías disponibles en la base de datos son: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro / Alimentos, Servicios, Libros, Otros. NO exijas que el usuario escriba estas palabras exactas: reconoce sinónimos y términos relacionados y mapéalos a la categoría más cercana. Ejemplos: "celulares", "laptops", "consolas", "audífonos" → Tecnología; "muebles", "sofás", "sillones", "cocina", "decoración" → Hogar; "zapatillas", "casacas", "moda" → Ropa; "bicicletas", "pelotas", "gimnasio" → Deportes; "autos", "motos", "carros" → Vehículos; "comida", "verduras", "mascotas", "plantas" → Agro / Alimentos; "clases", "reparaciones", "limpieza" → Servicios; "cuadernos", "revistas" → Libros. Si de verdad no encaja en ninguna, usa "Otros" en vez de rechazar la búsqueda.\n\nSi la frase claramente pide gente interesada EN LO QUE SE ESTÁ COMPARTIENDO ahora mismo (ej: "quién quiere esto", "interesados", "compradores", "a quién le puede servir") pero sin nombrar otra categoría distinta, usa "usar_categoria_publicacion": true en vez de adivinar una categoría.\n\nSi la frase pide ver gente EN GENERAL, sin categoría específica (ej: "hay usuarios nuevos", "cualquiera", "todos", "quién está activo", "gente random"), responde con "sin_filtro": true — eso es válido y distinto de no entender la frase.\n\n' + contextoProducto + 'Responde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, "usar_categoria_publicacion", "sin_filtro", o combinaciones): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro / Alimentos, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL","usar_categoria_publicacion":true_o_false,"sin_filtro":true_o_false}\n2) Si la frase pide algo que de verdad no puedes hacer, o es tan ambigua que no corresponde a ninguno de los casos anteriores (ej: email/teléfono/dirección exacta de alguien, algo totalmente no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
+                        { role: 'system', content: 'Eres el asistente del botón "Compartir" de remarket-db. El usuario escribe una frase buscando con quién compartir una publicación. Puedes buscar personas por DOS filtros combinables: (1) categoría de producto/servicio de interés, y (2) zona geográfica de quien pregunta, en UNO de estos 3 niveles: "local" (misma ciudad/localidad exacta — palabras como "mi zona", "mi localidad", "mi barrio", "cerca de mí"), "regional" (misma región/provincia, más amplio — palabras como "mi región"), "pais" (mismo país, el más amplio — palabras como "mi país", o si menciona un país específico). Este dato de zona NO es privado, es información general que cada usuario ya define en su perfil para ver publicaciones cercanas, así que SÍ puedes usarlo. Lo que NO puedes hacer es dar una lista completa de todos los usuarios sin ningún criterio, ni datos personales como email, teléfono o dirección exacta.\n\nLas categorías disponibles en la base de datos son: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro / Alimentos, Servicios, Libros, Otros. NO exijas que el usuario escriba estas palabras exactas: reconoce sinónimos y términos relacionados y mapéalos a la categoría más cercana. Ejemplos: "celulares", "laptops", "consolas", "audífonos" → Tecnología; "muebles", "sofás", "sillones", "cocina", "decoración" → Hogar; "zapatillas", "casacas", "moda" → Ropa; "bicicletas", "pelotas", "gimnasio" → Deportes; "autos", "motos", "carros" → Vehículos; "comida", "verduras", "mascotas", "plantas" → Agro / Alimentos; "clases", "reparaciones", "limpieza" → Servicios; "cuadernos", "revistas" → Libros. Si de verdad no encaja en ninguna, usa "Otros" en vez de rechazar la búsqueda.\n\n' + contextoProducto + 'Responde ÚNICAMENTE en JSON válido, sin texto adicional ni markdown, con una de estas dos formas:\n1) Si la frase pide encontrar personas (por categoría, por zona, o ambas): {"tipo":"busqueda","categoria":"UNA_DE_ESTAS_O_NULL: Tecnología, Hogar, Ropa, Deportes, Vehículos, Agro / Alimentos, Servicios, Libros, Otros","nivel_zona":"local_O_regional_O_pais_O_NULL"}\n2) Si la frase pide algo que de verdad no puedes hacer (ej: lista completa de todos los usuarios sin criterio, email/teléfono/dirección exacta de alguien, algo no relacionado): {"tipo":"mensaje","valor":"una respuesta breve, amable, en español, explicando qué sí puedes hacer y ofreciendo ayuda concreta"}' },
                         { role: 'user', content: texto }
                     ]
                 })
@@ -4337,21 +4660,19 @@ var PanelUsuario = {
             if (parsed.tipo === 'busqueda') {
                 var match = parsed.categoria ? CATEGORIAS_VALIDAS.find(function(c) { return (parsed.categoria || '').toLowerCase().indexOf(c.toLowerCase()) !== -1; }) : null;
                 var nivelZona = NIVELES_ZONA.indexOf(parsed.nivel_zona) !== -1 ? parsed.nivel_zona : null;
-                // Solo usamos la categoría de la publicación si la IA detectó explícitamente que la frase
-                // se refería a "quién quiere esto" — no como respaldo genérico para cualquier frase ambigua.
-                if (!match && parsed.usar_categoria_publicacion && categoriaProducto) match = categoriaProducto;
-                if (!match && !nivelZona && !parsed.sin_filtro) {
-                    return { tipo: 'mensaje', valor: 'No logré identificar un producto, servicio o zona en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla", "personas de mi zona", o "cualquiera" para ver gente en general?' };
+                // Respaldo garantizado en código (no solo confiar en que la IA lo haga bien):
+                // si no detectó categoría clara, usar la de la publicación que se está compartiendo.
+                if (!match && categoriaProducto) match = categoriaProducto;
+                if (!match && !nivelZona) {
+                    return { tipo: 'mensaje', valor: 'No logré identificar un producto, servicio o zona en tu mensaje. ¿Puedes ser más específico, por ejemplo "quién quiere una silla" o "personas de mi zona"?' };
                 }
                 return { tipo: 'busqueda', categoria: match || null, nivel_zona: nivelZona };
             }
             return { tipo: 'mensaje', valor: parsed.valor || 'No entendí bien tu mensaje, ¿puedes reformularlo?' };
         } catch (e) {
             console.warn('IA no disponible, usando diccionario de respaldo:', e);
-            var textoLower = (texto || '').toLowerCase();
-            var pareceInteres = /quien quiere|quién quiere|interesad|comprador|le puede servir/i.test(textoLower);
-            var cat = this.detectarCategoriaPorDiccionario(texto) || (pareceInteres ? categoriaProducto : null);
-            return cat ? { tipo: 'busqueda', categoria: cat, nivel_zona: null } : { tipo: 'mensaje', valor: 'No pude conectarme con la IA para interpretar tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
+            var cat = this.detectarCategoriaPorDiccionario(texto) || categoriaProducto;
+            return cat ? { tipo: 'busqueda', categoria: cat, nivel_zona: null } : { tipo: 'mensaje', valor: 'No logré identificar un producto o servicio en tu mensaje. Prueba buscar por nombre, o escribe algo como "quién quiere una silla".' };
         }
     },
 
@@ -4561,13 +4882,7 @@ var PanelUsuario = {
             var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
             var nombre = nombreMatch ? nombreMatch[1].trim() : query;
             var usuarios = await this.buscarUsuariosPorNombre(nombre);
-            if (usuarios && usuarios.length) {
-                this.renderResultadosPersonasEnFeed(usuarios, nombre);
-            } else {
-                // No hubo coincidencia por nombre: igual que en Compartir, le preguntamos a la
-                // misma IA si la frase original pedía gente por categoría, zona, o "sin filtro".
-                await this.buscarPersonasConversacionalEnFeed(query);
-            }
+            this.renderResultadosPersonasEnFeed(usuarios, nombre);
         } else if (accion === 'RECIENTES') {
             this.cargarFeed();
         } else {
@@ -4599,50 +4914,10 @@ var PanelUsuario = {
         }
     },
 
-    // Igual que en Compartir/chat: si no hay coincidencia por nombre, dejamos que la IA
-    // interprete la frase como pedido de personas por categoría, zona, o "sin filtro" —
-    // y mostramos resultados reales en el feed en vez de un "no encontré nada" seco.
-    buscarPersonasConversacionalEnFeed: async function(query) {
-        var container = document.getElementById('userFeedContainer');
-        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 El Asistente IA está pensando...</p></div>';
-        var resultado = await this.consultarAsistenteCompartir(query, null);
-        if (resultado.tipo === 'mensaje') {
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>' + this.escHtml(resultado.valor) + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
-            return;
-        }
-        var categoriaDetectada = resultado.categoria;
-        var nivelZona = resultado.nivel_zona;
-        if (nivelZona && !usuarioActual.localidad_id) {
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>Todavía no tienes tu localidad definida, así que no puedo comparar zonas. Ve a Configuración para definirla, o busca por categoría o nombre.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
-            return;
-        }
-        var usuarios = await this.buscarUsuariosCompartir(categoriaDetectada, nivelZona);
-        var NOMBRES_NIVEL = { local: 'tu misma zona', regional: 'tu misma región', pais: 'tu mismo país' };
-        var etiquetaZona = nivelZona ? NOMBRES_NIVEL[nivelZona] : null;
-        var etiqueta = categoriaDetectada && etiquetaZona ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong> de ' + etiquetaZona
-            : categoriaDetectada ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>'
-            : etiquetaZona ? 'de ' + etiquetaZona
-            : 'de remarket-db';
-        if (!usuarios || !usuarios.length) {
-            var sugerenciaExtra = categoriaDetectada || nivelZona ? ' ¿Busco sin ese filtro, por ejemplo "cualquiera" o "todos"?' : ' Prueba por ejemplo "gente de mi zona" o "interesados en tecnología".';
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">👤</div><p>🤖 Todavía no encontré personas ' + etiqueta + '.' + sugerenciaExtra + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
-            return;
-        }
-        var self = this;
-        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🤖 Personas ' + etiqueta + ' · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
-        html += '<div style="background:#fff;border-radius:12px;padding:8px;">' + usuarios.map(function(u) {
-            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-            var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">' : '<div class="feed-post-avatar">' + inicial + '</div>';
-            return '<div style="display:flex;align-items:center;gap:10px;padding:10px;cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + fotoHtml + '<div style="flex:1;"><div style="font-weight:600;">' + self.escHtml(nombre) + '</div><div style="font-size:12px;color:var(--texto-secundario);">✨ ' + (categoriaDetectada ? 'Interesado en ' + self.escHtml(categoriaDetectada) : etiquetaZona ? 'De ' + etiquetaZona : 'Usuario de remarket-db') + '</div></div></div>';
-        }).join('') + '</div>';
-        container.innerHTML = html;
-    },
-
     renderResultadosPersonasEnFeed: function(usuarios, nombreBuscado) {
         var container = document.getElementById('userFeedContainer');
         if (!usuarios || !usuarios.length) {
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">👤</div><p>🤖 No encontré a nadie llamado "' + this.escHtml(nombreBuscado) + '". Si buscas gente en general, prueba algo como "interesados en tecnología" o "gente de mi zona".</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">👤</div><p>No encontré a nadie llamado "' + this.escHtml(nombreBuscado) + '".</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
             return;
         }
         var self = this;
@@ -4972,7 +5247,7 @@ async function cargarProductosAPI() { try { var res = await fetch('https://dummy
 var AIService = {
     historial: [], idiomaActual: null,
     enviarMensaje: async function(mensaje) {
-        var idiomaMensaje = detectarIdiomaNavegador(); // Usar el detectado por el navegador
+        var idiomaMensaje = obtenerIdiomaPreferido(); // Respeta el idioma elegido en el panel; si no hay ninguno guardado, usa el del navegador
         if (this.idiomaActual !== idiomaMensaje) { this.idiomaActual = idiomaMensaje; this.historial = []; var promptSistema = SYSTEM_PROMPTS[idiomaMensaje] || SYSTEM_PROMPTS.es; this.historial.push({ role: "system", content: promptSistema }); }
         this.historial.push({ role: "user", content: mensaje });
         try {
@@ -4993,26 +5268,45 @@ var UIController = {
     quitarEstadoCarga: function() { var t = document.getElementById('typing'); if (t) t.remove(); },
     renderizarArticulos: function(lista) { var c = this.elementos.articulosContainer; c.innerHTML = ''; lista.slice(0, 6).forEach(function(art) { var card = document.createElement('div'); card.className = 'card'; var imagenHTML = art.imagen_url ? '<img src="' + art.imagen_url + '" class="card-img-real" alt="' + art.titulo + '">' : '<div class="card-img-top">' + (art.icono || '') + '</div>'; card.innerHTML = imagenHTML + '<h3 class="card-title">' + art.titulo + '</h3>' + '<p class="card-text">' + art.descripcion + '</p>' + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' + '<span style="font-size:20px;font-weight:bold;color:var(--verde-esmeralda);">S/ ' + art.precio + '</span>' + '<span class="badge badge-disponible">🟢 ' + art.modalidad + '</span></div>' + '<button class="btn-read-more" onclick="UIController.abrirModal(\'' + art.titulo.replace(/'/g, "\\'") + '\',\'' + art.descripcion.replace(/'/g, "\\'") + '\',\'' + (art.imagen_url || '') + '\',\'' + (art.icono || '📦') + '\')">Ver detalles</button>'; c.appendChild(card); }); },
     mostrarResultadosBusqueda: function(resultado) { this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' resultados'; this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Resultados de Búsqueda'; var html = ''; if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>Búsqueda Híbrida:</strong> Combinamos resultados locales con referencias globales.</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>Búsqueda global:</strong> No encontramos resultados cerca, pero te mostramos opciones internacionales.</div>'; } else { html += '<div class="ai-context-banner">📍 Mostrando resultados de ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.coincidencias === 0) { html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos. Intenta con sinónimos (ej: "camisa" o "polo").</p></div>'; } else { html += resultado.resultados.map(function(art) { var icono = art.icono || ''; var imagenHTML = art.imagen_url ? '<img src="' + art.imagen_url + '" class="result-img" alt="' + art.titulo + '">' : '<div class="result-icon-fallback">' + icono + '</div>'; var exp = art._es_externo ? '<span class="badge badge-externo">🌐 Referencia Global</span>' : (art._es_expandido ? '<span class="badge badge-expandido">🌍 Zona lejana</span>' : ''); var pais = art.pais ? '<span class="badge badge-pais">📍 ' + art.pais + '</span>' : ''; var modal = art.modalidad ? '<span class="badge badge-modalidad">' + art.modalidad + '</span>' : ''; return '<div class="result-item" onclick="UIController.abrirModal(\'' + art.titulo.replace(/'/g, "\\'") + '\',\'' + art.descripcion.replace(/'/g, "\\'") + '\',\'' + (art.imagen_url || '') + '\',\'' + icono + '\')">' + imagenHTML + '<div class="result-info"><div class="result-title">' + art.titulo + '</div><div class="result-category">' + art.categoria + '</div><div class="result-desc">' + (art.descripcion || '').substring(0, 100) + '...</div>' + '<div class="result-badges"><span class="badge badge-disponible">🟢 Disponible</span><span class="badge badge-distancia"> ' + art.distancia_km + ' km</span>' + pais + modal + exp + '</div></div>' + '<div class="result-actions"><div class="result-price">S/ ' + art.precio + '</div><button class="btn-contactar" onclick="event.stopPropagation(); alert(\'Función de contacto en desarrollo\')">📞 Contactar</button></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; },
-    mostrarResultadosPersonas: function(nombreBuscado, usuarios) {
+    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) {
+        this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = nombreBuscado || '';
         this.elementos.resultCount.textContent = usuarios.length + (usuarios.length === 1 ? ' persona' : ' personas');
         this.elementos.catalogContainer.style.display = 'none';
         this.elementos.searchResultsContainer.style.display = 'block';
         this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
-        var html = '<div class="ai-context-banner">👤 <strong>Búsqueda de personas:</strong> resultados por nombre en remarket-db</div>';
+        var activo = function(n) { return nivelZona === n ? 'activo' : ''; };
+        var html = '<div class="ai-context-banner">👤 <strong>Búsqueda de personas:</strong> resultados por nombre, iniciales o zona en remarket-db</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px;">' +
+            '<button type="button" id="filtroZona-local-resultados" class="compartir-filtro-zona ' + activo('local') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'local\')">📍 Local</button>' +
+            '<button type="button" id="filtroZona-regional-resultados" class="compartir-filtro-zona ' + activo('regional') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'regional\')">🗺️ Regional</button>' +
+            '<button type="button" id="filtroZona-pais-resultados" class="compartir-filtro-zona ' + activo('pais') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'pais\')">🌎 País</button>' +
+            '</div>';
         if (!usuarios.length) {
-            html += '<div style="text-align:center;padding:40px;"><p>No encontramos a nadie con ese nombre. Prueba con otro nombre o apellido.</p></div>';
+            html += '<div style="text-align:center;padding:40px;"><p>No encontramos a nadie con ese nombre o zona. Prueba con otro nombre, iniciales, o quita el filtro.</p></div>';
         } else {
             html += usuarios.map(function(u) {
                 var iniciales = (u.nombre_completo || 'U').trim().charAt(0).toUpperCase();
                 var avatar = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="result-img" alt="' + u.nombre_completo + '">' : '<div class="result-icon-fallback">' + iniciales + '</div>';
-                return '<div class="result-item" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + avatar +
+                return '<div class="result-item" onclick="PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">' + avatar +
                     '<div class="result-info"><div class="result-title">' + u.nombre_completo + '</div><div class="result-category">Usuario de remarket-db</div></div>' +
-                    '<div class="result-actions"><button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button></div></div>';
+                    '<div class="result-actions">' +
+                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">👁️ Vista previa</button>' +
+                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                    '</div></div>';
             }).join('');
         }
         this.elementos.searchResultsContent.innerHTML = html;
+    },
+    // Vuelve a buscar personas combinando el último nombre escrito con la zona elegida (o la quita si ya estaba activa)
+    filtrarResultadosPersonasPorZona: async function(nivel) {
+        var btn = document.getElementById('filtroZona-' + nivel + '-resultados');
+        var yaActivo = btn && btn.classList.contains('activo');
+        var nuevoNivel = yaActivo ? null : nivel;
+        var nombre = this._ultimaBusquedaPersonaNombre || '';
+        var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre, nuevoNivel);
+        this.mostrarResultadosPersonas(nombre, usuarios, nuevoNivel);
     },
     cerrarResultados: function() { this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Catálogo de Economía Circular'; },
     abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + imgUrl + '" class="modal-img-real" alt="' + titulo + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + icono + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
@@ -5021,43 +5315,8 @@ var UIController = {
 };
 
 var EventController = {
-    // Manejador central: interpreta la etiqueta [ACCION: ...] de la IA y decide qué mostrar.
-    // Lo usan tanto el Asistente lateral como el buscador de la barra principal, para que
-    // las dos entradas se comporten siempre igual (antes cada una tenía su propia versión, a medias).
-    procesarAccionIA: async function(respuestaIA, queryOriginal) {
-        var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i);
-        var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : '';
-
-        if (accion === 'BUSCAR') {
-            var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
-            var producto = prodMatch ? prodMatch[1].trim() : queryOriginal;
-            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto);
-            UIController.mostrarResultadosBusqueda(resultado);
-        } else if (accion === 'CATEGORIA') {
-            var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
-            var categoria = catMatch ? catMatch[1].trim() : queryOriginal;
-            var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria);
-            UIController.mostrarResultadosBusqueda(resultadoCat);
-        } else if (accion === 'RECIENTES') {
-            // "Lo más reciente" = mostrar el catálogo normal, sin filtro alguno
-            UIController.cerrarResultados();
-        } else if (accion === 'BUSCAR_PERSONA') {
-            var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
-            var nombre = nombreMatch ? nombreMatch[1].trim() : queryOriginal;
-            var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre);
-            if ((!usuarios || !usuarios.length) && usuarioActual) {
-                // Sin coincidencia por nombre: probamos la misma expansión por zona/categoría que usa Compartir
-                var resultadoIA = await PanelUsuario.consultarAsistenteCompartir(nombre, null);
-                if (resultadoIA.tipo === 'busqueda') usuarios = await PanelUsuario.buscarUsuariosCompartir(resultadoIA.categoria, resultadoIA.nivel_zona);
-            }
-            UIController.mostrarResultadosPersonas(nombre, usuarios || []);
-        } else {
-            UIController.cerrarResultados();
-        }
-    },
-
-    manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); await EventController.procesarAccionIA(respuestaIA, mensaje); },
-    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.ejecutarBusquedaConIA(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); await EventController.procesarAccionIA(respuestaIA, query); },
+    manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; var codigoIdioma = detectarCambioIdiomaEnMensaje(mensaje); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); UIController.mostrarRespuestaIA('✅ Listo, cambié el idioma a ' + (NOMBRES_IDIOMA_DISPLAY[codigoIdioma] || codigoIdioma) + '.'); return; } UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : mensaje; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : mensaje; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
+    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var codigoIdioma = detectarCambioIdiomaEnMensaje(query); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; } var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.ejecutarBusquedaConIA(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : query; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : query; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
     manejarLimpiarChat: function() {
         if (confirm("¿Borrar conversación?")) {
             AIService.limpiarHistorial();
@@ -5140,8 +5399,13 @@ document.addEventListener("DOMContentLoaded", async function() {
                 <button class="modal-close-btn" onclick="PanelUsuario.cerrarModalNuevoMensaje()">&times;</button>
                 <h3 style="text-align:center;margin-bottom:16px;color:var(--purpura-ia);">✉️ Nuevo mensaje</h3>
                 <div id="nuevoMsjAlert" class="alert"></div>
-                <label class="form-label">Buscar persona por nombre</label>
-                <input type="text" id="nuevoMsjBuscarPersona" class="form-input" placeholder="Escribe un nombre..." oninput="PanelUsuario.buscarPersonaPicker(this.value, 'nuevoMsj')" autocomplete="off">
+                <label class="form-label">Buscar persona por nombre, iniciales o zona</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <button type="button" id="filtroZona-local-nuevoMsj" data-nivel="local" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','local')">📍 Local</button>
+                    <button type="button" id="filtroZona-regional-nuevoMsj" data-nivel="regional" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','regional')">🗺️ Regional</button>
+                    <button type="button" id="filtroZona-pais-nuevoMsj" data-nivel="pais" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','pais')">🌎 País</button>
+                </div>
+                <input type="text" id="nuevoMsjBuscarPersona" class="form-input" placeholder="Escribe un nombre o iniciales (ej: J P)..." oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'nuevoMsj')" autocomplete="off">
                 <div id="nuevoMsjResultadosPersona" class="user-picker-results"></div>
             </div>
         `;
