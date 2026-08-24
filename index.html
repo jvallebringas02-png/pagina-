@@ -1287,6 +1287,44 @@ function obtenerIdiomaPreferido() {
     return detectarIdiomaNavegador();
 }
 
+// Permite pedirle al chat que cambie el idioma escribiéndolo, ej: "cambia el idioma a inglés", "switch to english".
+var NOMBRES_IDIOMA_DISPLAY = { es: 'Español', en: 'English', bg: 'Български', fr: 'Français', pt: 'Português', de: 'Deutsch', it: 'Italiano', ru: 'Русский', zh: '中文', ja: '日本語', qu: 'Quechua', ay: 'Aymara', ko: '한국어', ar: 'العربية', hi: 'हिन्दी', nl: 'Nederlands', tr: 'Türkçe' };
+var MAPA_IDIOMAS_DETECCION = {
+    'espanol': 'es', 'castellano': 'es', 'spanish': 'es',
+    'ingles': 'en', 'english': 'en',
+    'frances': 'fr', 'french': 'fr',
+    'portugues': 'pt', 'portuguese': 'pt',
+    'aleman': 'de', 'german': 'de', 'deutsch': 'de',
+    'italiano': 'it', 'italian': 'it',
+    'ruso': 'ru', 'russian': 'ru',
+    'chino': 'zh', 'chinese': 'zh', 'mandarin': 'zh',
+    'japones': 'ja', 'japanese': 'ja',
+    'quechua': 'qu',
+    'aymara': 'ay',
+    'coreano': 'ko', 'korean': 'ko',
+    'arabe': 'ar', 'arabic': 'ar',
+    'hindi': 'hi',
+    'holandes': 'nl', 'neerlandes': 'nl', 'dutch': 'nl',
+    'turco': 'tr', 'turkish': 'tr',
+    'bulgaro': 'bg', 'bulgarian': 'bg'
+};
+// Devuelve el código de idioma detectado en el mensaje si el usuario está pidiendo un cambio de idioma, o null si no.
+function detectarCambioIdiomaEnMensaje(mensaje) {
+    var sinTildes = function(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+    var texto = ' ' + sinTildes(mensaje) + ' ';
+    var disparadores = ['cambia', 'cambiar', 'cambiame', 'pon el idioma', 'poner el idioma', 'switch to', 'change language', 'change the language', 'set language', 'habla en', 'hablame en', 'responde en', 'responder en', 'idioma a', 'language to'];
+    var tieneDisparador = disparadores.some(function(d) { return texto.indexOf(d) !== -1; });
+    if (!tieneDisparador) return null;
+    for (var palabra in MAPA_IDIOMAS_DETECCION) {
+        if (texto.indexOf(' ' + palabra) !== -1) return MAPA_IDIOMAS_DETECCION[palabra];
+    }
+    return null;
+}
+// Aplica el cambio de idioma pedido desde el chat, reutilizando la misma función del panel visual.
+function aplicarCambioIdiomaDesdeChat(codigo) {
+    changeLanguage(codigo, NOMBRES_IDIOMA_DISPLAY[codigo] || codigo.toUpperCase(), null);
+}
+
 // ============================================
 // TRADUCCIONES UI
 // ============================================
@@ -1381,13 +1419,15 @@ function aplicarTraduccionUI(lang) {
 // ============================================
 function toggleLanguageDropdown() { document.getElementById('languageDropdown').classList.toggle('show'); }
 
-function changeLanguage(lang, nombre) {
+function changeLanguage(lang, nombre, elementoClic) {
     idiomaDetectado = lang;
     try { localStorage.setItem('idioma_preferido', lang); } catch (e) { console.warn('No se pudo guardar idioma_preferido:', e); }
     document.getElementById('selectedLanguage').textContent = nombre || lang.toUpperCase();
     document.querySelectorAll('.language-dropdown-item').forEach(i => i.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    document.getElementById('languageDropdown').classList.remove('show');
+    var origenClic = elementoClic || (typeof event !== 'undefined' && event ? event.currentTarget : null);
+    if (origenClic && origenClic.classList) origenClic.classList.add('active');
+    var dropdownEl = document.getElementById('languageDropdown');
+    if (dropdownEl) dropdownEl.classList.remove('show');
     
     var saludos = {
         'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?',
@@ -5141,7 +5181,7 @@ async function cargarProductosAPI() { try { var res = await fetch('https://dummy
 var AIService = {
     historial: [], idiomaActual: null,
     enviarMensaje: async function(mensaje) {
-        var idiomaMensaje = detectarIdiomaNavegador(); // Usar el detectado por el navegador
+        var idiomaMensaje = obtenerIdiomaPreferido(); // Respeta el idioma elegido en el panel; si no hay ninguno guardado, usa el del navegador
         if (this.idiomaActual !== idiomaMensaje) { this.idiomaActual = idiomaMensaje; this.historial = []; var promptSistema = SYSTEM_PROMPTS[idiomaMensaje] || SYSTEM_PROMPTS.es; this.historial.push({ role: "system", content: promptSistema }); }
         this.historial.push({ role: "user", content: mensaje });
         try {
@@ -5209,8 +5249,8 @@ var UIController = {
 };
 
 var EventController = {
-    manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : mensaje; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : mensaje; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
-    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.ejecutarBusquedaConIA(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : query; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : query; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
+    manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; var codigoIdioma = detectarCambioIdiomaEnMensaje(mensaje); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); UIController.mostrarRespuestaIA('✅ Listo, cambié el idioma a ' + (NOMBRES_IDIOMA_DISPLAY[codigoIdioma] || codigoIdioma) + '.'); return; } UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : mensaje; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : mensaje; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
+    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var codigoIdioma = detectarCambioIdiomaEnMensaje(query); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; } var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.ejecutarBusquedaConIA(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : query; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : query; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
     manejarLimpiarChat: function() {
         if (confirm("¿Borrar conversación?")) {
             AIService.limpiarHistorial();
