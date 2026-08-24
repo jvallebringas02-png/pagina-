@@ -405,6 +405,24 @@ select.form-input { cursor: pointer; }
 /* ============================================ */
 .user-picker-results { max-height: 220px; overflow-y: auto; margin-top: 6px; border-radius: 10px; }
 .compartir-filtro-zona { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--borde); background: #fff; font-size: 12px; cursor: pointer; color: var(--texto-secundario); }
+.compartir-opcion { border-bottom: 1px solid var(--borde-suave, #E5E7EB); }
+.compartir-opcion:last-child { border-bottom: none; }
+.compartir-opcion-header { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 4px; background: none; border: none; cursor: pointer; text-align: left; font-size: 15px; color: var(--texto-principal); border-radius: 8px; }
+.compartir-opcion-header:hover { background: var(--fondo-terciario, #F3F4F6); }
+.compartir-opcion-icono { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
+.compartir-opcion-label { flex: 1; font-weight: 500; }
+.compartir-opcion-chevron { color: var(--texto-terciario, #9CA3AF); transition: transform .2s; font-size: 18px; }
+.compartir-opcion.abierta .compartir-opcion-chevron { transform: rotate(90deg); }
+.compartir-opcion-contenido { display: none; padding: 4px 4px 16px 38px; }
+.compartir-opcion.abierta .compartir-opcion-contenido { display: block; }
+.compartir-contactos-row { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 10px; }
+.compartir-contacto-circulo { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex-shrink: 0; width: 60px; }
+.compartir-contacto-avatar-wrap { position: relative; }
+.compartir-contacto-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--purpura-ia, #8B5CF6), var(--azul-confianza, #3B82F6)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; overflow: hidden; }
+.compartir-contacto-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.compartir-contacto-nombre { font-size: 11px; color: var(--texto-secundario); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.compartir-contacto-check { display: none; position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px; border-radius: 50%; background: var(--purpura-ia, #8B5CF6); color: #fff; font-size: 11px; align-items: center; justify-content: center; border: 2px solid #fff; }
+.compartir-contacto-circulo.seleccionado .compartir-contacto-check { display: flex; }
 .compartir-filtro-zona.activo { background: var(--purpura-ia, #8B5CF6); color: #fff; border-color: var(--purpura-ia, #8B5CF6); }
 .user-picker-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s; border-bottom: 1px solid var(--borde-suave, #f0f0f0); }
 .user-picker-item:last-child { border-bottom: none; }
@@ -491,6 +509,17 @@ select.form-input { cursor: pointer; }
 .chat-bubble-check.leido { color: #0084FF; }
 .chat-input-row { display: flex; gap: 8px; background: #fff; padding: 12px 16px; border-radius: 0 0 14px 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
 .chat-input-row input { flex: 1; }
+.chat-header-avatar-wrap { position: relative; flex-shrink: 0; }
+.chat-header-avatar-wrap .dot-online { position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; border-radius: 50%; background: #31A24C; border: 2px solid #fff; }
+.chat-bubble-row.agrupado { margin-top: -6px; }
+.chat-bubble-row .msg-avatar-spacer { width: 28px; flex-shrink: 0; }
+.chat-bubble-row .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; align-self: flex-end; object-fit: cover; background: linear-gradient(135deg, var(--purpura-ia, #8B5CF6), var(--azul-confianza, #3B82F6)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.chat-bubble-row.otro { gap: 6px; }
+.btn-like-rapido { background: none; border: none; font-size: 22px; cursor: pointer; padding: 0 6px; line-height: 1; }
+.user-picker-item.seleccionado { background: var(--purpura-claro, #EDE9FE); }
+.user-picker-avatar-wrap { position: relative; flex-shrink: 0; }
+.user-picker-avatar-wrap .check-seleccionado { display: none; position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px; border-radius: 50%; background: var(--purpura-ia, #8B5CF6); color: #fff; font-size: 11px; align-items: center; justify-content: center; border: 2px solid #fff; }
+.user-picker-item.seleccionado .check-seleccionado { display: flex; }
 
 @media (max-width: 768px) {
   .perfil-portada { height: 120px; }
@@ -853,56 +882,72 @@ select.form-input { cursor: pointer; }
 
         <div id="compartirAlert" class="alert" style="display:none;margin-top:12px;"></div>
 
-        <!-- OPCIÓN 1: Enviar por Mensaje Privado (prioritaria) -->
-        <div style="margin-top:16px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
-            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">✉️ Enviar por Mensaje Privado</div>
-            <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
-            <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <div class="compartir-opciones" style="margin-top:8px;">
 
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                <button type="button" id="filtroZona-local" data-nivel="local" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('local')">📍 Local</button>
-                <button type="button" id="filtroZona-regional" data-nivel="regional" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('regional')">🗺️ Regional</button>
-                <button type="button" id="filtroZona-pais" data-nivel="pais" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('pais')">🌎 País</button>
-                <select id="compartirFiltroRubro" class="form-input" style="width:auto;flex:1;min-width:120px;padding:6px 8px;font-size:13px;" onchange="PanelUsuario.filtrarCompartirPorRubro()">
-                    <option value="">Cualquier rubro</option>
-                    <option value="Tecnología">Tecnología</option>
-                    <option value="Hogar">Hogar</option>
-                    <option value="Ropa">Ropa</option>
-                    <option value="Deportes">Deportes</option>
-                    <option value="Vehículos">Vehículos</option>
-                    <option value="Agro">Agro / Alimentos</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Libros">Libros</option>
-                </select>
-            </div>
-
-            <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar por nombre..." autocomplete="off"
-                oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
-            <div id="compartirResultadosPersona" class="user-picker-results"></div>
-            <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
-                onclick="PanelUsuario.enviarCompartirMensajePrivado()">
-                <i class="fas fa-paper-plane"></i> Enviar
+        <!-- OPCIÓN 1: Enviar por Mensaje Privado (prioritaria, abierta por defecto) -->
+        <div class="compartir-opcion abierta" id="compartirOpcionMensaje">
+            <button type="button" class="compartir-opcion-header" onclick="PanelUsuario.toggleOpcionCompartir('mensaje')">
+                <span class="compartir-opcion-icono">✉️</span>
+                <span class="compartir-opcion-label">Enviar por mensaje privado</span>
+                <span class="compartir-opcion-chevron">›</span>
             </button>
+            <div class="compartir-opcion-contenido" id="compartirContenidoMensaje">
+                <div id="compartirSugerenciasIA" style="margin-bottom:10px;"></div>
+                <div id="compartirSeleccionados" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <button type="button" id="filtroZona-local-compartir" data-nivel="local" data-contexto="compartir" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('local')">📍 Local</button>
+                    <button type="button" id="filtroZona-regional-compartir" data-nivel="regional" data-contexto="compartir" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('regional')">🗺️ Regional</button>
+                    <button type="button" id="filtroZona-pais-compartir" data-nivel="pais" data-contexto="compartir" class="compartir-filtro-zona" onclick="PanelUsuario.filtrarCompartirPorZona('pais')">🌎 País</button>
+                    <select id="compartirFiltroRubro" class="form-input" style="width:auto;flex:1;min-width:120px;padding:6px 8px;font-size:13px;" onchange="PanelUsuario.filtrarCompartirPorRubro()">
+                        <option value="">Cualquier rubro</option>
+                        <option value="Tecnología">Tecnología</option>
+                        <option value="Hogar">Hogar</option>
+                        <option value="Ropa">Ropa</option>
+                        <option value="Deportes">Deportes</option>
+                        <option value="Vehículos">Vehículos</option>
+                        <option value="Agro">Agro / Alimentos</option>
+                        <option value="Servicios">Servicios</option>
+                        <option value="Libros">Libros</option>
+                    </select>
+                </div>
+
+                <input type="text" id="compartirBuscarPersona" class="form-input" placeholder="Buscar por nombre..." autocomplete="off"
+                    oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'compartir')">
+                <div id="compartirResultadosPersona" class="user-picker-results"></div>
+                <button type="button" class="btn-compartir" id="btnEnviarCompartir" disabled style="width:100%;margin-top:10px;"
+                    onclick="PanelUsuario.enviarCompartirMensajePrivado()">
+                    <i class="fas fa-paper-plane"></i> Enviar
+                </button>
+            </div>
         </div>
 
         <!-- OPCIÓN 2: Copiar Enlace -->
-        <div style="margin-top:12px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
-            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">🔗 Copiar Enlace</div>
-            <button type="button" class="btn-auth" style="width:100%;" onclick="PanelUsuario.copiarEnlaceCompartir()">
-                <i class="fas fa-link"></i> Copiar enlace de la publicación
+        <div class="compartir-opcion">
+            <button type="button" class="compartir-opcion-header" onclick="PanelUsuario.copiarEnlaceCompartir()">
+                <span class="compartir-opcion-icono">🔗</span>
+                <span class="compartir-opcion-label">Copiar enlace</span>
             </button>
-            <div style="margin-top:8px;padding:8px 10px;background:#FEF3C7;color:#92400E;border-radius:6px;font-size:12px;">
-                ⚠️ No compartas datos bancarios ni pagues fuera de remarket-db.
-            </div>
+        </div>
+        <div style="margin:2px 4px 10px 44px;padding:8px 10px;background:#FEF3C7;color:#92400E;border-radius:6px;font-size:12px;">
+            ⚠️ No compartas datos bancarios ni pagues fuera de remarket-db.
         </div>
 
         <!-- OPCIÓN 3: Repostear en Mi Perfil -->
-        <div style="margin-top:12px;padding:14px;border:1px solid var(--borde);border-radius:10px;">
-            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">📌 Repostear en Mi Perfil</div>
-            <textarea id="compartirTexto" class="modal-fb-textarea" rows="2" placeholder="Agrega un comentario (opcional)..."></textarea>
-            <button class="btn-compartir" style="width:100%;margin-top:8px;" onclick="PanelUsuario.confirmarCompartirFB()">
-                <i class="fas fa-share-alt"></i> Repostear ahora
+        <div class="compartir-opcion">
+            <button type="button" class="compartir-opcion-header" onclick="PanelUsuario.toggleOpcionCompartir('repostear')">
+                <span class="compartir-opcion-icono">📌</span>
+                <span class="compartir-opcion-label">Compartir en tu muro</span>
+                <span class="compartir-opcion-chevron">›</span>
             </button>
+            <div class="compartir-opcion-contenido" id="compartirContenidoRepostear">
+                <textarea id="compartirTexto" class="modal-fb-textarea" rows="2" placeholder="Agrega un comentario (opcional)..."></textarea>
+                <button class="btn-compartir" style="width:100%;margin-top:8px;" onclick="PanelUsuario.confirmarCompartirFB()">
+                    <i class="fas fa-share-alt"></i> Compartir ahora
+                </button>
+            </div>
+        </div>
+
         </div>
 
         <div class="modal-fb-botones">
@@ -1538,6 +1583,8 @@ var PanelUsuario = {
     mostrar: function() {
         document.getElementById('publicView').classList.add('hidden');
         document.getElementById('userPanelView').classList.add('active');
+        var buscador = document.getElementById('dynamicSearch');
+        if (buscador) buscador.value = ''; // el panel empieza con el buscador limpio, sin arrastrar lo que se escribió en la página pública
         this.moverWidgetsAlPanel();
         this.actualizarTarjetasUsuario();
         this.cargarFeed();
@@ -1546,6 +1593,8 @@ var PanelUsuario = {
     ocultar: function() {
         document.getElementById('userPanelView').classList.remove('active');
         document.getElementById('publicView').classList.remove('hidden');
+        var buscador = document.getElementById('dynamicSearch');
+        if (buscador) buscador.value = '';
         this.moverWidgetsAPublico();
     },
     moverWidgetsAlPanel: function() {
@@ -1911,12 +1960,55 @@ var PanelUsuario = {
             '<div style="font-size:12px;color:var(--texto-secundario);">' + (estadoBadge[p.estado] || p.estado) + (p.precio ? ' · S/ ' + p.precio : '') + '</div>' + alertaHtml + '</div>' +
             '<div style="display:flex;gap:6px;flex-shrink:0;">' +
             (esBorrador ? '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.publicarBorrador(\'' + p.id + '\')">📤 Publicar</button>' : '') +
+            '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.verVistaPreviaPublicacion(\'' + p.id + '\')">👁️ Vista previa</button>' +
             '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.editarPublicacion(\'' + p.id + '\')">✏️ Editar</button>' +
             '<button class="btn-cancelar" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.eliminarPublicacionPropia(\'' + p.id + '\')">🗑️</button>' +
             '</div></div>';
     },
+    // Vista previa de solo lectura de una publicación ya existente (o borrador), sin entrar a editarla.
+    verVistaPreviaPublicacion: function(id) {
+        var p = (this._cacheAdminPublicaciones || {})[id];
+        if (!p) { this.mostrarToast('😕 No se pudo cargar la vista previa.'); return; }
+        var modal = document.getElementById('modalVistaPreviaExistente');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalVistaPreviaExistente';
+            modal.className = 'modal-overlay';
+            document.body.appendChild(modal);
+        }
+        var nombreCompleto = ((usuarioActual.nombres || '') + ' ' + (usuarioActual.apellidos || '')).trim() || 'Usuario';
+        var fotos = p.fotos || [];
+        var imagenHtml = fotos.length ? '<img src="' + this.escHtml(fotos[0]) + '" style="width:100%;max-height:260px;object-fit:cover;border-radius:8px;">' : '<div class="preview-compartir-imagen">📷</div>';
+        var precioTexto = p.precio ? 'S/ ' + p.precio : (p.modalidad ? p.modalidad.charAt(0).toUpperCase() + p.modalidad.slice(1) : '');
+        modal.innerHTML = '<div class="modal-content" style="max-width:480px;padding:20px;">' +
+            '<button class="modal-close-btn" onclick="PanelUsuario.cerrarVistaPreviaPublicacion()">&times;</button>' +
+            '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:10px;">👁️ <strong style="color:var(--texto-principal);">Vista previa</strong> — así la ven los demás usuarios.</div>' +
+            '<div class="preview-compartir">' +
+                '<div class="preview-compartir-header">' +
+                    '<div class="preview-compartir-avatar">' + this.escHtml(nombreCompleto.charAt(0).toUpperCase()) + '</div>' +
+                    '<div><div class="preview-compartir-nombre">' + this.escHtml(nombreCompleto) + '</div><div class="preview-compartir-fecha">' + this.escHtml(precioTexto) + '</div></div>' +
+                '</div>' +
+                '<div class="preview-compartir-body">' +
+                    '<div class="preview-compartir-titulo">' + this.escHtml(p.titulo || 'Sin título') + '</div>' +
+                    '<div class="preview-compartir-desc">' + this.escHtml(p.descripcion || '') + '</div>' +
+                '</div>' +
+                imagenHtml +
+            '</div>' +
+            '<div style="display:flex;gap:8px;margin-top:16px;">' +
+                '<button class="btn-cancelar" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPublicacion()">Cerrar</button>' +
+                '<button class="btn-auth btn-auth-primary" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPublicacion();PanelUsuario.editarPublicacion(\'' + p.id + '\')">✏️ Editar</button>' +
+            '</div></div>';
+        modal.style.display = 'flex';
+    },
+    cerrarVistaPreviaPublicacion: function() {
+        var modal = document.getElementById('modalVistaPreviaExistente');
+        if (modal) modal.style.display = 'none';
+    },
     renderListaAdminPublicaciones: function(productos) {
         productos = productos || [];
+        this._cacheAdminPublicaciones = {};
+        var self2 = this;
+        productos.forEach(function(p) { self2._cacheAdminPublicaciones[p.id] = p; });
         var borradores = productos.filter(function(p) { return p.estado === 'borrador'; });
         var publicadas = productos.filter(function(p) { return p.estado !== 'borrador'; });
         var self = this;
@@ -1993,6 +2085,54 @@ var PanelUsuario = {
         } catch (e) {
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus favoritos.</p></div>';
         }
+    },
+
+    // Vista previa rápida de un usuario (avatar, nombre, zona, interés) antes de entrar a su perfil completo.
+    // Usada desde los resultados de persona del buscador principal y del chat IA.
+    abrirVistaPreviaPersona: async function(id) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var modal = document.getElementById('modalVistaPreviaPersona');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalVistaPreviaPersona';
+            modal.className = 'modal-overlay';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = '<div class="modal-content" style="max-width:340px;padding:24px;text-align:center;">' +
+            '<button class="modal-close-btn" onclick="PanelUsuario.cerrarVistaPreviaPersona()">&times;</button>' +
+            '<div id="previaPersonaCuerpo"><div class="user-picker-empty">Cargando...</div></div>' +
+            '</div>';
+        modal.style.display = 'flex';
+        try {
+            var { data: u, error } = await supabase.from('usuarios').select('id, nombres, apellidos, foto_perfil, localidad_id, categoria').eq('id', id).maybeSingle();
+            if (error || !u) throw error || new Error('Usuario no encontrado');
+            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var fotoHtml = u.foto_perfil
+                ? '<img src="' + u.foto_perfil + '" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto 12px;">'
+                : '<div class="user-picker-avatar" style="width:84px;height:84px;font-size:30px;margin:0 auto 12px;">' + inicial + '</div>';
+            var localidadTexto = '';
+            if (u.localidad_id) {
+                var { data: loc } = await supabase.from('localidades').select('nombre, region').eq('id', u.localidad_id).maybeSingle();
+                if (loc) localidadTexto = '📍 ' + (loc.nombre || loc.region || '');
+            }
+            document.getElementById('previaPersonaCuerpo').innerHTML =
+                fotoHtml +
+                '<div style="font-weight:700;font-size:17px;">' + this.escHtml(nombre) + '</div>' +
+                (localidadTexto ? '<div style="color:var(--texto-secundario);font-size:13px;margin-top:4px;">' + this.escHtml(localidadTexto) + '</div>' : '') +
+                (u.categoria ? '<div style="color:var(--texto-secundario);font-size:13px;">✨ Interesado en ' + this.escHtml(u.categoria) + '</div>' : '') +
+                '<div style="display:flex;gap:8px;margin-top:16px;">' +
+                '<button class="btn-auth btn-auth-primary" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPersona();PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">Ver perfil</button>' +
+                '<button class="btn-auth" style="flex:1;" onclick="PanelUsuario.cerrarVistaPreviaPersona();PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                '</div>';
+        } catch (e) {
+            console.warn('Error cargando vista previa de persona:', e);
+            document.getElementById('previaPersonaCuerpo').innerHTML = '<div class="user-picker-empty">😕 No se pudo cargar la vista previa.</div>';
+        }
+    },
+    cerrarVistaPreviaPersona: function() {
+        var modal = document.getElementById('modalVistaPreviaPersona');
+        if (modal) modal.style.display = 'none';
     },
 
     // === PERFIL ESTILO FACEBOOK === [FASE 7 - Perfil de Usuario Completo]
@@ -2324,8 +2464,22 @@ var PanelUsuario = {
         this._destinatariosSeleccionados = [];
         this.renderChipsSeleccionados();
 
+        // El acordeón siempre nace con "Enviar por mensaje" abierto, y las demás cerradas
+        document.querySelectorAll('.compartir-opcion').forEach(function(el) { el.classList.remove('abierta'); });
+        document.getElementById('compartirOpcionMensaje').classList.add('abierta');
+
         this.cargarVistaPreviaCompartir(productoId);
         document.getElementById('modalCompartirFB').style.display = 'flex';
+    },
+
+    toggleOpcionCompartir: function(nombre) {
+        var idContenido = nombre === 'mensaje' ? 'compartirContenidoMensaje' : 'compartirContenidoRepostear';
+        var opcion = document.getElementById(idContenido).closest('.compartir-opcion');
+        var yaAbierta = opcion.classList.contains('abierta');
+
+        // Acordeón: solo una sección expandida a la vez, como en Facebook
+        document.querySelectorAll('.compartir-opcion').forEach(function(el) { el.classList.remove('abierta'); });
+        if (!yaAbierta) opcion.classList.add('abierta');
     },
 
     cerrarModalCompartir: function() {
@@ -2399,25 +2553,39 @@ var PanelUsuario = {
         if (!cont) return;
         cont.innerHTML = '<div class="user-picker-empty">🤖 Buscando sugerencias...</div>';
         var self = this;
-        function pintar(titulo, candidatos, etiquetaFn) {
+        function pintarCirculos(titulo, candidatos) {
+            if (!candidatos.length) return false;
+            cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:4px;">' + titulo + '</div>' +
+                '<div class="compartir-contactos-row">' + candidatos.map(function(u) {
+                    var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                    var inicial = nombre.charAt(0).toUpperCase() || 'U';
+                    var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '">' : inicial;
+                    return '<div class="compartir-contacto-circulo" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                        '<div class="compartir-contacto-avatar-wrap"><div class="compartir-contacto-avatar">' + fotoHtml + '</div><span class="compartir-contacto-check">✓</span></div>' +
+                        '<div class="compartir-contacto-nombre">' + self.escHtml(nombre.split(' ')[0]) + '</div></div>';
+                }).join('') + '</div>';
+            return true;
+        }
+        function pintarLista(titulo, candidatos, etiquetaFn) {
             if (!candidatos.length) return false;
             cont.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">' + titulo + '</div>' +
                 candidatos.map(function(u) {
                     var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                     var inicial = nombre.charAt(0).toUpperCase() || 'U';
                     var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:36px;height:36px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
-                    return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
-                        fotoHtml +
+                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:44px;height:44px;object-fit:cover;">' : '<div class="user-picker-avatar" style="width:44px;height:44px;">' + inicial + '</div>';
+                    return '<div class="user-picker-item" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                        '<div class="user-picker-avatar-wrap">' + fotoHtml + '<span class="check-seleccionado">✓</span></div>' +
                         '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div>' +
                         '<div class="user-picker-email">' + etiquetaFn(u) + '</div></div></div>';
                 }).join('');
             return true;
         }
         try {
-            // Prioridad 1: gente con la que ya chateaste antes, igual que en Facebook
-            var recientes = await this.obtenerContactosRecientes(5);
-            if (pintar('🕑 Contactos recientes:', recientes, function() { return 'Conversación reciente'; })) return;
+            // Prioridad 1: gente con la que ya chateaste antes, como círculos, igual que en Facebook
+            var recientes = await this.obtenerContactosRecientes(6);
+            if (pintarCirculos('🕑 Contactos recientes', recientes)) return;
 
             // Prioridad 2: si no hay contactos, gente interesada en la categoría del producto
             if (categoria) {
@@ -2430,7 +2598,7 @@ var PanelUsuario = {
                     .limit(5);
                 if (error) throw error;
                 var candidatos = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
-                if (pintar('✨ Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:', candidatos, function(u) { return '✨ Interesado en ' + self.escHtml(u.categoria || categoria); })) return;
+                if (pintarLista('✨ Personas interesadas en <strong>' + this.escHtml(categoria) + '</strong>:', candidatos, function(u) { return '✨ Interesado en ' + self.escHtml(u.categoria || categoria); })) return;
             }
             cont.innerHTML = '<div class="user-picker-empty">💡 Busca por nombre, categoría o zona arriba (ej: "gente de tecnología cerca de mí").</div>';
         } catch (e) {
@@ -3787,17 +3955,25 @@ var PanelUsuario = {
             this._conversacionAbiertaId = convId;
             this._otroIdConversacionAbierta = otroId;
             this._mensajesActuales = mensajes || [];
+            this._otroInfoActual = { nombre: nombreOtro, foto: fotoOtro }; // para poder mostrar su avatar en mensajes que lleguen en vivo
             var traduccionActivaMsgs = this.tieneTraduccionChatActiva();
-            var msgsHtml = this._mensajesActuales.map(function(m) { return PanelUsuario._renderBurbuja(m, traduccionActivaMsgs); }).join('');
+            var msgsHtml = this._mensajesActuales.map(function(m, i) {
+                var siguiente = PanelUsuario._mensajesActuales[i + 1];
+                var anterior = PanelUsuario._mensajesActuales[i - 1];
+                var agrupado = anterior && anterior.emisor_id === m.emisor_id && !anterior.eliminado;
+                var mostrarAvatar = !siguiente || siguiente.emisor_id !== m.emisor_id; // último de su tanda
+                return PanelUsuario._renderBurbuja(m, traduccionActivaMsgs, { agrupado: agrupado, mostrarAvatar: mostrarAvatar, fotoOtro: fotoOtro, nombreOtro: nombreOtro });
+            }).join('');
 
             var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
             var enLinea = otro && otro.ultima_conexion && (Date.now() - new Date(otro.ultima_conexion).getTime() < 120000);
-            var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">🟢 En línea</span>' : '<span id="estadoConexionOtro">⚫ Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
+            var dotOnlineHtml = enLinea ? '<span class="dot-online"></span>' : '';
+            var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">En línea</span>' : '<span id="estadoConexionOtro">Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
             var traduccionActiva = this.tieneTraduccionChatActiva();
             var volverBtn = modo === 'flotante' ? '<button class="chat-back-btn" onclick="PanelUsuario.volverListaConversaciones(\'flotante\')" title="Ver lista">←</button>' : '<button class="chat-back-btn messenger-back-movil" onclick="PanelUsuario.volverListaConversaciones()">← Volver</button>';
 
             panel.innerHTML = '<div class="chat-header">' + volverBtn +
-                '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0;">' + avatarHtml + '</div>' +
+                '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;"><div class="chat-header-avatar-wrap"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--purpura-ia), var(--azul-confianza));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;">' + avatarHtml + '</div>' + dotOnlineHtml + '</div>' +
                 '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);" id="' + ctx.chatPanel + '_estadoLinea">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
                 '<button type="button" title="Buscar en la conversación" onclick="PanelUsuario.toggleBuscarEnChat(\'' + modo + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🔍</button>' +
                 '<button type="button" title="' + (traduccionActiva ? 'Desactivar traducción automática' : 'Activar traducción automática') + '" onclick="PanelUsuario.toggleTraduccionChat(\'' + convId + '\', \'' + otroId + '\')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;opacity:' + (traduccionActiva ? '1' : '0.4') + ';" >🌐</button>' +
@@ -3811,8 +3987,8 @@ var PanelUsuario = {
                 '<div class="chat-input-row">' +
                 '<input type="file" id="' + ctx.fotoInput + '" accept="image/*" style="display:none;" onchange="PanelUsuario.enviarFotoChat(\'' + convId + '\', \'' + otroId + '\', this.files[0], \'' + modo + '\')">' +
                 '<button type="button" title="Enviar foto" onclick="document.getElementById(\'' + ctx.fotoInput + '\').click()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 8px;">📷</button>' +
-                '<input type="text" id="' + ctx.input + '" class="form-input" placeholder="Escribe un mensaje..." oninput="PanelUsuario.avisarEscribiendo(\'' + modo + '\')" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\',\'' + modo + '\')}">' +
-                '<button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarMensajeChat(\'' + convId + '\', \'' + otroId + '\', \'' + modo + '\')"><i class="fas fa-paper-plane"></i></button></div>';
+                '<input type="text" id="' + ctx.input + '" class="form-input" placeholder="Escribe un mensaje..." oninput="PanelUsuario.avisarEscribiendo(\'' + modo + '\'); PanelUsuario.actualizarBotonEnvio(\'' + modo + '\');" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\',\'' + modo + '\')}">' +
+                '<button class="btn-auth btn-auth-primary btn-envio-chat" id="' + ctx.input + '_btnEnvio" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarLikeORaTexto(\'' + convId + '\', \'' + otroId + '\', \'' + modo + '\')"><span class="icono-envio">👍</span></button></div>';
 
             var msgsBox = document.getElementById(ctx.messages);
             if (msgsBox) msgsBox.scrollTop = msgsBox.scrollHeight;
@@ -3847,31 +4023,74 @@ var PanelUsuario = {
         this._timeoutAvisoEscribiendo = setTimeout(function() { PanelUsuario._timeoutAvisoEscribiendo = null; }, 2500);
     },
 
+    // Botón del chat estilo Messenger: 👍 cuando el campo está vacío, ✈️ enviar cuando hay texto escrito
+    actualizarBotonEnvio: function(modo) {
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
+        var input = document.getElementById(ctx.input);
+        var btn = document.getElementById(ctx.input + '_btnEnvio');
+        if (!input || !btn) return;
+        var icono = btn.querySelector('.icono-envio');
+        if (input.value.trim()) { icono.textContent = ''; icono.className = 'icono-envio fas fa-paper-plane'; }
+        else { icono.className = 'icono-envio'; icono.textContent = '👍'; }
+    },
+    enviarLikeORaTexto: function(convId, otroId, modo) {
+        var ctx = this._ctxChat(modo || this._modoChatActivo);
+        var input = document.getElementById(ctx.input);
+        if (input && !input.value.trim()) input.value = '👍';
+        this.enviarMensajeChat(convId, otroId, modo);
+        this.actualizarBotonEnvio(modo);
+    },
+
     // Pinta un mensaje nuevo que llegó por Realtime sin recargar toda la conversación
     agregarMensajeEnVivo: function(m, modo) {
         var ctx = this._ctxChat(modo || this._modoChatActivo);
+        var ultimoAnterior = this._mensajesActuales[this._mensajesActuales.length - 1];
+        var agrupado = ultimoAnterior && ultimoAnterior.emisor_id === m.emisor_id && !ultimoAnterior.eliminado;
         this._mensajesActuales.push(m);
         var box = document.getElementById(ctx.messages);
         if (!box) return;
         var vacio = box.querySelector('p');
         if (vacio) box.innerHTML = '';
-        box.insertAdjacentHTML('beforeend', this._renderBurbuja(m, this.tieneTraduccionChatActiva()));
+        // Si el mensaje anterior mostraba el avatar (por ser el último de su tanda), se lo quitamos:
+        // ahora este mensaje nuevo pasa a ser el último, así que el avatar le corresponde a él.
+        if (agrupado) {
+            var filaAnterior = box.querySelector('.chat-bubble-row[data-msg-id="' + ultimoAnterior.id + '"]');
+            if (filaAnterior) {
+                var avatarPrevio = filaAnterior.querySelector('.msg-avatar');
+                if (avatarPrevio) avatarPrevio.outerHTML = '<div class="msg-avatar-spacer"></div>';
+            }
+        }
+        var info = this._otroInfoActual || {};
+        box.insertAdjacentHTML('beforeend', this._renderBurbuja(m, this.tieneTraduccionChatActiva(), { agrupado: agrupado, mostrarAvatar: true, fotoOtro: info.foto, nombreOtro: info.nombre }));
         box.scrollTop = box.scrollHeight;
         var elEscribiendo = document.getElementById(ctx.escribiendo);
         if (elEscribiendo) elEscribiendo.style.display = 'none';
     },
 
     // Arma el HTML de una burbuja de mensaje (texto o foto), con acciones de editar/borrar si es mío
-    _renderBurbuja: function(m, traduccionActivaMsgs) {
+    _renderBurbuja: function(m, traduccionActivaMsgs, opts) {
+        opts = opts || {};
         var esMio = m.emisor_id === usuarioActual.id;
         var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
         var checkHtml = esMio ? '<span class="chat-bubble-check' + (m.leido ? ' leido' : '') + '">' + (m.leido ? '✓✓' : '✓') + '</span>' : '';
+        var claseFila = 'chat-bubble-row ' + (esMio ? 'mio' : 'otro') + (opts.agrupado ? ' agrupado' : '');
+        // El avatar del otro usuario solo se muestra en el último mensaje de cada tanda seguida (estilo Messenger)
+        var avatarHtml = '';
+        if (!esMio) {
+            if (opts.mostrarAvatar) {
+                avatarHtml = opts.fotoOtro ? '<img src="' + opts.fotoOtro + '" class="msg-avatar">' : '<div class="msg-avatar">' + (opts.nombreOtro ? opts.nombreOtro.charAt(0).toUpperCase() : 'U') + '</div>';
+            } else {
+                avatarHtml = '<div class="msg-avatar-spacer"></div>';
+            }
+        }
         if (m.eliminado) {
-            return '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '" data-msg-id="' + m.id + '"><div><div class="chat-bubble" style="font-style:italic;opacity:0.6;">🚫 Mensaje eliminado</div><div class="chat-bubble-hora">' + hora + checkHtml + '</div></div></div>';
+            return '<div class="' + claseFila + '" data-msg-id="' + m.id + '">' + avatarHtml + '<div><div class="chat-bubble" style="font-style:italic;opacity:0.6;">🚫 Mensaje eliminado</div><div class="chat-bubble-hora">' + hora + checkHtml + '</div></div></div>';
         }
         var contenidoHtml;
         if (m.imagen_url) {
             contenidoHtml = '<div class="chat-bubble" style="padding:4px;"><img src="' + m.imagen_url + '" style="max-width:200px;border-radius:8px;display:block;cursor:pointer;" onclick="window.open(\'' + m.imagen_url + '\',\'_blank\')"></div>';
+        } else if (m.texto_original === '👍' || m.texto_original === '👍 Me gusta') {
+            contenidoHtml = '<div class="chat-bubble" style="background:transparent;font-size:40px;padding:0;">👍</div>';
         } else {
             var textoMostrar = m.texto_original;
             if (!esMio && traduccionActivaMsgs && m.texto_traducido && m.idioma_destino === (usuarioActual.idioma_preferido || 'es')) textoMostrar = m.texto_traducido;
@@ -3882,8 +4101,9 @@ var PanelUsuario = {
         var accionesHtml = (esMio && !m.imagen_url) ? '<div class="chat-bubble-acciones" style="display:flex;gap:6px;font-size:11px;opacity:0.6;">' +
             '<span style="cursor:pointer;" onclick="PanelUsuario.editarMensajeChat(\'' + m.id + '\')">✏️</span>' +
             '<span style="cursor:pointer;" onclick="PanelUsuario.borrarMensajeChat(\'' + m.id + '\')">🗑️</span></div>' : '';
-        return '<div class="chat-bubble-row ' + (esMio ? 'mio' : 'otro') + '" data-msg-id="' + m.id + '" data-texto="' + this.escHtml((m.texto_original || '').toLowerCase()) + '"><div>' + contenidoHtml + '<div class="chat-bubble-hora">' + hora + checkHtml + '</div>' + accionesHtml + '</div></div>';
+        return '<div class="' + claseFila + '" data-msg-id="' + m.id + '" data-texto="' + this.escHtml((m.texto_original || '').toLowerCase()) + '">' + avatarHtml + '<div>' + contenidoHtml + '<div class="chat-bubble-hora">' + hora + checkHtml + '</div>' + accionesHtml + '</div></div>';
     },
+
 
     // --- Mejora 6: buscar dentro de la conversación abierta ---
     toggleBuscarEnChat: function(modo) {
@@ -4078,6 +4298,7 @@ var PanelUsuario = {
         document.getElementById('nuevoMsjBuscarPersona').value = '';
         document.getElementById('nuevoMsjResultadosPersona').innerHTML = '';
         document.getElementById('nuevoMsjAlert').style.display = 'none';
+        document.querySelectorAll('.compartir-filtro-zona[data-contexto="nuevoMsj"]').forEach(function(b) { b.classList.remove('activo'); });
         document.getElementById('modalNuevoMensaje').style.display = 'flex';
     },
 
@@ -4086,48 +4307,88 @@ var PanelUsuario = {
     },
 
     // === BUSCADOR DE PERSONAS MEJORADO === [FASE 6 - Búsqueda de Usuarios en Tiempo Real]
-    buscarUsuariosPorNombre: async function(q) {
-        if (!usuarioActual || !q || !q.trim().length) return [];
-        var termino = q.trim().toLowerCase();
-        var primeraPalabra = termino.split(/\s+/)[0];
+    // Motor único de búsqueda de personas. Reutilizado por: Compartir, Nuevo mensaje, Buscador principal y el Chat IA.
+    // - q: texto escrito (nombre completo, nombre parcial o INICIALES, ej: "J P", "JP", "J.P.")
+    // - nivelZona: 'local' | 'regional' | 'pais' | null -> combinable con el texto
+    buscarUsuariosPorNombre: async function(q, nivelZona) {
+        if (!usuarioActual) return [];
+        var termino = (q || '').trim().toLowerCase().replace(/\./g, '');
+        if (!termino && !nivelZona) return [];
         var bloqueados = await this.obtenerBloqueados();
         try {
-            var { data } = await supabase
+            var query = supabase
                 .from('usuarios')
-                .select('id, nombres, apellidos, correo_electronico, foto_perfil')
-                .or(`nombres.ilike.%${primeraPalabra}%,apellidos.ilike.%${primeraPalabra}%`)
-                .limit(30);
-            return (data || [])
-                .filter(function(u) {
-                    if (u.id === usuarioActual.id || bloqueados.indexOf(u.id) !== -1) return false;
+                .select('id, nombres, apellidos, correo_electronico, foto_perfil, localidad_id')
+                .neq('id', usuarioActual.id)
+                .limit(60);
+
+            if (termino) {
+                var primeraPalabra = termino.split(/\s+/)[0];
+                var soloLetras = termino.replace(/\s+/g, '');
+                var primeraLetra = soloLetras.charAt(0);
+                // Se pide al servidor: nombre/apellido que contenga la primera palabra escrita,
+                // O que empiece con la primera letra (para no perder coincidencias por iniciales, ej: "J P").
+                query = query.or(
+                    'nombres.ilike.%' + primeraPalabra + '%,' +
+                    'apellidos.ilike.%' + primeraPalabra + '%,' +
+                    'nombres.ilike.' + primeraLetra + '%,' +
+                    'apellidos.ilike.' + primeraLetra + '%'
+                );
+            }
+
+            if (nivelZona) {
+                var idsLocalidades = await this.obtenerLocalidadIdsPorNivel(nivelZona);
+                if (idsLocalidades && idsLocalidades.length) query = query.in('localidad_id', idsLocalidades);
+                else return []; // pidió una zona pero no hay localidades que califiquen
+            }
+
+            var { data, error } = await query;
+            if (error) throw error;
+
+            var resultados = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
+
+            if (termino) {
+                var terminoSinEspacios = termino.replace(/\s+/g, '');
+                resultados = resultados.filter(function(u) {
                     var nombreCompleto = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim().toLowerCase();
-                    return nombreCompleto.indexOf(termino) !== -1;
-                })
-                .slice(0, 8)
-                .map(function(u) {
-                    u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
-                    return u;
+                    if (!nombreCompleto) return false;
+                    if (nombreCompleto.indexOf(termino) !== -1) return true; // coincidencia normal por texto
+                    // Coincidencia por iniciales: "jp" o "j p" -> "Juan Perez"
+                    var iniciales = nombreCompleto.split(/\s+/).filter(Boolean).map(function(p) { return p.charAt(0); }).join('');
+                    return iniciales.indexOf(terminoSinEspacios) !== -1;
                 });
-        } catch (e) { 
+            }
+
+            return resultados.slice(0, 12).map(function(u) {
+                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
+                return u;
+            });
+        } catch (e) {
             console.warn('Error buscando usuarios:', e);
-            return []; 
+            return [];
         }
     },
 
     // Filtros explícitos por zona (Local/Regional/País) y por rubro, visibles en el modal de Compartir
     filtrarCompartirPorZona: async function(nivel) {
-        var btn = document.getElementById('filtroZona-' + nivel);
+        var btn = document.getElementById('filtroZona-' + nivel + '-compartir');
         var yaActivo = btn && btn.classList.contains('activo');
-        document.querySelectorAll('.compartir-filtro-zona').forEach(function(b) { b.classList.remove('activo'); });
+        document.querySelectorAll('.compartir-filtro-zona[data-contexto="compartir"]').forEach(function(b) { b.classList.remove('activo'); });
         if (btn && !yaActivo) btn.classList.add('activo');
-        this._aplicarFiltrosCompartir();
+        var inputEl = document.getElementById('compartirBuscarPersona');
+        if (inputEl && inputEl.value.trim()) {
+            // Ya hay texto escrito: combinar zona + texto con el motor unificado, en vez del flujo de sugerencias por rubro
+            this.buscarPersonaPicker(inputEl.value, 'compartir');
+        } else {
+            this._aplicarFiltrosCompartir();
+        }
     },
     filtrarCompartirPorRubro: function() {
         this._aplicarFiltrosCompartir();
     },
     _aplicarFiltrosCompartir: async function() {
         var el = document.getElementById('compartirResultadosPersona');
-        var zonaActiva = document.querySelector('.compartir-filtro-zona.activo');
+        var zonaActiva = document.querySelector('.compartir-filtro-zona[data-contexto="compartir"].activo');
         var nivel = zonaActiva ? zonaActiva.dataset.nivel : null;
         var rubro = document.getElementById('compartirFiltroRubro').value;
         if (!nivel && !rubro) { this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo); return; }
@@ -4161,33 +4422,64 @@ var PanelUsuario = {
         }, 350);
     },
 
+    // Lee el botón de zona (Local/Regional/País) activo para un contexto dado, si existe.
+    _obtenerNivelZonaActivo: function(contexto) {
+        var activo = document.querySelector('.compartir-filtro-zona[data-contexto="' + contexto + '"].activo');
+        if (!activo && contexto === 'compartir') activo = document.querySelector('.compartir-filtro-zona.activo'); // compatibilidad con los botones originales de Compartir
+        return activo ? activo.dataset.nivel : null;
+    },
+
+    // Botón genérico de filtro de zona, usado en Nuevo mensaje y en los resultados de persona del buscador/IA.
+    setFiltroZonaPersona: function(contexto, nivel) {
+        var btn = document.getElementById('filtroZona-' + nivel + '-' + contexto);
+        var yaActivo = btn && btn.classList.contains('activo');
+        document.querySelectorAll('.compartir-filtro-zona[data-contexto="' + contexto + '"]').forEach(function(b) { b.classList.remove('activo'); });
+        if (btn && !yaActivo) btn.classList.add('activo');
+        var inputEl = document.getElementById(contexto + 'BuscarPersona');
+        var valor = inputEl ? inputEl.value : '';
+        this.buscarPersonaPicker(valor, contexto);
+    },
+
+    // Pinta la lista de tarjetas de personas encontradas (nombre, avatar, correo) para cualquier contexto.
+    _renderResultadosPersonaPicker: function(usuarios, contexto, el) {
+        var self = this;
+        el.innerHTML = usuarios.map(function(u) {
+            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var email = u.correo_electronico || '';
+            var foto = u.foto_perfil || '';
+            var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
+            var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` :
+                                 `<div class="user-picker-avatar">${inicial}</div>`;
+            return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
+                ${fotoHtml}
+                <div style="flex:1;">
+                    <div class="user-picker-name">${self.escHtml(nombre)}</div>
+                    <div class="user-picker-email">${email ? '✉️ ' + self.escHtml(email) : ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+    },
+
     buscarPersonaPicker: async function(q, contexto) {
         var el = document.getElementById(contexto + 'ResultadosPersona');
         if (!el) return;
-        if (!q || !q.trim().length) { 
+        var nivelZona = this._obtenerNivelZonaActivo(contexto);
+        if (!q || !q.trim().length) {
+            if (nivelZona) {
+                // Sin texto pero con zona activa: mostrar personas de esa zona directamente
+                el.innerHTML = '<div class="user-picker-empty">Buscando...</div>';
+                var soloZona = await this.buscarUsuariosPorNombre('', nivelZona);
+                this._renderResultadosPersonaPicker(soloZona, contexto, el);
+                return;
+            }
             if (contexto === 'compartir') this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo);
-            else el.innerHTML = '<div class="user-picker-empty">💡 Escribe para buscar...</div>';
+            else el.innerHTML = '<div class="user-picker-empty">💡 Escribe para buscar, o filtra por zona...</div>';
             return;
         }
-        var usuarios = await this.buscarUsuariosPorNombre(q);
+        var usuarios = await this.buscarUsuariosPorNombre(q, nivelZona);
         if (usuarios && usuarios.length) {
-            var self = this;
-            el.innerHTML = usuarios.map(function(u) {
-                var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-                var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                var email = u.correo_electronico || '';
-                var foto = u.foto_perfil || '';
-                var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-                var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` : 
-                                     `<div class="user-picker-avatar">${inicial}</div>`;
-                return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
-                    ${fotoHtml}
-                    <div style="flex:1;">
-                        <div class="user-picker-name">${self.escHtml(nombre)}</div>
-                        <div class="user-picker-email">${email ? '✉️ ' + self.escHtml(email) : ''}</div>
-                    </div>
-                </div>`;
-            }).join('');
+            this._renderResultadosPersonaPicker(usuarios, contexto, el);
             return;
         }
         // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, le pedimos
@@ -4348,6 +4640,8 @@ var PanelUsuario = {
                 this._destinatariosSeleccionados.push({ id: id, nombre: nombre });
                 this.renderChipsSeleccionados();
             }
+            var itemSugerido = document.getElementById('pickerItem-' + id);
+            if (itemSugerido) itemSugerido.classList.add('seleccionado'); // marca la tarjeta con el check, estilo Facebook
             document.getElementById('compartirBuscarPersona').value = '';
             document.getElementById('compartirResultadosPersona').innerHTML = '';
         } else if (contexto === 'nuevoMsj') {
@@ -4366,10 +4660,13 @@ var PanelUsuario = {
         }).join('');
         var btnEnviar = document.getElementById('btnEnviarCompartir');
         if (btnEnviar) btnEnviar.disabled = seleccionados.length === 0;
+        if (btnEnviar) btnEnviar.textContent = seleccionados.length ? '📤 Enviar a ' + seleccionados.length + (seleccionados.length === 1 ? ' persona' : ' personas') : '📤 Enviar';
     },
 
     quitarPersonaSeleccionada: function(id) {
         this._destinatariosSeleccionados = (this._destinatariosSeleccionados || []).filter(function(d) { return d.id !== id; });
+        var itemSugerido = document.getElementById('pickerItem-' + id);
+        if (itemSugerido) itemSugerido.classList.remove('seleccionado');
         this.renderChipsSeleccionados();
     },
 
@@ -4865,26 +5162,45 @@ var UIController = {
     quitarEstadoCarga: function() { var t = document.getElementById('typing'); if (t) t.remove(); },
     renderizarArticulos: function(lista) { var c = this.elementos.articulosContainer; c.innerHTML = ''; lista.slice(0, 6).forEach(function(art) { var card = document.createElement('div'); card.className = 'card'; var imagenHTML = art.imagen_url ? '<img src="' + art.imagen_url + '" class="card-img-real" alt="' + art.titulo + '">' : '<div class="card-img-top">' + (art.icono || '') + '</div>'; card.innerHTML = imagenHTML + '<h3 class="card-title">' + art.titulo + '</h3>' + '<p class="card-text">' + art.descripcion + '</p>' + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' + '<span style="font-size:20px;font-weight:bold;color:var(--verde-esmeralda);">S/ ' + art.precio + '</span>' + '<span class="badge badge-disponible">🟢 ' + art.modalidad + '</span></div>' + '<button class="btn-read-more" onclick="UIController.abrirModal(\'' + art.titulo.replace(/'/g, "\\'") + '\',\'' + art.descripcion.replace(/'/g, "\\'") + '\',\'' + (art.imagen_url || '') + '\',\'' + (art.icono || '📦') + '\')">Ver detalles</button>'; c.appendChild(card); }); },
     mostrarResultadosBusqueda: function(resultado) { this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' resultados'; this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Resultados de Búsqueda'; var html = ''; if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>Búsqueda Híbrida:</strong> Combinamos resultados locales con referencias globales.</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>Búsqueda global:</strong> No encontramos resultados cerca, pero te mostramos opciones internacionales.</div>'; } else { html += '<div class="ai-context-banner">📍 Mostrando resultados de ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.coincidencias === 0) { html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos. Intenta con sinónimos (ej: "camisa" o "polo").</p></div>'; } else { html += resultado.resultados.map(function(art) { var icono = art.icono || ''; var imagenHTML = art.imagen_url ? '<img src="' + art.imagen_url + '" class="result-img" alt="' + art.titulo + '">' : '<div class="result-icon-fallback">' + icono + '</div>'; var exp = art._es_externo ? '<span class="badge badge-externo">🌐 Referencia Global</span>' : (art._es_expandido ? '<span class="badge badge-expandido">🌍 Zona lejana</span>' : ''); var pais = art.pais ? '<span class="badge badge-pais">📍 ' + art.pais + '</span>' : ''; var modal = art.modalidad ? '<span class="badge badge-modalidad">' + art.modalidad + '</span>' : ''; return '<div class="result-item" onclick="UIController.abrirModal(\'' + art.titulo.replace(/'/g, "\\'") + '\',\'' + art.descripcion.replace(/'/g, "\\'") + '\',\'' + (art.imagen_url || '') + '\',\'' + icono + '\')">' + imagenHTML + '<div class="result-info"><div class="result-title">' + art.titulo + '</div><div class="result-category">' + art.categoria + '</div><div class="result-desc">' + (art.descripcion || '').substring(0, 100) + '...</div>' + '<div class="result-badges"><span class="badge badge-disponible">🟢 Disponible</span><span class="badge badge-distancia"> ' + art.distancia_km + ' km</span>' + pais + modal + exp + '</div></div>' + '<div class="result-actions"><div class="result-price">S/ ' + art.precio + '</div><button class="btn-contactar" onclick="event.stopPropagation(); alert(\'Función de contacto en desarrollo\')">📞 Contactar</button></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; },
-    mostrarResultadosPersonas: function(nombreBuscado, usuarios) {
+    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) {
+        this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = nombreBuscado || '';
         this.elementos.resultCount.textContent = usuarios.length + (usuarios.length === 1 ? ' persona' : ' personas');
         this.elementos.catalogContainer.style.display = 'none';
         this.elementos.searchResultsContainer.style.display = 'block';
         this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
-        var html = '<div class="ai-context-banner">👤 <strong>Búsqueda de personas:</strong> resultados por nombre en remarket-db</div>';
+        var activo = function(n) { return nivelZona === n ? 'activo' : ''; };
+        var html = '<div class="ai-context-banner">👤 <strong>Búsqueda de personas:</strong> resultados por nombre, iniciales o zona en remarket-db</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px;">' +
+            '<button type="button" id="filtroZona-local-resultados" class="compartir-filtro-zona ' + activo('local') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'local\')">📍 Local</button>' +
+            '<button type="button" id="filtroZona-regional-resultados" class="compartir-filtro-zona ' + activo('regional') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'regional\')">🗺️ Regional</button>' +
+            '<button type="button" id="filtroZona-pais-resultados" class="compartir-filtro-zona ' + activo('pais') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'pais\')">🌎 País</button>' +
+            '</div>';
         if (!usuarios.length) {
-            html += '<div style="text-align:center;padding:40px;"><p>No encontramos a nadie con ese nombre. Prueba con otro nombre o apellido.</p></div>';
+            html += '<div style="text-align:center;padding:40px;"><p>No encontramos a nadie con ese nombre o zona. Prueba con otro nombre, iniciales, o quita el filtro.</p></div>';
         } else {
             html += usuarios.map(function(u) {
                 var iniciales = (u.nombre_completo || 'U').trim().charAt(0).toUpperCase();
                 var avatar = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="result-img" alt="' + u.nombre_completo + '">' : '<div class="result-icon-fallback">' + iniciales + '</div>';
-                return '<div class="result-item" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + avatar +
+                return '<div class="result-item" onclick="PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">' + avatar +
                     '<div class="result-info"><div class="result-title">' + u.nombre_completo + '</div><div class="result-category">Usuario de remarket-db</div></div>' +
-                    '<div class="result-actions"><button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button></div></div>';
+                    '<div class="result-actions">' +
+                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">👁️ Vista previa</button>' +
+                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                    '</div></div>';
             }).join('');
         }
         this.elementos.searchResultsContent.innerHTML = html;
+    },
+    // Vuelve a buscar personas combinando el último nombre escrito con la zona elegida (o la quita si ya estaba activa)
+    filtrarResultadosPersonasPorZona: async function(nivel) {
+        var btn = document.getElementById('filtroZona-' + nivel + '-resultados');
+        var yaActivo = btn && btn.classList.contains('activo');
+        var nuevoNivel = yaActivo ? null : nivel;
+        var nombre = this._ultimaBusquedaPersonaNombre || '';
+        var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre, nuevoNivel);
+        this.mostrarResultadosPersonas(nombre, usuarios, nuevoNivel);
     },
     cerrarResultados: function() { this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Catálogo de Economía Circular'; },
     abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + imgUrl + '" class="modal-img-real" alt="' + titulo + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + icono + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
@@ -4895,7 +5211,15 @@ var UIController = {
 var EventController = {
     manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : mensaje; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : mensaje; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
     manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { PanelUsuario.ejecutarBusquedaConIA(query); return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i); var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : ''; if (accion === 'BUSCAR') { var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i); var producto = prodMatch ? prodMatch[1].trim() : query; var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto); UIController.mostrarResultadosBusqueda(resultado); } else if (accion === 'BUSCAR_PERSONA') { var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i); var nombre = nombreMatch ? nombreMatch[1].trim() : query; var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre); UIController.mostrarResultadosPersonas(nombre, usuarios); } else { UIController.cerrarResultados(); } },
-    manejarLimpiarChat: function() { if (confirm("¿Borrar conversación?")) { AIService.limpiarHistorial(); document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>'; } }
+    manejarLimpiarChat: function() {
+        if (confirm("¿Borrar conversación?")) {
+            AIService.limpiarHistorial();
+            document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>';
+            var buscador = document.getElementById('dynamicSearch');
+            if (buscador) buscador.value = ''; // limpiar el chat también limpia lo que quedó escrito en el buscador
+            if (typeof UIController !== 'undefined' && UIController.cerrarResultados) UIController.cerrarResultados(); // y cierra el panel de resultados que haya quedado abierto
+        }
+    }
 };
 
 // ============================================
@@ -4969,8 +5293,13 @@ document.addEventListener("DOMContentLoaded", async function() {
                 <button class="modal-close-btn" onclick="PanelUsuario.cerrarModalNuevoMensaje()">&times;</button>
                 <h3 style="text-align:center;margin-bottom:16px;color:var(--purpura-ia);">✉️ Nuevo mensaje</h3>
                 <div id="nuevoMsjAlert" class="alert"></div>
-                <label class="form-label">Buscar persona por nombre</label>
-                <input type="text" id="nuevoMsjBuscarPersona" class="form-input" placeholder="Escribe un nombre..." oninput="PanelUsuario.buscarPersonaPicker(this.value, 'nuevoMsj')" autocomplete="off">
+                <label class="form-label">Buscar persona por nombre, iniciales o zona</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <button type="button" id="filtroZona-local-nuevoMsj" data-nivel="local" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','local')">📍 Local</button>
+                    <button type="button" id="filtroZona-regional-nuevoMsj" data-nivel="regional" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','regional')">🗺️ Regional</button>
+                    <button type="button" id="filtroZona-pais-nuevoMsj" data-nivel="pais" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','pais')">🌎 País</button>
+                </div>
+                <input type="text" id="nuevoMsjBuscarPersona" class="form-input" placeholder="Escribe un nombre o iniciales (ej: J P)..." oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'nuevoMsj')" autocomplete="off">
                 <div id="nuevoMsjResultadosPersona" class="user-picker-results"></div>
             </div>
         `;
