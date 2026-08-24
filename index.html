@@ -679,6 +679,7 @@ select.form-input { cursor: pointer; }
 <button class="user-menu-item active" data-action="inicio" onclick="PanelUsuario.menuClick('inicio')"><span>🏠</span> <span id="menuTextInicio">Inicio</span></button>
 <button class="user-menu-item" data-action="perfil" onclick="PanelUsuario.menuClick('perfil')"><span>👤</span> <span id="menuTextPerfil">Mi Perfil</span></button>
 <button class="user-menu-item" data-action="publicaciones" onclick="PanelUsuario.menuClick('publicaciones')"><span>📦</span> <span id="menuTextPublicaciones">Mis Publicaciones</span></button>
+<button class="user-menu-item" data-action="buscarpersonas" onclick="PanelUsuario.menuClick('buscarpersonas')"><span>🔍</span> <span id="menuTextBuscarPersonas">Buscar Personas</span></button>
 <button class="user-menu-item" data-action="mensajes" onclick="PanelUsuario.menuClick('mensajes')"><span>💬</span> <span id="menuTextMensajes">Mensajes</span> <span class="menu-badge" id="mensajesBadge">0</span></button>
 <button class="user-menu-item" data-action="favoritos" onclick="PanelUsuario.menuClick('favoritos')"><span>❤️</span> <span id="menuTextFavoritos">Favoritos</span></button>
 <button class="user-menu-item" data-action="config" onclick="PanelUsuario.menuClick('config')"><span>⚙️</span> <span id="menuTextConfig">Configuración</span></button>
@@ -1981,6 +1982,7 @@ var PanelUsuario = {
         if (action === 'inicio') this.cargarFeed();
         else if (action === 'perfil') this.cargarMiPerfilFB();
         else if (action === 'publicaciones') this.cargarMisPublicaciones();
+        else if (action === 'buscarpersonas') this.cargarBuscarPersonas();
         else if (action === 'mensajes') { this.cargarConversaciones(this._convIdParaExpandir); this._convIdParaExpandir = null; }
         else if (action === 'favoritos') this.cargarFavoritos();
         else if (action === 'config') this.abrirModalConfiguracion();
@@ -2098,6 +2100,70 @@ var PanelUsuario = {
         } catch (e) {
             this.mostrarToast('Error al eliminar: ' + (e.message || 'intenta de nuevo'));
         }
+    },
+
+    // === BUSCAR PERSONAS (sección dedicada del Panel de Usuario) ===
+    // Usa el mismo motor (buscarUsuariosPorNombre) que Compartir, Nuevo mensaje y el Chat/buscador principal.
+    cargarBuscarPersonas: function() {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var container = document.getElementById('userFeedContainer');
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        container.innerHTML =
+            '<div style="max-width:600px;margin:0 auto;padding:16px;">' +
+            '<h3 style="margin-bottom:12px;">🔍 Buscar Personas</h3>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+                '<button type="button" id="filtroZona-local-panelPersonas" data-nivel="local" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'local\')">📍 Local</button>' +
+                '<button type="button" id="filtroZona-regional-panelPersonas" data-nivel="regional" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'regional\')">🗺️ Regional</button>' +
+                '<button type="button" id="filtroZona-pais-panelPersonas" data-nivel="pais" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'pais\')">🌎 País</button>' +
+            '</div>' +
+            '<input type="text" id="panelPersonasBuscarInput" class="form-input" placeholder="Nombre, apellido o iniciales (ej: J P)..." autocomplete="off" oninput="PanelUsuario.onBuscarPanelPersonasInput(this.value)">' +
+            '<div id="panelPersonasResultados" style="margin-top:16px;"></div>' +
+            '</div>';
+        document.getElementById('panelPersonasResultados').innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
+    },
+    onBuscarPanelPersonasInput: function(valor) {
+        clearTimeout(this._debouncePanelPersonas);
+        this._debouncePanelPersonas = setTimeout(function() { PanelUsuario.buscarEnPanelPersonas(valor); }, 350);
+    },
+    buscarEnPanelPersonas: async function(valorForzado, nivelClickeado) {
+        var inputEl = document.getElementById('panelPersonasBuscarInput');
+        if (nivelClickeado) {
+            var btn = document.getElementById('filtroZona-' + nivelClickeado + '-panelPersonas');
+            var yaActivo = btn && btn.classList.contains('activo');
+            document.querySelectorAll('.compartir-filtro-zona[data-contexto="panelPersonas"]').forEach(function(b) { b.classList.remove('activo'); });
+            if (btn && !yaActivo) btn.classList.add('activo');
+        }
+        var texto = (valorForzado !== null && valorForzado !== undefined) ? valorForzado : (inputEl ? inputEl.value : '');
+        var nivelZona = this._obtenerNivelZonaActivo('panelPersonas');
+        var resultadosEl = document.getElementById('panelPersonasResultados');
+        if (!resultadosEl) return;
+        if (!texto.trim() && !nivelZona) {
+            resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
+            return;
+        }
+        resultadosEl.innerHTML = '<div style="text-align:center;padding:20px;"><div class="search-loading-spinner" style="margin:0 auto;"></div></div>';
+        var usuarios = await this.buscarUsuariosPorNombre(texto, nivelZona);
+        if (!usuarios || !usuarios.length) {
+            resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">😕 No encontramos a nadie con esos criterios. Prueba con otro nombre, iniciales, o quita el filtro de zona.</div>';
+            return;
+        }
+        var self = this;
+        resultadosEl.innerHTML = usuarios.map(function(u) {
+            var nombre = u.nombre_completo || 'Usuario';
+            var inicial = nombre.charAt(0).toUpperCase() || 'U';
+            var fotoHtml = u.foto_perfil
+                ? '<img src="' + u.foto_perfil + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">'
+                : '<div class="user-picker-avatar" style="width:48px;height:48px;font-size:18px;">' + inicial + '</div>';
+            return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
+                fotoHtml +
+                '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;">' + self.escHtml(nombre) + '</div>' +
+                (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '') +
+                '</div>' +
+                '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">👁️ Vista previa</button>' +
+                '<button class="btn-auth" style="width:auto;padding:6px 10px;font-size:12px;" onclick="PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                '</div></div>';
+        }).join('');
     },
 
     // === FAVORITOS === [FASE 4.2 / FASE 5 - Guardar en Favoritos]
