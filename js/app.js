@@ -1,30 +1,15 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// 1. DETECTOR DE IP (El Ojo)
+// 1. DETECTOR DE UBICACIÓN BÁSICO
 // ==========================================
 async function detectarUbicacion() {
-  try {
-    const respuesta = await fetch("https://ipapi.co/json/");
-    const datos = await respuesta.json();
-    
-    const ciudad = datos.city || "Lima";
-    const pais = datos.country_name || "Perú";
-    const lang = datos.languages ? datos.languages.split(',')[0].substring(0, 2) : 'es';
-
-    console.log("📍 Usuario detectado en:", ciudad, pais);
-    
-    document.getElementById('texto-ubicacion').innerText = `${ciudad}, ${pais}`;
-    cargarMuroDinamico(ciudad, pais);
-    
-    if (lang && lang !== 'es') {
-      traducirPagina(lang);
-    }
-  } catch (error) {
-    console.error("Error detectando IP:", error);
-    document.getElementById('texto-ubicacion').innerText = "Lima, Perú";
-    cargarMuroDinamico("Lima", "Perú");
-  }
+  const ciudad = "Callao";
+  const pais = "Perú";
+  console.log("📍 Ubicación establecida:", ciudad, pais);
+  
+  document.getElementById('texto-ubicacion').innerText = `${ciudad}, ${pais}`;
+  cargarMuroDinamico(ciudad, pais);
 }
 
 // ==========================================
@@ -111,6 +96,7 @@ async function llamarGroq(mensaje) {
   const data = await response.json();
   
   if (data.error) {
+    console.error("⚠️ DETALLE DEL ERROR DE GROQ:", data.error);
     throw new Error(data.error.message);
   }
   
