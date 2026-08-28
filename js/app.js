@@ -5,9 +5,8 @@ import CONFIG from './config.js';
 // ==========================================
 async function detectarUbicacion() {
   try {
-    https://ip-api.com/json/?fields=country,city,lang
-    const datos = await respuesta.json();
-    
+        const respuesta = await fetch("https://ip-api.com/json/?fields=country,city,lang");
+        const datos = await respuesta.json();
     console.log("📍 Usuario detectado en:", datos.city, datos.country);
     
     document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
