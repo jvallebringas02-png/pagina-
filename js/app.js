@@ -80,7 +80,7 @@ async function enviarMensajeIA() {
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
   } catch (error) {
-    document.getElementById('ia-escribiendo').innerText = "⚠️ Error de conexión con la IA.";
+    document.getElementById('ia-escribiendo').innerText = "️ Error de conexión con la IA.";
   }
 }
 
@@ -107,7 +107,7 @@ async function llamarGroq(mensaje) {
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
     muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
