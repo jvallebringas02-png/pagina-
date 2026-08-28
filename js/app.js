@@ -102,7 +102,6 @@ async function llamarGroq(mensaje) {
   
   const data = await response.json();
   
-  // Validación añadida para prevenir errores si Groq rechaza la petición
   if (data.error) {
     console.error("Error devuelto por la API de Groq:", data.error.message);
     throw new Error(data.error.message);
