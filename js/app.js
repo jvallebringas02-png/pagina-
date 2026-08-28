@@ -79,7 +79,7 @@ async function enviarMensajeIA() {
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
   } catch (error) {
-    document.getElementById('ia-escribiendo').innerText = "️ Error de conexión con la IA.";
+    document.getElementById('ia-escribiendo').innerText = "⚠️ Error de conexión con la IA.";
   }
 }
 
@@ -99,7 +99,15 @@ async function llamarGroq(mensaje) {
       temperature: 0.7
     })
   });
+  
   const data = await response.json();
+  
+  // Validación añadida para prevenir errores si Groq rechaza la petición
+  if (data.error) {
+    console.error("Error devuelto por la API de Groq:", data.error.message);
+    throw new Error(data.error.message);
+  }
+  
   return data.choices[0].message.content;
 }
 
