@@ -5,20 +5,25 @@ import CONFIG from './config.js';
 // ==========================================
 async function detectarUbicacion() {
   try {
-        const respuesta = await fetch("https://ip-api.com/json/?fields=country,city,lang");
-        const datos = await respuesta.json();
-    console.log("📍 Usuario detectado en:", datos.city, datos.country);
+    const respuesta = await fetch("https://ipapi.co/json/");
+    const datos = await respuesta.json();
     
-    document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
-    cargarMuroDinamico(datos.city, datos.country);
+    const ciudad = datos.city || "Lima";
+    const pais = datos.country_name || "Perú";
+    const lang = datos.languages ? datos.languages.split(',')[0].substring(0, 2) : 'es';
+
+    console.log("📍 Usuario detectado en:", ciudad, pais);
     
-    if (datos.lang && datos.lang !== 'es') {
-      traducirPagina(datos.lang);
+    document.getElementById('texto-ubicacion').innerText = `${ciudad}, ${pais}`;
+    cargarMuroDinamico(ciudad, pais);
+    
+    if (lang && lang !== 'es') {
+      traducirPagina(lang);
     }
   } catch (error) {
     console.error("Error detectando IP:", error);
-    document.getElementById('texto-ubicacion').innerText = "Ubicación global";
-    cargarMuroDinamico("Global", "Mundial");
+    document.getElementById('texto-ubicacion').innerText = "Lima, Perú";
+    cargarMuroDinamico("Lima", "Perú");
   }
 }
 
@@ -39,11 +44,13 @@ function cargarMuroDinamico(ciudad, pais) {
       </div>
     `;
     
-    patrocinadores.innerHTML = `
-      <div class="patrocinador-vacio">
-        <p>Espacio disponible para negocios de ${ciudad}</p>
-      </div>
-    `;
+    if (patrocinadores) {
+      patrocinadores.innerHTML = `
+        <div class="patrocinador-vacio">
+          <p>Espacio disponible para negocios de ${ciudad}</p>
+        </div>
+      `;
+    }
   }, 1500);
 }
 
@@ -79,6 +86,7 @@ async function enviarMensajeIA() {
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
   } catch (error) {
+    console.error("Detalle del error de IA:", error);
     document.getElementById('ia-escribiendo').innerText = "⚠️ Error de conexión con la IA.";
   }
 }
@@ -103,7 +111,6 @@ async function llamarGroq(mensaje) {
   const data = await response.json();
   
   if (data.error) {
-    console.error("Error devuelto por la API de Groq:", data.error.message);
     throw new Error(data.error.message);
   }
   
