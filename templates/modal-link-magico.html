@@ -1,0 +1,84 @@
+<div class="modal-content modal-login">
+  <div class="modal-header">
+    <h2> Ingresar con Link Mágico</h2>
+    <button class="btn-cerrar-modal" onclick="cerrarModal('link-magico')"></button>
+  </div>
+  
+  <div class="modal-body">
+    
+    <div class="advertencia">
+      <p> Te enviaremos un enlace único a tu correo. Haz clic en él y entrarás automáticamente, <strong>sin necesidad de contraseña</strong>.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="email-link-magico">Correo electrónico</label>
+      <input type="email" id="email-link-magico" placeholder="tu@correo.com">
+    </div>
+
+    <button class="btn-modal btn-modal-primario" style="width:100%" onclick="enviarLinkMagico()">
+       Enviarme el Link Mágico
+    </button>
+
+    <div id="mensaje-link-magico" style="display:none; margin-top:1rem; padding:1rem; background:#e8f5e9; border-radius:10px; color:#2e7d32; text-align:center;">
+      ✅ Revisa tu correo. El enlace expira en 10 minutos.
+    </div>
+
+    <p style="text-align:center; margin-top:1.5rem; font-size:0.9rem; color:#7f8c8d;">
+      <a href="#" onclick="abrirModal('login')" style="color:#667eea; text-decoration:none;">
+        ← Volver al inicio de sesión normal
+      </a>
+    </p>
+
+  </div>
+</div>
+
+<script>
+  // Función para enviar el Link Mágico
+  async function enviarLinkMagico() {
+    const email = document.getElementById('email-link-magico').value.trim();
+    const mensajeDiv = document.getElementById('mensaje-link-magico');
+    
+    // Validar email
+    if (!email || !email.includes('@')) {
+      alert('⚠️ Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+
+    // Deshabilitar botón mientras se envía
+    const btn = document.querySelector('#modal-link-magico .btn-modal-primario');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+    }
+
+    try {
+      // Aquí se conectaría con auth.js
+      console.log('🔑 Enviando Link Mágico a:', email);
+      
+      // Simulación de envío (reemplazar con llamada real a Supabase)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Mostrar mensaje de éxito
+      mensajeDiv.style.display = 'block';
+      
+      // Limpiar el input
+      document.getElementById('email-link-magico').value = '';
+      
+    } catch (error) {
+      console.error('❌ Error enviando Link Mágico:', error);
+      alert('❌ No se pudo enviar el enlace. Intenta de nuevo.');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '📨 Enviarme el Link Mágico';
+      }
+    }
+  }
+
+  // Permitir enviar con la tecla Enter
+  document.getElementById('email-link-magico').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      enviarLinkMagico();
+    }
+  });
+</script>

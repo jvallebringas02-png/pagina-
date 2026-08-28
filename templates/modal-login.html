@@ -1,0 +1,96 @@
+<div class="modal-content modal-login">
+  <div class="modal-header">
+    <h2>👋 Bienvenido a remarket-db</h2>
+    <button class="btn-cerrar-modal" onclick="cerrarModal('login')"></button>
+  </div>
+  
+  <div class="modal-body">
+    <!-- Pestañas para cambiar entre Login y Registro -->
+    <div class="tabs-login">
+      <button class="tab-login activa" onclick="cambiarTabLogin('iniciar')">Iniciar Sesión</button>
+      <button class="tab-login" onclick="cambiarTabLogin('registro')">Registrarse</button>
+    </div>
+
+    <!-- Formulario de Iniciar Sesión -->
+    <div id="form-login" class="form-login">
+      <button class="btn-google">🔵 Continuar con Google</button>
+      
+      <div class="divisor">o usa tu correo</div>
+      
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="email-login" placeholder="tu@correo.com">
+      </div>
+      
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password-login" placeholder="••••••••">
+      </div>
+      
+      <button class="btn-modal btn-modal-primario" style="width:100%" onclick="procesarLogin()">Ingresar</button>
+      
+      <p style="text-align:center; margin-top:1rem; font-size:0.9rem; color:#7f8c8d;">
+        <a href="#" onclick="abrirModal('link-magico')" style="color:#667eea; text-decoration:none;">
+          🔑 ¿Prefieres entrar sin contraseña? Usa Link Mágico
+        </a>
+      </p>
+    </div>
+
+    <!-- Formulario de Registro (Oculto por defecto) -->
+    <div id="form-registro" class="form-registro" style="display:none;">
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" id="nombre-registro" placeholder="Tu nombre">
+      </div>
+      
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="email-registro" placeholder="tu@correo.com">
+      </div>
+      
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password-registro" placeholder="Mínimo 8 caracteres, 1 mayúscula y 1 número">
+      </div>
+      
+      <button class="btn-modal btn-modal-primario" style="width:100%" onclick="procesarRegistro()">Crear mi cuenta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Script interno para manejar las pestañas de este modal específico
+  function cambiarTabLogin(tab) {
+    const tabs = document.querySelectorAll('.tab-login');
+    const formLogin = document.getElementById('form-login');
+    const formRegistro = document.getElementById('form-registro');
+    
+    tabs.forEach(t => t.classList.remove('activa'));
+    
+    if (tab === 'iniciar') {
+      tabs[0].classList.add('activa');
+      formLogin.style.display = 'block';
+      formRegistro.style.display = 'none';
+    } else {
+      tabs[1].classList.add('activa');
+      formLogin.style.display = 'none';
+      formRegistro.style.display = 'block';
+    }
+  }
+
+  // Funciones placeholder para los botones (se conectarán con auth.js después)
+  function procesarLogin() {
+    const email = document.getElementById('email-login').value;
+    const password = document.getElementById('password-login').value;
+    console.log('Iniciando sesión con:', email);
+    alert('Función de login conectándose a Supabase...');
+  }
+
+  function procesarRegistro() {
+    const nombre = document.getElementById('nombre-registro').value;
+    const email = document.getElementById('email-registro').value;
+    const password = document.getElementById('password-registro').value;
+    console.log('Registrando usuario:', email);
+    alert('Función de registro conectándose a Supabase...');
+  }
+</script>
