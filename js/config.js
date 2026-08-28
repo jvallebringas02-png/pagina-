@@ -5,11 +5,11 @@
 
 export const CONFIG = {
   // Supabase
-  SUPABASE_URL: 'kqazkraxlqncfcwbbsps',
+  SUPABASE_URL: 'https://kqazkraxlqncfwbbsps.supabase.co'
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxYXprcmF4bHFuY2Zjd2Jic3BzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MzA0NDEsImV4cCI6MjA5NzQwNjQ0MX0.C4cdFMTPNAjjBahz5xBl9s1OpnqyvQVrUmzVYCreiLoi',
   
   // Groq API (IA)
-  GROQ_API_KEY: 'gsk_IG41lb4B4QoFsJDik0tZWGdyb3FY5FREU3wiVE1OlG7KAJEb8vs3i',
+  GROQ_API_KEY: GROQ_API_KEY: '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',  ✅
   EDGE_FUNCTION_CHAT: 'chat-ia',
   
   // Categorías disponibles
