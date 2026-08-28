@@ -84,7 +84,7 @@ async function llamarGroq(mensaje) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama3-8b-8192',
       messages: [
         { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en el idioma del usuario.' },
         { role: 'user', content: mensaje }
