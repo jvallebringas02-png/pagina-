@@ -1,171 +1,133 @@
-/* ==========================================
-   remarket-db - Aplicación Principal
-   Orquestador de módulos
-   ========================================== */
+import CONFIG from './config.js';
 
-import { CONFIG } from './config.js';
-
-// Estado global de la aplicación
-const state = {
-  usuario: null,
-  chatHistory: [],
-  publicaciones: []
-};
-
-// Inicialización
-document.addEventListener('DOMContentLoaded', () => {
-  console.log(' Iniciando remarket-db...');
-  inicializarInterfaz();
-  cargarDatosIniciales();
-});
-
-function inicializarInterfaz() {
-  // Configurar botones de idioma
-  document.querySelectorAll('.idioma-opcion').forEach(opcion => {
-    opcion.addEventListener('click', (e) => {
-      const idioma = e.target.dataset.idioma;
-      cambiarIdioma(idioma);
-    });
-  });
-
-  // Configurar buscador
-  const buscador = document.getElementById('buscador');
-  if (buscador) {
-    buscador.addEventListener('input', (e) => {
-      filtrarPublicaciones(e.target.value);
-    });
-  }
-
-  // Configurar filtro de categoría
-  const filtroCategoria = document.getElementById('filtro-categoria');
-  if (filtroCategoria) {
-    filtroCategoria.addEventListener('change', (e) => {
-      filtrarPorCategoria(e.target.value);
-    });
-  }
-
-  console.log('✅ Interfaz inicializada');
-}
-
-function cargarDatosIniciales() {
-  // Simulación de carga de datos (aquí iría la llamada a Supabase)
-  console.log('📡 Conectando con Supabase...');
-  
-  // Simular publicaciones para prueba
-  state.publicaciones = [
-    {
-      id: 1,
-      titulo: 'Bicicleta urbana en buen estado',
-      descripcion: 'Bicicleta de 24 pulgadas, frenos funcionando. Ideal para la ciudad.',
-      categoria: 'Deportes',
-      modalidad: 'donacion',
-      precio: 0,
-      ubicacion: 'Trujillo',
-      autor: 'María López',
-      fecha: 'Hace 2 horas'
-    },
-    {
-      id: 2,
-      titulo: 'Lote de libros de colegio',
-      descripcion: 'Libros de matemática y comunicación de 3ro de secundaria.',
-      categoria: 'Libros',
-      modalidad: 'trueque',
-      precio: 0,
-      ubicacion: 'Lima',
-      autor: 'Carlos Ruiz',
-      fecha: 'Hace 5 horas'
+// ==========================================
+// 1. DETECTOR DE IP (El Ojo)
+// ==========================================
+async function detectarUbicacion() {
+  try {
+    const respuesta = await fetch('http://ip-api.com/json/?fields=country,city,lang');
+    const datos = await respuesta.json();
+    
+    console.log("📍 Usuario detectado en:", datos.city, datos.country);
+    
+    document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
+    cargarMuroDinamico(datos.city, datos.country);
+    
+    if (datos.lang && datos.lang !== 'es') {
+      traducirPagina(datos.lang);
     }
-  ];
-
-  renderizarPublicaciones(state.publicaciones);
-  console.log('✅ Datos cargados:', state.publicaciones.length);
+  } catch (error) {
+    console.error("Error detectando IP:", error);
+    document.getElementById('texto-ubicacion').innerText = "Ubicación global";
+    cargarMuroDinamico("Global", "Mundial");
+  }
 }
 
-function renderizarPublicaciones(lista) {
-  const contenedor = document.getElementById('contenedor-publicaciones');
-  const contador = document.getElementById('contador-resultados');
+// ==========================================
+// 2. EL MURO DINÁMICO (El Escenario)
+// ==========================================
+function cargarMuroDinamico(ciudad, pais) {
+  const muro = document.getElementById('muro-publicaciones');
+  const patrocinadores = document.getElementById('lista-patrocinadores');
   
-  if (contador) {
-    contador.textContent = lista.length;
-  }
-
-  if (!contenedor) return;
-
-  if (lista.length === 0) {
-    contenedor.innerHTML = `
-      <div class="estado-vacio">
-        <div class="icono-vacio">🌱</div>
-        <h3>¡Sé el primero en tu zona!</h3>
-        <p>Aún no hay publicaciones que coincidan con tu búsqueda.</p>
-        <button class="btn-primary" onclick="alert('Aquí se abriría el modal de publicar')">📦 Publicar mi primer artículo</button>
+  muro.innerHTML = `<p> Buscando artículos en <b>${ciudad}</b>...</p>`;
+  
+  setTimeout(() => {
+    muro.innerHTML = `
+      <div class="tarjeta-destacada">
+        <h3>🌱 Bienvenido a la Economía Circular en ${ciudad}</h3>
+        <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p>
+        <iframe width="100%" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
       </div>
     `;
-    return;
+    
+    patrocinadores.innerHTML = `
+      <div class="patrocinador-vacio">
+        <p>Espacio disponible para negocios de ${ciudad}</p>
+      </div>
+    `;
+  }, 1500);
+}
+
+// ==========================================
+// 3. ASISTENTE IA (El Sistema Operativo)
+// ==========================================
+const chatInput = document.getElementById('chat-input');
+const chatBtn = document.getElementById('chat-btn');
+const chatHistorial = document.getElementById('chat-historial');
+
+if (chatBtn) {
+  chatBtn.addEventListener('click', () => enviarMensajeIA());
+}
+
+if (chatInput) {
+  chatInput.addEventListener('keypress', (e) => { 
+    if (e.key === 'Enter') enviarMensajeIA(); 
+  });
+}
+
+async function enviarMensajeIA() {
+  const texto = chatInput.value.trim();
+  if (!texto) return;
+
+  chatHistorial.innerHTML += `<div class="msg-usuario">${texto}</div>`;
+  chatInput.value = '';
+
+  chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
+
+  try {
+    const respuestaIA = await llamarGroq(texto);
+    document.getElementById('ia-escribiendo').remove();
+    chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
+    actualizarMuroPorIA(texto);
+    
+  } catch (error) {
+    document.getElementById('ia-escribiendo').innerText = "⚠️ Error de conexión con la IA.";
   }
-
-  const html = lista.map(pub => `
-    <article class="tarjeta-publicacion">
-      <div class="tarjeta-header">
-        <div class="autor-info">
-          <div class="avatar-placeholder" style="width:40px;height:40px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;">👤</div>
-          <div class="autor-datos">
-            <span class="autor-nombre">${pub.autor}</span>
-            <span class="tiempo-publicacion">${pub.fecha}</span>
-          </div>
-        </div>
-        <span class="badge-modalidad ${pub.modalidad}">
-          ${CONFIG.MODALIDADES[pub.modalidad]?.icono || ''} ${CONFIG.MODALIDADES[pub.modalidad]?.label || pub.modalidad}
-        </span>
-      </div>
-      <div class="tarjeta-contenido">
-        <h3>${pub.titulo}</h3>
-        <p>${pub.descripcion}</p>
-        <div class="tarjeta-meta">
-          <span class="ubicacion">📍 ${pub.ubicacion}</span>
-          ${pub.precio > 0 ? `<span class="precio">S/ ${pub.precio}</span>` : '<span class="precio">Gratis/Trueque</span>'}
-        </div>
-      </div>
-      <div class="tarjeta-footer">
-        <button class="btn-qr">📱 QR</button>
-        <button class="btn-contacto">💬 Contactar</button>
-        <button class="btn-compartir">🔗 Compartir</button>
-      </div>
-    </article>
-  `).join('');
-
-  contenedor.innerHTML = `<div class="grid-publicaciones">${html}</div>`;
 }
 
-function filtrarPublicaciones(texto) {
-  const filtradas = state.publicaciones.filter(pub => 
-    pub.titulo.toLowerCase().includes(texto.toLowerCase()) ||
-    pub.descripcion.toLowerCase().includes(texto.toLowerCase())
-  );
-  renderizarPublicaciones(filtradas);
+async function llamarGroq(mensaje) {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en el idioma del usuario.' },
+        { role: 'user', content: mensaje }
+      ],
+      temperature: 0.7
+    })
+  });
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
-function filtrarPorCategoria(categoria) {
-  if (!categoria) {
-    renderizarPublicaciones(state.publicaciones);
-    return;
+function actualizarMuroPorIA(texto) {
+  const muro = document.getElementById('muro-publicaciones');
+  if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
+    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+  } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
+    muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
-  const filtradas = state.publicaciones.filter(pub => pub.categoria === categoria);
-  renderizarPublicaciones(filtradas);
 }
 
-function cambiarIdioma(codigo) {
-  console.log('🌐 Cambiando idioma a:', codigo);
-  // Aquí iría la lógica de traducción
-  alert(`Idioma cambiado a: ${codigo} (Función en desarrollo)`);
+// ==========================================
+// 4. TRADUCTOR AUTOMÁTICO (La Voz)
+// ==========================================
+function traducirPagina(idioma) {
+  console.log(` Traduciendo página a: ${idioma}`);
+  if (idioma === 'en') document.querySelector('h1').innerText = 'Circular Economy Catalog';
+  if (idioma === 'it') document.querySelector('h1').innerText = 'Catalogo di Economia Circolare';
 }
 
-// Hacer funciones disponibles globalmente para los onclick del HTML
-window.abrirModal = (tipo) => {
-  console.log('📦 Abriendo modal:', tipo);
-  alert(`Modal de ${tipo} (Se cargará desde templates/)`);
-};
-
-window.cerrarSesion = () => {
-  console.log('🚪 Cerrando sesión...');
-  alert('Sesión cerrada');
-};
+// ==========================================
+// INICIAR EL SISTEMA
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("🚀 remarket-db OS Iniciado");
+  detectarUbicacion();
+});
