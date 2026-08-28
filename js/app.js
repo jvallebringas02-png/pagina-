@@ -1,5 +1,5 @@
 import CONFIG from './config.js';
-// ==========================================
+
 // ==========================================
 // 1. DETECTOR DE IP (El Ojo)
 // ==========================================
@@ -91,7 +91,7 @@ async function llamarGroq(mensaje) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en el idioma del usuario.' },
         { role: 'user', content: mensaje }
