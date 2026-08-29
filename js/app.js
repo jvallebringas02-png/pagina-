@@ -1,15 +1,26 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// 1. DETECTOR DE UBICACIÓN BÁSICO
+// 1. DETECTOR DE IP (El Ojo)
 // ==========================================
 async function detectarUbicacion() {
-  const ciudad = "Callao";
-  const pais = "Perú";
-  console.log("📍 Ubicación establecida:", ciudad, pais);
-  
-  document.getElementById('texto-ubicacion').innerText = `${ciudad}, ${pais}`;
-  cargarMuroDinamico(ciudad, pais);
+  try {
+    const respuesta = await fetch('http://ip-api.com/json/?fields=country,city,lang');
+    const datos = await respuesta.json();
+    
+    console.log("📍 Usuario detectado en:", datos.city, datos.country);
+    
+    document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
+    cargarMuroDinamico(datos.city, datos.country);
+    
+    if (datos.lang && datos.lang !== 'es') {
+      traducirPagina(datos.lang);
+    }
+  } catch (error) {
+    console.error("Error detectando IP:", error);
+    document.getElementById('texto-ubicacion').innerText = "Ubicación global";
+    cargarMuroDinamico("Global", "Mundial");
+  }
 }
 
 // ==========================================
@@ -24,7 +35,7 @@ function cargarMuroDinamico(ciudad, pais) {
   setTimeout(() => {
     muro.innerHTML = `
       <div class="tarjeta-destacada">
-        <h3>🌱 Bienvenido a la Economía Circular en ${ciudad}</h3>
+        <h3> Bienvenido a la Economía Circular en ${ciudad}</h3>
         <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p>
       </div>
     `;
@@ -71,7 +82,7 @@ async function enviarMensajeIA() {
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
   } catch (error) {
-    console.error("Detalle del error de IA:", error);
+    console.error("❌ Error de IA:", error);
     document.getElementById('ia-escribiendo').innerText = "⚠️ Error de conexión con la IA.";
   }
 }
@@ -86,12 +97,18 @@ async function llamarGroq(mensaje) {
     body: JSON.stringify({
       model: 'llama3-8b-8192',
       messages: [
-        { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en el idioma del usuario.' },
+        { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil.' },
         { role: 'user', content: mensaje }
       ],
       temperature: 0.7
     })
   });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("❌ ERROR DE GROQ:", errorData);
+    throw new Error(`Error ${response.status}: ${errorData.error?.message || 'Error de conexión'}`);
+  }
   
   const data = await response.json();
   
