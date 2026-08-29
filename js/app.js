@@ -1,7 +1,7 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// 1. DETECTOR DE IP (CORREGIDO - HTTPS)
+// 1. DETECTOR DE IP
 // ==========================================
 async function detectarUbicacion() {
   try {
@@ -66,7 +66,6 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-usuario">${texto}</div>`;
   chatInput.value = '';
   
-  // ID único para evitar que se congele si haces clic rápido
   const idUnico = "ia-escribiendo-" + Date.now();
   chatHistorial.innerHTML += `<div class="msg-ia" id="${idUnico}">🤖 Pensando...</div>`;
 
@@ -78,42 +77,30 @@ async function enviarMensajeIA() {
     actualizarMuroPorIA(texto);
   } catch (error) {
     const cargando = document.getElementById(idUnico);
-    if (cargando) cargando.innerText = "️ Error: " + error.message;
+    if (cargando) cargando.innerText = "⚠️ Error: " + error.message;
   }
 }
 
-// ✅ PRIMERO CONSULTA QUÉ MODELOS ESTÁN DISPONIBLES EN GROQ
+// ✅ CONSULTA QUÉ MODELOS ESTÁN DISPONIBLES EN GROQ
 async function obtenerModelosDisponibles() {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/models', {
-      headers: {
-        'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`
-      }
+      headers: { 'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}` }
     });
-    if (!response.ok) {
-      throw new Error('No se pudo obtener la lista de modelos');
-    }
+    if (!response.ok) throw new Error('No se pudo obtener la lista de modelos');
+    
     const data = await response.json();
     const modelos = data.data || [];
-    console.log(`📋 Groq tiene ${modelos.length} modelos disponibles`);
     
-    // Filtrar modelos de chat (los que sirven para conversación)
     const modelosChat = modelos.filter(m => {
       const id = m.id.toLowerCase();
-      return (
-        id.includes('llama') || 
-        id.includes('gemma') || 
-        id.includes('mixtral') ||
-        id.includes('deepseek') ||
-        id.includes('qwen')
-      );
+      return id.includes('llama') || id.includes('gemma') || id.includes('mixtral') || id.includes('deepseek') || id.includes('qwen');
     });
     
-    console.log(`🤖 Modelos de chat disponibles: ${modelosChat.length}`);
     return modelosChat.map(m => m.id);
   } catch (error) {
     console.error("❌ Error obteniendo modelos:", error);
-    //  LISTA DE RESPALDO ACTUALIZADA (Sin el 3.3 que fallaba)
+    // LISTA DE RESPALDO (Sin el 3.3 que falla)
     return [
       'llama-3.1-70b-versatile',
       'llama-3.1-8b-instant',
@@ -123,19 +110,17 @@ async function obtenerModelosDisponibles() {
   }
 }
 
-// ✅ USA EL PRIMER MODELO DISPONIBLE QUE FUNCIONE (CASCADA)
+// ✅ USA EL PRIMER MODELO DISPONIBLE (CASCADA) Y LIMPIA LA RESPUESTA
 async function llamarGroqConModeloDisponible(mensaje) {
   const modelos = await obtenerModelosDisponibles();
-  if (modelos.length === 0) {
-    throw new Error('No hay modelos de IA disponibles en Groq');
-  }
+  if (modelos.length === 0) throw new Error('No hay modelos de IA disponibles');
   
   let ultimoError = null;
   
   for (let i = 0; i < modelos.length; i++) {
     const modelo = modelos[i];
     try {
-      console.log(`🔄 [Intento ${i + 1}/${modelos.length}] Probando: ${modelo}`);
+      console.log(`🔄 [Intento ${i + 1}] Probando: ${modelo}`);
       
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -148,7 +133,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: 'Eres el Asistente de remarket-db. REGLAS OBLIGATORIAS: 1) NUNCA muestres tu proceso de pensamiento interno, razonamiento, ni pasos de análisis al usuario. Solo entrega la respuesta final limpia y directa. 2) Responde siempre en español, de forma amigable y útil. 3) Al final de cada respuesta, promociona sutilmente remarket-db con un mensaje corto (ej: "Recuerda que en remarket-db puedes publicar, vender o hacer trueque de forma gratis y segura"). 4) Ayuda a los usuarios a publicar, vender, truequear o donar artículos. 5) Si te preguntan algo fuera del tema (hora, clima, historia, noticias), responde amablemente y luego conecta la respuesta con los beneficios de remarket-db.' 
+              content: 'Eres el Asistente de remarket-db. REGLAS ESTRICTAS: 1) NUNCA muestres tu proceso de pensamiento, ni frases como "matches the mental", "All rules satisfied" o "Output matches". 2) Solo entrega la respuesta final limpia. 3) Responde en español. 4) Al final promociona remarket-db. 5) No repitas el saludo.' 
             },
             { role: 'user', content: mensaje }
           ],
@@ -159,47 +144,37 @@ async function llamarGroqConModeloDisponible(mensaje) {
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.warn(`⚠️ ${modelo} falló:`, errorData.error?.message);
         ultimoError = new Error(errorData.error?.message || `Error ${response.status}`);
-        continue; // Pasa al siguiente modelo (Cascada)
+        continue;
       }
       
       const data = await response.json();
-      console.log(`✅ ¡ÉXITO con ${modelo}!`);
-      
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
-      
       let respuestaFinal = data.choices[0].message.content;
+
+      // 🛡️ FILTRO MÁGICO PARA LIMPIAR LA RESPUESTA
+      // 1. Eliminar basura técnica exacta que viste en la foto
+      respuestaFinal = respuestaFinal.replace(/\(matches the mental formulation\)✅\s*/g, '');
+      respuestaFinal = respuestaFinal.replace(/\s*✨ All rules satisfied\.\s*Output matches response\.✅/g, '');
+      respuestaFinal = respuestaFinal.replace(/\s*All rules satisfied\./g, '');
       
-      // 🛡️ FILTRO DE SEGURIDAD: Limpiar respuesta de procesos de pensamiento
-      if (respuestaFinal.includes('thinking process') || 
-          respuestaFinal.includes('**Final Output Generation:**') ||
-          respuestaFinal.includes('**Analyze User Input:**')) {
-        
-        const marcadores = ['**Final Output Generation:**', '**Final Response:**', '**Respuesta Final:**'];
-        for (const marcador of marcadores) {
-          if (respuestaFinal.includes(marcador)) {
-            const partes = respuestaFinal.split(marcador);
-            respuestaFinal = partes[partes.length - 1].trim();
-            break;
-          }
-        }
+      // 2. Eliminar asteriscos de formato
+      respuestaFinal = respuestaFinal.replace(/\*\*/g, '');
+      
+      // 3. Evitar que se duplique el mensaje (si dice "¡Hola!" dos veces, cortamos la segunda)
+      const primeraAparicion = respuestaFinal.toLowerCase().indexOf('¡hola!');
+      const segundaAparicion = respuestaFinal.toLowerCase().indexOf('¡hola!', primeraAparicion + 1);
+      if (primeraAparicion !== -1 && segundaAparicion !== -1) {
+        respuestaFinal = respuestaFinal.substring(0, segundaAparicion).trim();
       }
-      
-      // Limpiar asteriscos de formato Markdown
-      respuestaFinal = respuestaFinal.replace(/\*\*/g, '').trim();
-      
+
+      console.log(`✅ ¡ÉXITO con ${modelo}!`);
       return respuestaFinal;
       
     } catch (error) {
       ultimoError = error;
-      console.warn(`⚠️ Error con ${modelo}:`, error.message);
-      continue; // Pasa al siguiente modelo (Cascada)
+      continue; // Pasa al siguiente modelo
     }
   }
-  
   throw new Error(ultimoError?.message || 'Ningún modelo de IA está disponible');
 }
 
@@ -225,7 +200,7 @@ function traducirPagina(idioma) {
 // INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 remarket-db OS Iniciado");
-  console.log(" Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
+  console.log(" remarket-db OS Iniciado");
+  console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
