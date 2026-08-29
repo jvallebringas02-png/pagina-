@@ -80,7 +80,7 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
 
   try {
-    const respuestaIA = await llamarGroq(texto);
+    const respuestaIA = await llamarGroqConRespaldo(texto);
     document.getElementById('ia-escribiendo').remove();
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
@@ -90,23 +90,26 @@ async function enviarMensajeIA() {
   }
 }
 
-// ✅ MODELOS ACTUALES DE GROQ (2026)
+// ✅ MODELOS DISPONIBLES EN GROQ (2026)
 const MODELOS_GROQ = [
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it'
+  'mixtral-8x7b-32768'
 ];
 
-async function llamarGroq(mensaje) {
+async function llamarGroqConRespaldo(mensaje) {
   let ultimoError = null;
   
-  // ✅ Probar cada modelo hasta que uno funcione
-  for (const modelo of MODELOS_GROQ) {
+  console.log("🔄 Iniciando prueba de modelos de IA...");
+  
+  // ✅ PROBAR CADA MODELO SECUENCIALMENTE
+  for (let i = 0; i < MODELOS_GROQ.length; i++) {
+    const modelo = MODELOS_GROQ[i];
+    
     try {
-      console.log(`🔄 Intentando con modelo: ${modelo}`);
+      console.log(`🔄 [Intento ${i + 1}/${MODELOS_GROQ.length}] Probando modelo: ${modelo}`);
       
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const respuesta = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`,
@@ -126,38 +129,46 @@ async function llamarGroq(mensaje) {
         })
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
+      // Si la respuesta NO es exitosa
+      if (!respuesta.ok) {
+        const errorData = await respuesta.json();
         console.warn(`⚠️ Modelo ${modelo} falló:`, errorData.error?.message);
-        ultimoError = errorData;
-        continue;
+        ultimoError = new Error(errorData.error?.message || `Error ${respuesta.status}`);
+        continue; // ⏭️ IR AL SIGUIENTE MODELO
       }
       
-      const data = await response.json();
-      console.log(`✅ Modelo ${modelo} funcionó correctamente`);
+      // Si la respuesta ES exitosa
+      const data = await respuesta.json();
+      console.log(`✅ ¡ÉXITO! Modelo ${modelo} funcionó correctamente`);
       
       if (data.error) {
-        throw new Error(data.error.message);
+        console.warn(`️ ${modelo} reportó error:`, data.error.message);
+        ultimoError = new Error(data.error.message);
+        continue; // ️ IR AL SIGUIENTE MODELO
       }
       
+      // ✅ RETORNAR LA RESPUESTA EXITOSA
       return data.choices[0].message.content;
       
     } catch (error) {
+      console.warn(`⚠️ Error de conexión con ${modelo}:`, error.message);
       ultimoError = error;
-      console.warn(`⚠️ Error con ${modelo}:`, error.message);
+      // ️ CONTINUAR CON EL SIGUIENTE MODELO
       continue;
     }
   }
   
-  throw new Error(ultimoError?.error?.message || 'Ningún modelo de IA está disponible');
+  // ❌ SI TODOS LOS MODELOS FALLARON
+  console.error("❌ Todos los modelos de IA fallaron");
+  throw new Error(ultimoError?.message || 'La IA no está disponible en este momento. Intenta más tarde.');
 }
 
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
-    muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
+    muro.innerHTML = `<h3> Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
 }
 
@@ -174,7 +185,8 @@ function traducirPagina(idioma) {
 // INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 remarket-db OS Iniciado");
-  console.log(" Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
+  console.log(" remarket-db OS Iniciado");
+  console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
+  console.log("📋 Modelos disponibles:", MODELOS_GROQ.join(", "));
   detectarUbicacion();
 });
