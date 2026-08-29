@@ -1,14 +1,15 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// 1. DETECTOR DE IP (El Ojo)
+// 1. DETECTOR DE IP (El Ojo) - CORREGIDO HTTPS
 // ==========================================
 async function detectarUbicacion() {
   try {
-    const respuesta = await fetch('http://ip-api.com/json/?fields=country,city,lang');
+    // ✅ CAMBIADO a HTTPS para evitar Mixed Content
+    const respuesta = await fetch('https://ip-api.com/json/?fields=country,city,lang');
     const datos = await respuesta.json();
     
-    console.log("📍 Usuario detectado en:", datos.city, datos.country);
+    console.log(" Usuario detectado en:", datos.city, datos.country);
     
     document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
     cargarMuroDinamico(datos.city, datos.country);
@@ -35,7 +36,7 @@ function cargarMuroDinamico(ciudad, pais) {
   setTimeout(() => {
     muro.innerHTML = `
       <div class="tarjeta-destacada">
-        <h3> Bienvenido a la Economía Circular en ${ciudad}</h3>
+        <h3>🌱 Bienvenido a la Economía Circular en ${ciudad}</h3>
         <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p>
       </div>
     `;
@@ -83,7 +84,7 @@ async function enviarMensajeIA() {
     actualizarMuroPorIA(texto);
   } catch (error) {
     console.error("❌ Error de IA:", error);
-    document.getElementById('ia-escribiendo').innerText = "⚠️ Error de conexión con la IA.";
+    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
   }
 }
 
@@ -95,7 +96,8 @@ async function llamarGroq(mensaje) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'llama3-8b-8192',
+      // ✅ MODELO CORREGIDO - Este SÍ funciona en 2026
+      model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil.' },
         { role: 'user', content: mensaje }
