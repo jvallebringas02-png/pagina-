@@ -1,25 +1,30 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// 1. DETECTOR DE IP (CORREGIDO HTTPS)
+// 1. DETECTOR DE IP (CORREGIDO - HTTPS)
 // ==========================================
 async function detectarUbicacion() {
   try {
+    // ✅ HTTPS para evitar Mixed Content
     const respuesta = await fetch('https://ip-api.com/json/?fields=country,city,lang');
     const datos = await respuesta.json();
     
-    console.log("📍 Usuario detectado en:", datos.city, datos.country);
-    
-    document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
-    cargarMuroDinamico(datos.city, datos.country);
-    
-    if (datos.lang && datos.lang !== 'es') {
-      traducirPagina(datos.lang);
+    if (datos.status === 'success') {
+      console.log("📍 Usuario detectado en:", datos.city, datos.country);
+      document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
+      cargarMuroDinamico(datos.city, datos.country);
+      
+      if (datos.lang && datos.lang !== 'es') {
+        traducirPagina(datos.lang);
+      }
+    } else {
+      throw new Error("API de IP falló");
     }
   } catch (error) {
     console.error("Error detectando IP:", error);
-    document.getElementById('texto-ubicacion').innerText = "Ubicación global";
-    cargarMuroDinamico("Global", "Mundial");
+    // ✅ Fallback: ubicación fija
+    document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
+    cargarMuroDinamico("Callao", "Perú");
   }
 }
 
@@ -51,7 +56,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA (MODELO CORREGIDO)
+// 3. ASISTENTE IA (CON MÚLTIPLES MODELOS)
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -74,7 +79,7 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-usuario">${texto}</div>`;
   chatInput.value = '';
 
-  chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
+  chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo"> Pensando...</div>`;
 
   try {
     const respuestaIA = await llamarGroq(texto);
@@ -87,48 +92,74 @@ async function enviarMensajeIA() {
   }
 }
 
+// ✅ Lista de modelos que funcionan en Groq (en orden de preferencia)
+const MODELOS_GROQ = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
+  'deepseek-r1-distill-llama-70b'
+];
+
 async function llamarGroq(mensaje) {
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      // ✅ ESTE MODELO SÍ FUNCIONA
-      model: 'llama3-8b-8192',
-      messages: [
-        { 
-          role: 'system', 
-          content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil. Ayuda a los usuarios a publicar, vender, truequear o donar artículos.' 
+  let ultimoError = null;
+  
+  // ✅ Probar cada modelo hasta que uno funcione
+  for (const modelo of MODELOS_GROQ) {
+    try {
+      console.log(`🔄 Intentando con modelo: ${modelo}`);
+      
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`,
+          'Content-Type': 'application/json'
         },
-        { role: 'user', content: mensaje }
-      ],
-      temperature: 0.7,
-      max_tokens: 500
-    })
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error("❌ ERROR DE GROQ:", errorData);
-    throw new Error(`Error ${response.status}: ${errorData.error?.message || 'Error de conexión'}`);
+        body: JSON.stringify({
+          model: modelo,
+          messages: [
+            { 
+              role: 'system', 
+              content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil. Ayuda a los usuarios a publicar, vender, truequear o donar artículos.' 
+            },
+            { role: 'user', content: mensaje }
+          ],
+          temperature: 0.7,
+          max_tokens: 500
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn(`⚠️ Modelo ${modelo} falló:`, errorData.error?.message);
+        ultimoError = errorData;
+        continue; // Intentar con el siguiente modelo
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Modelo ${modelo} funcionó correctamente`);
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      return data.choices[0].message.content;
+      
+    } catch (error) {
+      ultimoError = error;
+      console.warn(`⚠️ Error con ${modelo}:`, error.message);
+      continue;
+    }
   }
   
-  const data = await response.json();
-  
-  if (data.error) {
-    console.error("️ DETALLE DEL ERROR:", data.error);
-    throw new Error(data.error.message);
-  }
-  
-  return data.choices[0].message.content;
+  // Si todos los modelos fallaron
+  throw new Error(ultimoError?.error?.message || 'Ningún modelo de IA está disponible actualmente');
 }
 
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
     muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
@@ -138,7 +169,7 @@ function actualizarMuroPorIA(texto) {
 // 4. TRADUCTOR AUTOMÁTICO
 // ==========================================
 function traducirPagina(idioma) {
-  console.log(` Traduciendo página a: ${idioma}`);
+  console.log(`🌍 Traduciendo página a: ${idioma}`);
   if (idioma === 'en') document.querySelector('h1').innerText = 'Circular Economy Catalog';
   if (idioma === 'it') document.querySelector('h1').innerText = 'Catalogo di Economia Circolare';
 }
@@ -148,5 +179,6 @@ function traducirPagina(idioma) {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 remarket-db OS Iniciado");
+  console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
