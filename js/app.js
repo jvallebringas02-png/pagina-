@@ -1,11 +1,10 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// 1. DETECTOR DE IP (El Ojo) - CORREGIDO
+// 1. DETECTOR DE IP - CORREGIDO HTTPS
 // ==========================================
 async function detectarUbicacion() {
   try {
-    // ✅ CAMBIADO A HTTPS (era http:// antes)
     const respuesta = await fetch('https://ip-api.com/json/?fields=country,city,lang');
     const datos = await respuesta.json();
     
@@ -25,13 +24,13 @@ async function detectarUbicacion() {
 }
 
 // ==========================================
-// 2. EL MURO DINÁMICO (El Escenario)
+// 2. EL MURO DINÁMICO
 // ==========================================
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
   
-  muro.innerHTML = `<p> Buscando artículos en <b>${ciudad}</b>...</p>`;
+  muro.innerHTML = `<p>🔍 Buscando artículos en <b>${ciudad}</b>...</p>`;
   
   setTimeout(() => {
     muro.innerHTML = `
@@ -52,7 +51,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA (El Sistema Operativo)
+// 3. ASISTENTE IA
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -83,7 +82,7 @@ async function enviarMensajeIA() {
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
   } catch (error) {
-    console.error("❌ Error de IA:", error);
+    console.error(" Error de IA:", error);
     document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
   }
 }
@@ -96,8 +95,8 @@ async function llamarGroq(mensaje) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      // ✅ MODELO CORREGIDO (era llama-3.3-70b-versatile antes)
-      model: 'llama-3.1-8b-instant',
+      // ✅ ESTE MODELO SÍ FUNCIONA
+      model: 'llama3-8b-8192',
       messages: [
         { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil.' },
         { role: 'user', content: mensaje }
@@ -115,7 +114,7 @@ async function llamarGroq(mensaje) {
   const data = await response.json();
   
   if (data.error) {
-    console.error("⚠️ DETALLE DEL ERROR DE GROQ:", data.error);
+    console.error("⚠️ DETALLE DEL ERROR:", data.error);
     throw new Error(data.error.message);
   }
   
@@ -132,7 +131,7 @@ function actualizarMuroPorIA(texto) {
 }
 
 // ==========================================
-// 4. TRADUCTOR AUTOMÁTICO (La Voz)
+// 4. TRADUCTOR AUTOMÁTICO
 // ==========================================
 function traducirPagina(idioma) {
   console.log(`🌍 Traduciendo página a: ${idioma}`);
