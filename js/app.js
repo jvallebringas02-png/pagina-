@@ -44,7 +44,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA (CASCADA INTELIGENTE)
+// 3. ASISTENTE IA
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -81,26 +81,26 @@ async function enviarMensajeIA() {
   }
 }
 
-// ✅ CONSULTA QUÉ MODELOS ESTÁN DISPONIBLES EN GROQ
+// ✅ CONSULTA MODELOS DISPONIBLES
 async function obtenerModelosDisponibles() {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/models', {
       headers: { 'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}` }
     });
-    if (!response.ok) throw new Error('No se pudo obtener la lista de modelos');
+    if (!response.ok) throw new Error('No se pudo obtener la lista');
     
     const data = await response.json();
     const modelos = data.data || [];
     
     const modelosChat = modelos.filter(m => {
       const id = m.id.toLowerCase();
-      return id.includes('llama') || id.includes('gemma') || id.includes('mixtral') || id.includes('deepseek') || id.includes('qwen');
+      return id.includes('llama') || id.includes('gemma') || id.includes('mixtral');
     });
     
     return modelosChat.map(m => m.id);
   } catch (error) {
     console.error("❌ Error obteniendo modelos:", error);
-    // LISTA DE RESPALDO (Sin el 3.3 que falla)
+    // Lista de respaldo ACTUALIZADA
     return [
       'llama-3.1-70b-versatile',
       'llama-3.1-8b-instant',
@@ -110,10 +110,10 @@ async function obtenerModelosDisponibles() {
   }
 }
 
-// ✅ USA EL PRIMER MODELO DISPONIBLE (CASCADA) Y LIMPIA LA RESPUESTA
+// ✅ LLAMAR A LA IA CON FILTRO DE LIMPIEZA
 async function llamarGroqConModeloDisponible(mensaje) {
   const modelos = await obtenerModelosDisponibles();
-  if (modelos.length === 0) throw new Error('No hay modelos de IA disponibles');
+  if (modelos.length === 0) throw new Error('No hay modelos disponibles');
   
   let ultimoError = null;
   
@@ -133,7 +133,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: 'Eres el Asistente de remarket-db. REGLAS ESTRICTAS: 1) NUNCA muestres tu proceso de pensamiento, ni frases como "matches the mental", "All rules satisfied" o "Output matches". 2) Solo entrega la respuesta final limpia. 3) Responde en español. 4) Al final promociona remarket-db. 5) No repitas el saludo.' 
+              content: 'Eres el Asistente de remarket-db. Responde SOLO con la respuesta final limpia en español. NUNCA muestres procesos de pensamiento, reglas, verificaciones o borradores. Al final, menciona brevemente que en remarket-db pueden publicar, vender o hacer trueque gratis.' 
             },
             { role: 'user', content: mensaje }
           ],
@@ -144,44 +144,88 @@ async function llamarGroqConModeloDisponible(mensaje) {
       
       if (!response.ok) {
         const errorData = await response.json();
-        ultimoError = new Error(errorData.error?.message || `Error ${response.status}`);
+        ultimoError = new Error(errorData.error?.message);
         continue;
       }
       
       const data = await response.json();
-      let respuestaFinal = data.choices[0].message.content;
-
-      // 🛡️ FILTRO MÁGICO PARA LIMPIAR LA RESPUESTA
-      // 1. Eliminar basura técnica exacta que viste en la foto
-      respuestaFinal = respuestaFinal.replace(/\(matches the mental formulation\)✅\s*/g, '');
-      respuestaFinal = respuestaFinal.replace(/\s*✨ All rules satisfied\.\s*Output matches response\.✅/g, '');
-      respuestaFinal = respuestaFinal.replace(/\s*All rules satisfied\./g, '');
+      let respuesta = data.choices[0].message.content;
       
-      // 2. Eliminar asteriscos de formato
-      respuestaFinal = respuestaFinal.replace(/\*\*/g, '');
+      // 🛡️ FILTRO DE LIMPIEZA - Eliminar todo texto técnico
+      respuesta = limpiarRespuestaIA(respuesta);
       
-      // 3. Evitar que se duplique el mensaje (si dice "¡Hola!" dos veces, cortamos la segunda)
-      const primeraAparicion = respuestaFinal.toLowerCase().indexOf('¡hola!');
-      const segundaAparicion = respuestaFinal.toLowerCase().indexOf('¡hola!', primeraAparicion + 1);
-      if (primeraAparicion !== -1 && segundaAparicion !== -1) {
-        respuestaFinal = respuestaFinal.substring(0, segundaAparicion).trim();
-      }
-
       console.log(`✅ ¡ÉXITO con ${modelo}!`);
-      return respuestaFinal;
+      return respuesta;
       
     } catch (error) {
       ultimoError = error;
-      continue; // Pasa al siguiente modelo
+      continue;
     }
   }
-  throw new Error(ultimoError?.message || 'Ningún modelo de IA está disponible');
+  
+  throw new Error(ultimoError?.message || 'Ningún modelo disponible');
+}
+
+// 🛡️ FUNCIÓN PARA LIMPIAR LA RESPUESTA DE LA IA
+function limpiarRespuestaIA(respuesta) {
+  // Dividir en líneas
+  const lineas = respuesta.split('\n');
+  const lineasLimpias = [];
+  
+  // Palabras clave que indican texto técnico (NO deben mostrarse)
+  const palabrasProhibidas = [
+    'matches the mental',
+    'All rules satisfied',
+    'Output matches',
+    'Rule ',
+    'Check Against',
+    'Formulate Response',
+    'Mental Draft',
+    'Constraints',
+    'thinking process',
+    'Analyze User',
+    'Identify Key',
+    'Draft Response',
+    'Final Output Generation',
+    'system prompt',
+    'requirements'
+  ];
+  
+  for (let linea of lineas) {
+    // Verificar si la línea contiene palabras prohibidas
+    const esLineaTecnica = palabrasProhibidas.some(palabra => 
+      linea.toLowerCase().includes(palabra.toLowerCase())
+    );
+    
+    // Solo agregar si NO es técnica y tiene contenido
+    if (!esLineaTecnica && linea.trim().length > 0) {
+      lineasLimpias.push(linea);
+    }
+  }
+  
+  // Unir las líneas limpias
+  let respuestaLimpia = lineasLimpias.join('\n');
+  
+  // Eliminar asteriscos de formato Markdown
+  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '');
+  respuestaLimpia = respuestaLimpia.replace(/\*/g, '');
+  
+  // Eliminar emojis de verificación
+  respuestaLimpia = respuestaLimpia.replace(/[✅✔️]/g, '');
+  
+  // Si hay texto repetido (duplicado), tomar solo la primera parte
+  const partes = respuestaLimpia.split('¡Hola');
+  if (partes.length > 2) {
+    respuestaLimpia = '¡Hola' + partes[1];
+  }
+  
+  return respuestaLimpia.trim();
 }
 
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
     muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
@@ -200,7 +244,7 @@ function traducirPagina(idioma) {
 // INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log(" remarket-db OS Iniciado");
+  console.log("🚀 remarket-db OS Iniciado");
   console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
