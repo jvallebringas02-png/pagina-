@@ -5,7 +5,7 @@ import CONFIG from './config.js';
 // ==========================================
 async function detectarUbicacion() {
   try {
-    // ✅ CAMBIADO A HTTPS (para evitar Mixed Content)
+    // ✅ USAR HTTPS en lugar de HTTP
     const respuesta = await fetch('https://ip-api.com/json/?fields=country,city,lang');
     const datos = await respuesta.json();
     
@@ -84,7 +84,7 @@ async function enviarMensajeIA() {
     actualizarMuroPorIA(texto);
   } catch (error) {
     console.error("❌ Error de IA:", error);
-    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
+    document.getElementById('ia-escribiendo').innerText = "️ Error: " + error.message;
   }
 }
 
@@ -96,8 +96,8 @@ async function llamarGroq(mensaje) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      // ✅ MODELO CORREGIDO - Usa gemma2-9b-it (funciona en 2026)
-      model: 'gemma2-9b-it',
+      // ✅ MODELO ACTUALIZADO - Funciona en 2026
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil.' },
         { role: 'user', content: mensaje }
@@ -125,9 +125,9 @@ async function llamarGroq(mensaje) {
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
-    muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
+    muro.innerHTML = `<h3> Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
 }
 
