@@ -9,7 +9,7 @@ async function detectarUbicacion() {
     const datos = await respuesta.json();
     
     if (datos.status === 'success') {
-      console.log("📍 Usuario detectado en:", datos.city, datos.country);
+      console.log(" Usuario detectado en:", datos.city, datos.country);
       document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
       cargarMuroDinamico(datos.city, datos.country);
       
@@ -33,12 +33,12 @@ function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
   
-  muro.innerHTML = `<p> Buscando artículos en <b>${ciudad}</b>...</p>`;
+  muro.innerHTML = `<p>🔍 Buscando artículos en <b>${ciudad}</b>...</p>`;
   
   setTimeout(() => {
     muro.innerHTML = `
       <div class="tarjeta-destacada">
-        <h3>🌱 Bienvenido a la Economía Circular en ${ciudad}</h3>
+        <h3> Bienvenido a la Economía Circular en ${ciudad}</h3>
         <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p>
       </div>
     `;
@@ -54,7 +54,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA
+// 3. ASISTENTE IA (CONSULTA MODELOS DISPONIBLES)
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -80,7 +80,7 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
 
   try {
-    const respuestaIA = await llamarGroqConRespaldo(texto);
+    const respuestaIA = await llamarGroqConModeloDisponible(texto);
     document.getElementById('ia-escribiendo').remove();
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     actualizarMuroPorIA(texto);
@@ -90,26 +90,72 @@ async function enviarMensajeIA() {
   }
 }
 
-// ✅ MODELOS DISPONIBLES EN GROQ (2026)
-const MODELOS_GROQ = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768'
-];
+// ✅ PRIMERO CONSULTA QUÉ MODELOS ESTÁN DISPONIBLES EN GROQ
+async function obtenerModelosDisponibles() {
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('No se pudo obtener la lista de modelos');
+    }
+    
+    const data = await response.json();
+    const modelos = data.data || [];
+    
+    console.log(`📋 Groq tiene ${modelos.length} modelos disponibles`);
+    
+    // Filtrar modelos de chat (los que sirven para conversación)
+    const modelosChat = modelos.filter(m => {
+      const id = m.id.toLowerCase();
+      return (
+        id.includes('llama') || 
+        id.includes('gemma') || 
+        id.includes('mixtral') ||
+        id.includes('deepseek') ||
+        id.includes('qwen') ||
+        id.includes('gpt')
+      );
+    });
+    
+    console.log(`🤖 Modelos de chat disponibles: ${modelosChat.length}`);
+    modelosChat.forEach(m => console.log(`  - ${m.id}`));
+    
+    return modelosChat.map(m => m.id);
+    
+  } catch (error) {
+    console.error("❌ Error obteniendo modelos:", error);
+    // Lista de respaldo por si falla la consulta
+    return [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'llama3-8b-8192',
+      'mixtral-8x7b-32768',
+      'gemma2-9b-it'
+    ];
+  }
+}
 
-async function llamarGroqConRespaldo(mensaje) {
+// ✅ USA EL PRIMER MODELO DISPONIBLE QUE FUNCIONE
+async function llamarGroqConModeloDisponible(mensaje) {
+  const modelos = await obtenerModelosDisponibles();
+  
+  if (modelos.length === 0) {
+    throw new Error('No hay modelos de IA disponibles en Groq');
+  }
+  
   let ultimoError = null;
   
-  console.log("🔄 Iniciando prueba de modelos de IA...");
-  
-  // ✅ PROBAR CADA MODELO SECUENCIALMENTE
-  for (let i = 0; i < MODELOS_GROQ.length; i++) {
-    const modelo = MODELOS_GROQ[i];
+  for (let i = 0; i < modelos.length; i++) {
+    const modelo = modelos[i];
     
     try {
-      console.log(`🔄 [Intento ${i + 1}/${MODELOS_GROQ.length}] Probando modelo: ${modelo}`);
+      console.log(`🔄 [Intento ${i + 1}/${modelos.length}] Probando: ${modelo}`);
       
-      const respuesta = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`,
@@ -129,44 +175,36 @@ async function llamarGroqConRespaldo(mensaje) {
         })
       });
       
-      // Si la respuesta NO es exitosa
-      if (!respuesta.ok) {
-        const errorData = await respuesta.json();
-        console.warn(`⚠️ Modelo ${modelo} falló:`, errorData.error?.message);
-        ultimoError = new Error(errorData.error?.message || `Error ${respuesta.status}`);
-        continue; // ⏭️ IR AL SIGUIENTE MODELO
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn(`⚠️ ${modelo} falló:`, errorData.error?.message);
+        ultimoError = new Error(errorData.error?.message || `Error ${response.status}`);
+        continue;
       }
       
-      // Si la respuesta ES exitosa
-      const data = await respuesta.json();
-      console.log(`✅ ¡ÉXITO! Modelo ${modelo} funcionó correctamente`);
+      const data = await response.json();
+      console.log(`✅ ¡ÉXITO con ${modelo}!`);
       
       if (data.error) {
-        console.warn(`️ ${modelo} reportó error:`, data.error.message);
-        ultimoError = new Error(data.error.message);
-        continue; // ️ IR AL SIGUIENTE MODELO
+        throw new Error(data.error.message);
       }
       
-      // ✅ RETORNAR LA RESPUESTA EXITOSA
       return data.choices[0].message.content;
       
     } catch (error) {
-      console.warn(`⚠️ Error de conexión con ${modelo}:`, error.message);
       ultimoError = error;
-      // ️ CONTINUAR CON EL SIGUIENTE MODELO
+      console.warn(`⚠️ Error con ${modelo}:`, error.message);
       continue;
     }
   }
   
-  // ❌ SI TODOS LOS MODELOS FALLARON
-  console.error("❌ Todos los modelos de IA fallaron");
-  throw new Error(ultimoError?.message || 'La IA no está disponible en este momento. Intenta más tarde.');
+  throw new Error(ultimoError?.message || 'Ningún modelo de IA está disponible');
 }
 
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
     muro.innerHTML = `<h3> Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
@@ -185,8 +223,7 @@ function traducirPagina(idioma) {
 // INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log(" remarket-db OS Iniciado");
+  console.log("🚀 remarket-db OS Iniciado");
   console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
-  console.log("📋 Modelos disponibles:", MODELOS_GROQ.join(", "));
   detectarUbicacion();
 });
