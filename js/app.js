@@ -7,12 +7,10 @@ async function detectarUbicacion() {
   try {
     const respuesta = await fetch('https://ip-api.com/json/?fields=country,city,lang');
     const datos = await respuesta.json();
-    
     if (datos.status === 'success') {
-      console.log(" Usuario detectado en:", datos.city, datos.country);
+      console.log("✅ Usuario detectado en:", datos.city, datos.country);
       document.getElementById('texto-ubicacion').innerText = `${datos.city}, ${datos.country}`;
       cargarMuroDinamico(datos.city, datos.country);
-      
       if (datos.lang && datos.lang !== 'es') {
         traducirPagina(datos.lang);
       }
@@ -20,7 +18,7 @@ async function detectarUbicacion() {
       throw new Error("API de IP falló");
     }
   } catch (error) {
-    console.error("Error detectando IP:", error);
+    console.error("❌ Error detectando IP:", error);
     document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
     cargarMuroDinamico("Callao", "Perú");
   }
@@ -32,17 +30,9 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  
   muro.innerHTML = `<p>🔍 Buscando artículos en <b>${ciudad}</b>...</p>`;
-  
   setTimeout(() => {
-    muro.innerHTML = `
-      <div class="tarjeta-destacada">
-        <h3> Bienvenido a la Economía Circular en ${ciudad}</h3>
-        <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p>
-      </div>
-    `;
-    
+    muro.innerHTML = `<div class="tarjeta-destacada"> <h3>🌱 Bienvenido a la Economía Circular en ${ciudad}</h3> <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p> </div>`;
     if (patrocinadores) {
       patrocinadores.innerHTML = `
         <div class="patrocinador-vacio">
@@ -63,22 +53,18 @@ const chatHistorial = document.getElementById('chat-historial');
 if (chatBtn) {
   chatBtn.addEventListener('click', () => enviarMensajeIA());
 }
-
 if (chatInput) {
-  chatInput.addEventListener('keypress', (e) => { 
-    if (e.key === 'Enter') enviarMensajeIA(); 
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') enviarMensajeIA();
   });
 }
 
 async function enviarMensajeIA() {
   const texto = chatInput.value.trim();
   if (!texto) return;
-
   chatHistorial.innerHTML += `<div class="msg-usuario">${texto}</div>`;
   chatInput.value = '';
-
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
-
   try {
     const respuestaIA = await llamarGroqConModeloDisponible(texto);
     document.getElementById('ia-escribiendo').remove();
@@ -98,16 +84,12 @@ async function obtenerModelosDisponibles() {
         'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`
       }
     });
-    
     if (!response.ok) {
       throw new Error('No se pudo obtener la lista de modelos');
     }
-    
     const data = await response.json();
     const modelos = data.data || [];
-    
-    console.log(`📋 Groq tiene ${modelos.length} modelos disponibles`);
-    
+    console.log(` Groq tiene ${modelos.length} modelos disponibles`);
     // Filtrar modelos de chat (los que sirven para conversación)
     const modelosChat = modelos.filter(m => {
       const id = m.id.toLowerCase();
@@ -120,12 +102,9 @@ async function obtenerModelosDisponibles() {
         id.includes('gpt')
       );
     });
-    
     console.log(`🤖 Modelos de chat disponibles: ${modelosChat.length}`);
     modelosChat.forEach(m => console.log(`  - ${m.id}`));
-    
     return modelosChat.map(m => m.id);
-    
   } catch (error) {
     console.error("❌ Error obteniendo modelos:", error);
     // Lista de respaldo por si falla la consulta
@@ -142,19 +121,14 @@ async function obtenerModelosDisponibles() {
 // ✅ USA EL PRIMER MODELO DISPONIBLE QUE FUNCIONE
 async function llamarGroqConModeloDisponible(mensaje) {
   const modelos = await obtenerModelosDisponibles();
-  
   if (modelos.length === 0) {
     throw new Error('No hay modelos de IA disponibles en Groq');
   }
-  
   let ultimoError = null;
-  
   for (let i = 0; i < modelos.length; i++) {
     const modelo = modelos[i];
-    
     try {
       console.log(`🔄 [Intento ${i + 1}/${modelos.length}] Probando: ${modelo}`);
-      
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -166,7 +140,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: 'Eres el Asistente de remarket-db, un Sistema Operativo de Economía Circular. Responde en español de forma amigable y útil. Ayuda a los usuarios a publicar, vender, truequear o donar artículos.' 
+              content: 'Eres el Asistente de remarket-db. REGLAS OBLIGATORIAS: 1) NUNCA muestres tu proceso de pensamiento interno, razonamiento, ni pasos de análisis al usuario. Solo entrega la respuesta final limpia y directa. 2) Responde siempre en español, de forma amigable y útil. 3) Al final de cada respuesta, promociona sutilmente remarket-db con un mensaje corto (ej: "Recuerda que en remarket-db puedes publicar, vender o hacer trueque de forma gratis y segura"). 4) Ayuda a los usuarios a publicar, vender, truequear o donar artículos. 5) Si te preguntan algo fuera del tema (hora, clima, historia, noticias), responde amablemente y luego conecta la respuesta con los beneficios de remarket-db.' 
             },
             { role: 'user', content: mensaje }
           ],
@@ -174,30 +148,69 @@ async function llamarGroqConModeloDisponible(mensaje) {
           max_tokens: 500
         })
       });
-      
       if (!response.ok) {
         const errorData = await response.json();
         console.warn(`⚠️ ${modelo} falló:`, errorData.error?.message);
         ultimoError = new Error(errorData.error?.message || `Error ${response.status}`);
         continue;
       }
-      
       const data = await response.json();
       console.log(`✅ ¡ÉXITO con ${modelo}!`);
-      
       if (data.error) {
         throw new Error(data.error.message);
       }
       
-      return data.choices[0].message.content;
+      // 🛡️ FILTRO DE SEGURIDAD: Limpiar respuesta de procesos de pensamiento
+      let respuestaFinal = data.choices[0].message.content;
       
+      // Si la IA muestra su proceso de pensamiento, lo borramos
+      if (respuestaFinal.includes('thinking process') || 
+          respuestaFinal.includes('**Final Output Generation:**') ||
+          respuestaFinal.includes('**Analyze User Input:**') ||
+          respuestaFinal.includes('**Identify Key Requirements:**') ||
+          respuestaFinal.includes('**Draft Response:**') ||
+          respuestaFinal.includes('**Check Against Requirements:**')) {
+        
+        // Buscar la respuesta final después de los marcadores
+        const marcadores = [
+          '**Final Output Generation:**',
+          '**Final Response:**',
+          '**Respuesta Final:**'
+        ];
+        
+        for (const marcador of marcadores) {
+          if (respuestaFinal.includes(marcador)) {
+            const partes = respuestaFinal.split(marcador);
+            respuestaFinal = partes[partes.length - 1].trim();
+            break;
+          }
+        }
+        
+        // Si aún queda texto de proceso, tomar solo el último párrafo útil
+        if (respuestaFinal.includes('Here\'s a thinking process')) {
+          const lineas = respuestaFinal.split('\n');
+          const lineasLimpias = lineas.filter(l => 
+            !l.includes('**') && 
+            !l.includes('thinking process') && 
+            !l.includes('Check Against') &&
+            !l.includes('Identify Key') &&
+            !l.includes('Draft Response') &&
+            !l.includes('Analyze User')
+          );
+          respuestaFinal = lineasLimpias.join('\n').trim();
+        }
+      }
+      
+      // Limpiar asteriscos de formato Markdown que puedan quedar
+      respuestaFinal = respuestaFinal.replace(/\*\*/g, '').trim();
+      
+      return respuestaFinal;
     } catch (error) {
       ultimoError = error;
       console.warn(`⚠️ Error con ${modelo}:`, error.message);
       continue;
     }
   }
-  
   throw new Error(ultimoError?.message || 'Ningún modelo de IA está disponible');
 }
 
@@ -206,7 +219,7 @@ function actualizarMuroPorIA(texto) {
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
     muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
-    muro.innerHTML = `<h3> Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
+    muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
 }
 
@@ -214,7 +227,7 @@ function actualizarMuroPorIA(texto) {
 // 4. TRADUCTOR AUTOMÁTICO
 // ==========================================
 function traducirPagina(idioma) {
-  console.log(`🌍 Traduciendo página a: ${idioma}`);
+  console.log(` Traduciendo página a: ${idioma}`);
   if (idioma === 'en') document.querySelector('h1').innerText = 'Circular Economy Catalog';
   if (idioma === 'it') document.querySelector('h1').innerText = 'Catalogo di Economia Circolare';
 }
@@ -224,6 +237,6 @@ function traducirPagina(idioma) {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 remarket-db OS Iniciado");
-  console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
+  console.log(" Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
