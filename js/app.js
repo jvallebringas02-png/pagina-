@@ -5,7 +5,6 @@ import CONFIG from './config.js';
 // ==========================================
 async function detectarUbicacion() {
   try {
-    // ✅ HTTPS para evitar Mixed Content
     const respuesta = await fetch('https://ip-api.com/json/?fields=country,city,lang');
     const datos = await respuesta.json();
     
@@ -22,7 +21,6 @@ async function detectarUbicacion() {
     }
   } catch (error) {
     console.error("Error detectando IP:", error);
-    // ✅ Fallback: ubicación fija
     document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
     cargarMuroDinamico("Callao", "Perú");
   }
@@ -35,7 +33,7 @@ function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
   
-  muro.innerHTML = `<p>🔍 Buscando artículos en <b>${ciudad}</b>...</p>`;
+  muro.innerHTML = `<p> Buscando artículos en <b>${ciudad}</b>...</p>`;
   
   setTimeout(() => {
     muro.innerHTML = `
@@ -56,7 +54,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA (CON MÚLTIPLES MODELOS)
+// 3. ASISTENTE IA
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -79,7 +77,7 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-usuario">${texto}</div>`;
   chatInput.value = '';
 
-  chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo"> Pensando...</div>`;
+  chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
 
   try {
     const respuestaIA = await llamarGroq(texto);
@@ -92,13 +90,12 @@ async function enviarMensajeIA() {
   }
 }
 
-// ✅ Lista de modelos que funcionan en Groq (en orden de preferencia)
+// ✅ MODELOS ACTUALES DE GROQ (2026)
 const MODELOS_GROQ = [
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
   'mixtral-8x7b-32768',
-  'gemma2-9b-it',
-  'deepseek-r1-distill-llama-70b'
+  'gemma2-9b-it'
 ];
 
 async function llamarGroq(mensaje) {
@@ -133,7 +130,7 @@ async function llamarGroq(mensaje) {
         const errorData = await response.json();
         console.warn(`⚠️ Modelo ${modelo} falló:`, errorData.error?.message);
         ultimoError = errorData;
-        continue; // Intentar con el siguiente modelo
+        continue;
       }
       
       const data = await response.json();
@@ -152,14 +149,13 @@ async function llamarGroq(mensaje) {
     }
   }
   
-  // Si todos los modelos fallaron
-  throw new Error(ultimoError?.error?.message || 'Ningún modelo de IA está disponible actualmente');
+  throw new Error(ultimoError?.error?.message || 'Ningún modelo de IA está disponible');
 }
 
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
     muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
@@ -179,6 +175,6 @@ function traducirPagina(idioma) {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 remarket-db OS Iniciado");
-  console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
+  console.log(" Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
