@@ -297,60 +297,46 @@ async function llamarGroqConModeloDisponible(mensaje) {
 // SECCIÓN 9: FILTRO ULTRA-AGRESIVO
 // ==========================================
 function limpiarRespuestaIA(respuesta) {
-  // Patrones a eliminar
-  const patrones = [
-    /User is in/gi,
-    /Spanish - ALWAYS/gi,
-    /respond in Spanish/gi,
-    /NEVER use English/gi,
-    /NEVER list rules/gi,
-    /internal steps/gi,
-    /ONLY deliver the final/gi,
-    /Virtual assistant for/gi,
-    /circular economy platform/gi,
-    /ALWAYS respond/gi,
-    /max 2-3 sentences/gi,
-    /like talking to a friend/gi,
-    /Here's a thinking process/gi,
-    /Input:/gi,
-    /Context:/gi,
-    /Language:/gi,
-    /Role:/gi,
-    /Length:/gi,
-    /Tone:/gi,
-    /Formulate Response/gi,
-    /Internal Refinement/gi,
-    /\d+\.\s/g,
-    /\[.*?\]/g
-  ];
-  
-  let textoLimpio = respuesta;
-  patrones.forEach(function(patron) {
-    textoLimpio = textoLimpio.replace(patron, '');
-  });
-  
-  // Dividir en líneas y filtrar
-  const lineas = textoLimpio.split('\n');
+  // Dividir en líneas
+  const lineas = respuesta.split('\n');
   const validas = [];
   
-  const palabrasProhibidas = ['user is in', 'spanish', 'never use', 'never list', 'only deliver', 'virtual assistant', 'circular economy', 'thinking process', 'input:', 'context:', 'language:', 'role:', 'formulate', 'refinement'];
+  // Palabras que INDICAN que es texto técnico (eliminar toda la línea)
+  const palabrasTecnicas = [
+    'analyze user', 'role/constraints', 'key requirements', 
+    'context acknowledgment', 'mention location', 'remarket-db assistant',
+    'implies database', 'input:', 'context:', 'language:', 'role:',
+    'length:', 'tone:', 'formulate', 'internal refinement',
+    'user is in', 'spanish - always', 'never use english',
+    'virtual assistant for', 'circular economy platform',
+    'max 2-3 sentences', 'like talking to a friend',
+    'draft response', 'check constraints', 'final polish',
+    'mental draft', 'all rules satisfied', 'output matches'
+  ];
   
-  for (let linea of lineas) {
-    const l = linea.trim();
-    const lower = l.toLowerCase();
+  for (let i = 0; i < lineas.length; i++) {
+    const linea = lineas[i].trim();
+    const lower = linea.toLowerCase();
     
-    if (l.length < 10) continue;
+    // Saltar líneas vacías o muy cortas
+    if (linea.length < 15) continue;
     
-    if (palabrasProhibidas.some(function(p) { return lower.includes(p); })) {
-      continue;
-    }
+    // Si la línea contiene CUALQUIERA de las palabras técnicas, la saltamos
+    const esTecnica = palabrasTecnicas.some(function(palabra) {
+      return lower.includes(palabra);
+    });
     
-    validas.push(l);
+    if (esTecnica) continue;
+    
+    // Si llegamos aquí, es una línea válida
+    validas.push(linea);
   }
   
+  // Unir líneas válidas
   let final = validas.join(' ').replace(/\s+/g, ' ').replace(/\*\*/g, '').trim();
   
-  if (final.length < 15) {
+  // Si quedó muy corta o vacía, respuesta por defecto
+  if (final.length < 10 || final.toLowerCase().includes('analyze') || final.toLowerCase().includes('constraint')) {
     return "¡Hola! ¿En qué puedo ayudarte hoy?";
   }
   
