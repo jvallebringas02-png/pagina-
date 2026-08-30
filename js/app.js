@@ -1,7 +1,7 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// SECCIÓN 1: DETECTOR DE UBICACIÓN (CORREGIDO)
+// SECCIÓN 1: DETECTOR DE UBICACIÓN
 // ==========================================
 async function detectarUbicacion() {
   try {
@@ -10,11 +10,11 @@ async function detectarUbicacion() {
     if (datos.error) {
       throw new Error("API de IP falló: " + datos.error);
     }
-    console.log("✅ Usuario detectado en:", datos.city, datos.country);
+    console.log("Usuario detectado en:", datos.city, datos.country);
     document.getElementById('texto-ubicacion').innerText = datos.city + ', ' + datos.country;
     cargarMuroDinamico(datos.city, datos.country);
   } catch (error) {
-    console.error("❌ Error detectando IP:", error);
+    console.error("Error detectando IP:", error);
     document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
     cargarMuroDinamico("Callao", "Perú");
   }
@@ -26,9 +26,9 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = '<p>🔍 Buscando artículos en <b>' + ciudad + '</b>...</p>';
+  muro.innerHTML = '<p>Buscando artículos en <b>' + ciudad + '</b>...</p>';
   setTimeout(function() {
-    muro.innerHTML = '<div class="tarjeta-destacada"><h3> Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
+    muro.innerHTML = '<div class="tarjeta-destacada"><h3>Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
     if (patrocinadores) {
       patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
     }
@@ -39,7 +39,7 @@ function cargarMuroDinamico(ciudad, pais) {
 // SECCIÓN 3: BÚSQUEDA MULTIMEDIA
 // ==========================================
 async function buscarEnLaWebConMultimedia(query) {
-  console.log("🌐 Buscando multimedia para:", query);
+  console.log("Buscando multimedia para:", query);
   const resultados = { articulos: [], videos: [], query: query };
   
   try {
@@ -58,7 +58,7 @@ async function buscarEnLaWebConMultimedia(query) {
     }
     
     resultados.videos.push({
-      titulo: '🎥 Videos sobre "' + query + '"',
+      titulo: 'Videos sobre "' + query + '"',
       embedUrl: null,
       searchUrl: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query),
       tipo: 'youtube-link'
@@ -66,7 +66,7 @@ async function buscarEnLaWebConMultimedia(query) {
     
     return resultados;
   } catch (error) {
-    console.error(" Error buscando multimedia:", error);
+    console.error("Error buscando multimedia:", error);
     return null;
   }
 }
@@ -76,7 +76,7 @@ async function buscarEnLaWebConMultimedia(query) {
 // ==========================================
 async function buscarEnSupabase(query, ciudad) {
   if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
-    console.warn("⚠️ Supabase no configurado");
+    console.warn("Supabase no configurado");
     return [];
   }
   
@@ -102,7 +102,7 @@ async function buscarEnSupabase(query, ciudad) {
       };
     });
   } catch (error) {
-    console.error("❌ Error buscando en Supabase:", error);
+    console.error("Error buscando en Supabase:", error);
     return [];
   }
 }
@@ -113,7 +113,7 @@ async function buscarEnSupabase(query, ciudad) {
 function mostrarResultadosMultimediaEnMuro(resultados, query) {
   const muro = document.getElementById('muro-publicaciones');
   if (!resultados || (resultados.articulos.length === 0 && resultados.videos.length === 0)) {
-    muro.innerHTML = '<div class="search-empty"><h3>🔍 No encontré resultados para "' + query + '"</h3><p>Intenta con otra palabra.</p></div>';
+    muro.innerHTML = '<div class="search-empty"><h3>No encontré resultados para "' + query + '"</h3><p>Intenta con otra palabra.</p></div>';
     return;
   }
   
@@ -127,28 +127,28 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
   if (resultados.videos.length > 0) {
     var primerVideo = resultados.videos[0];
     if (primerVideo.tipo === 'youtube-link') {
-      videosHTML = '<div class="video-section"><h3>🎥 Videos relacionados</h3><a href="' + primerVideo.searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + primerVideo.titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>';
+      videosHTML = '<div class="video-section"><h3>Videos relacionados</h3><a href="' + primerVideo.searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + primerVideo.titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>';
     }
   }
   
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🔍 Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos + videos encontrados</p>' + 
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos + videos encontrados</p>' + 
     (tarjetasHTML ? '<div class="results-grid">' + tarjetasHTML + '</div>' : '') + videosHTML + '</div>';
 }
 
 function mostrarProductosEnMuro(productos, query) {
   const muro = document.getElementById('muro-publicaciones');
   if (productos.length === 0) {
-    muro.innerHTML = '<div class="search-empty"><h3>😕 No hay "' + query + '" disponible en tu zona</h3><p>¿Quieres ser el primero en publicar uno?</p></div>';
+    muro.innerHTML = '<div class="search-empty"><h3>No hay "' + query + '" disponible en tu zona</h3><p>¿Quieres ser el primero en publicar uno?</p></div>';
     return;
   }
   
   var tarjetasHTML = productos.map(function(prod) {
     return '<div class="result-card producto-card">' + 
-      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📦</div>') +
-      '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad">📍 ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
+      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder"></div>') +
+      '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">' + prod.precio + '</span><span class="ciudad">' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
   }).join('');
   
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
 }
 
 // ==========================================
@@ -180,7 +180,7 @@ async function enviarMensajeIA() {
   
   chatHistorial.innerHTML += '<div class="msg-usuario">' + texto + '</div>';
   chatInput.value = '';
-  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>';
+  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">Pensando...</div>';
   
   try {
     const tipo = detectarTipoDeBusqueda(texto);
@@ -193,31 +193,31 @@ async function enviarMensajeIA() {
     
     if (esSobrePlataforma) {
       document.getElementById('ia-escribiendo').remove();
-      chatHistorial.innerHTML += '<div class="msg-ia">remarket-db es una plataforma peruana de economía circular  donde puedes:<br><br>✅ <b>Publicar</b> artículos de segunda mano<br>✅ <b>Vender</b> o <b>comprar</b> productos usados<br>✅ <b>Truequear</b> objetos sin usar dinero<br>✅ <b>Donar</b> lo que ya no necesitas<br><br>Todo esto ayuda a reutilizar en lugar de botar a la basura. ♻️<br><br>¿Quieres publicar algo o buscar algún artículo?</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia">remarket-db es una plataforma peruana de economía circular donde puedes:<br><br>✅ <b>Publicar</b> artículos de segunda mano<br>✅ <b>Vender</b> o <b>comprar</b> productos usados<br>✅ <b>Truequear</b> objetos sin usar dinero<br>✅ <b>Donar</b> lo que ya no necesitas<br><br>Todo esto ayuda a reutilizar en lugar de botar a la basura. ¿Quieres publicar algo o buscar algún artículo?</div>';
       return;
     }
     
     if (tipo === 'PRODUCTOS') {
-      document.getElementById('ia-escribiendo').innerText = "🔍 Buscando productos...";
+      document.getElementById('ia-escribiendo').innerText = "Buscando productos...";
       const productos = await buscarEnSupabase(texto, ciudad);
       if (productos.length > 0) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! 🛍️ Los puedes ver en el panel central.</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! Los puedes ver en el panel central.</div>';
         mostrarProductosEnMuro(productos, texto);
         return;
       } else {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. </div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno.</div>';
         return;
       }
     }
     
     if (tipo === 'WEB') {
-      document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
+      document.getElementById('ia-escribiendo').innerText = "Buscando en la web...";
       const resultados = await buscarEnLaWebConMultimedia(texto);
       if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"!  Te dejé artículos y videos en el panel central. 👇</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! Te dejé artículos y videos en el panel central.</div>';
         mostrarResultadosMultimediaEnMuro(resultados, texto);
         return;
       }
@@ -229,13 +229,13 @@ async function enviarMensajeIA() {
     document.getElementById('ia-escribiendo').remove();
     
     if (!respuestaIA || respuestaIA.trim().length < 5) {
-      chatHistorial.innerHTML += '<div class="msg-ia">⚠️ No pude generar una respuesta. Intenta de nuevo.</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia">No pude generar una respuesta. Intenta de nuevo.</div>';
     } else {
       chatHistorial.innerHTML += '<div class="msg-ia">' + respuestaIA + '</div>';
     }
   } catch (error) {
-    console.error("❌ Error:", error);
-    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
+    console.error("Error:", error);
+    document.getElementById('ia-escribiendo').innerText = "Error: " + error.message;
   }
 }
 
@@ -269,7 +269,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
         body: JSON.stringify({
           model: modelo,
           messages: [
-            { role: 'system', content: 'Eres el asistente virtual de remarket-db, una plataforma peruana de economía circular. Responde SIEMPRE en español, de forma BREVE (máximo 2-3 oraciones) y NATURAL. NUNCA muestres tu proceso de pensamiento. NUNCA uses inglés. NUNCA listes reglas o pasos internos. SOLO entrega la respuesta final limpia como si hablaras con un amigo.' },
+            { role: 'system', content: 'Asistente de remarket-db. Responde en español, 1-2 oraciones.' },
             { role: 'user', content: mensaje }
           ],
           temperature: 0.5,
@@ -297,8 +297,21 @@ async function llamarGroqConModeloDisponible(mensaje) {
 // SECCIÓN 9: FILTRO ULTRA-AGRESIVO
 // ==========================================
 function limpiarRespuestaIA(respuesta) {
-  // Lista de patrones a eliminar (en inglés y español)
+  // Patrones a eliminar
   const patrones = [
+    /User is in/gi,
+    /Spanish - ALWAYS/gi,
+    /respond in Spanish/gi,
+    /NEVER use English/gi,
+    /NEVER list rules/gi,
+    /internal steps/gi,
+    /ONLY deliver the final/gi,
+    /Virtual assistant for/gi,
+    /circular economy platform/gi,
+    /ALWAYS respond/gi,
+    /max 2-3 sentences/gi,
+    /like talking to a friend/gi,
+    /Here's a thinking process/gi,
     /Input:/gi,
     /Context:/gi,
     /Language:/gi,
@@ -307,26 +320,8 @@ function limpiarRespuestaIA(respuesta) {
     /Tone:/gi,
     /Formulate Response/gi,
     /Internal Refinement/gi,
-    /Acknowledge context/gi,
-    /Mention the platform/gi,
-    /Need to greet/gi,
     /\d+\.\s/g,
-    /\[.*?\]/g,
-    /User says:/gi,
-    /Location:/gi,
-    /Time:/gi,
-    /BRIEF/gi,
-    /NATURAL/gi,
-    /ALWAYS Spanish/gi,
-    /Here's a thinking process/gi,
-    /Analyze User/gi,
-    /Draft response/gi,
-    /Check constraints/gi,
-    /Final Polish/gi,
-    /Mental Draft/gi,
-    /All rules satisfied/gi,
-    /Output matches/gi,
-    /Identify Key/gi
+    /\[.*?\]/g
   ];
   
   let textoLimpio = respuesta;
@@ -338,18 +333,15 @@ function limpiarRespuestaIA(respuesta) {
   const lineas = textoLimpio.split('\n');
   const validas = [];
   
+  const palabrasProhibidas = ['user is in', 'spanish', 'never use', 'never list', 'only deliver', 'virtual assistant', 'circular economy', 'thinking process', 'input:', 'context:', 'language:', 'role:', 'formulate', 'refinement'];
+  
   for (let linea of lineas) {
     const l = linea.trim();
     const lower = l.toLowerCase();
     
-    // Saltar líneas vacías o muy cortas
     if (l.length < 10) continue;
     
-    // Saltar líneas con palabras técnicas
-    if (lower.includes('input') || lower.includes('context') || lower.includes('language') || 
-        lower.includes('role') || lower.includes('formulate') || lower.includes('refinement') ||
-        lower.includes('thinking') || lower.includes('process') || lower.includes('constraint') ||
-        lower.includes('draft') || lower.includes('analyze') || lower.includes('check ')) {
+    if (palabrasProhibidas.some(function(p) { return lower.includes(p); })) {
       continue;
     }
     
@@ -357,7 +349,12 @@ function limpiarRespuestaIA(respuesta) {
   }
   
   let final = validas.join(' ').replace(/\s+/g, ' ').replace(/\*\*/g, '').trim();
-  return final.length > 15 ? final : "¡Hola! ¿En qué puedo ayudarte hoy?";
+  
+  if (final.length < 15) {
+    return "¡Hola! ¿En qué puedo ayudarte hoy?";
+  }
+  
+  return final;
 }
 
 // ==========================================
@@ -375,8 +372,8 @@ agregarEstilosBuscador();
 // SECCIÓN 11: INICIO
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("🚀 remarket-db OS Iniciado");
-  console.log(" Groq API Key:", CONFIG.GROQ_API_KEY ? CONFIG.GROQ_API_KEY.substring(0, 15) + "..." : "NO CONFIGURADA");
-  console.log("📊 Supabase:", CONFIG.SUPABASE_URL ? "Configurado" : "NO CONFIGURADO");
+  console.log("remarket-db OS Iniciado");
+  console.log("Groq API Key:", CONFIG.GROQ_API_KEY ? CONFIG.GROQ_API_KEY.substring(0, 15) + "..." : "NO CONFIGURADA");
+  console.log("Supabase:", CONFIG.SUPABASE_URL ? "Configurado" : "NO CONFIGURADO");
   detectarUbicacion();
 });
