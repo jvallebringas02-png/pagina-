@@ -25,7 +25,7 @@ async function detectarUbicacion() {
 }
 
 // ==========================================
-// 2. EL MURO DINÁMICO
+// 2. EL MURO DINÁMICO (Bienvenida)
 // ==========================================
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
@@ -44,7 +44,138 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA
+// 3.  BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
+// ==========================================
+async function buscarEnLaWebConMultimedia(query) {
+  console.log(`🌐 Buscando multimedia para: "${query}"`);
+  
+  const resultados = {
+    imagenes: [],
+    articulos: [],
+    videoQuery: query
+  };
+  
+  try {
+    // Buscar artículos e imágenes en Wikipedia (GRATIS, ILIMITADO)
+    const wikiResponse = await fetch(
+      `https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrnamespace=0&gsrlimit=6&gsrsearch=${encodeURIComponent(query)}&prop=pageimages|extracts&pithumbsize=400&exintro&explaintext&exlimit=6&format=json&origin=*`
+    );
+    const wikiData = await wikiResponse.json();
+    
+    if (wikiData.query && wikiData.query.pages) {
+      const pages = Object.values(wikiData.query.pages);
+      
+      pages.forEach(page => {
+        resultados.articulos.push({
+          titulo: page.title,
+          extracto: page.extract ? page.extract.substring(0, 200) : 'Sin descripción disponible.',
+          imagen: page.thumbnail ? page.thumbnail.source : null,
+          url: `https://es.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`
+        });
+      });
+    }
+    
+    console.log(`✅ Encontrados ${resultados.articulos.length} artículos`);
+    return resultados;
+    
+  } catch (error) {
+    console.error("❌ Error buscando multimedia:", error);
+    return null;
+  }
+}
+
+// ==========================================
+// 4.  PINTAR RESULTADOS EN EL MURO
+// ==========================================
+function mostrarResultadosMultimediaEnMuro(resultados, query) {
+  const muro = document.getElementById('muro-publicaciones');
+  
+  if (!resultados || resultados.articulos.length === 0) {
+    muro.innerHTML = `
+      <div class="search-empty">
+        <h3> No encontré resultados para "${query}"</h3>
+        <p>Intenta con otra palabra o pregunta.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Crear tarjetas HTML
+  const tarjetasHTML = resultados.articulos.map(art => `
+    <a href="${art.url}" target="_blank" class="result-card">
+      ${art.imagen ? `<img src="${art.imagen}" alt="${art.titulo}" class="card-img">` : '<div class="card-img-placeholder">📄</div>'}
+      <div class="card-body">
+        <h4>${art.titulo}</h4>
+        <p>${art.extracto}</p>
+        <span class="btn-leer">Leer más →</span>
+      </div>
+    </a>
+  `).join('');
+  
+  // Video de YouTube (embed de búsqueda)
+  const videoHTML = `
+    <div class="video-section">
+      <h3> Videos relacionados</h3>
+      <div class="video-container">
+        <iframe 
+          width="100%" 
+          height="315" 
+          src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}" 
+          frameborder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  `;
+  
+  // Armar todo
+  muro.innerHTML = `
+    <div class="multimedia-search">
+      <h2 class="search-title">🔍 Resultados para: "${query}"</h2>
+      <p class="search-subtitle">${resultados.articulos.length} artículos encontrados</p>
+      
+      <div class="results-grid">
+        ${tarjetasHTML}
+      </div>
+      
+      ${videoHTML}
+    </div>
+  `;
+}
+
+// ==========================================
+// 5.  DETECTOR DE INTENCIÓN
+// ==========================================
+function detectarTipoDeBusqueda(texto) {
+  const t = texto.toLowerCase();
+  
+  // Palabras que indican búsqueda web general
+  const palabrasBusqueda = [
+    'muéstrame', 'muestrame', 'busca', 'buscar', 'busco',
+    'qué es', 'que es', 'quién es', 'quien es', 'cómo', 'como',
+    'explicame', 'explícame', 'historia', 'información',
+    'video', 'videos', 'foro', 'página', 'pagina'
+  ];
+  
+  // Palabras que son de remarket-db (productos)
+  const palabrasPropias = [
+    'vender', 'comprar', 'trueque', 'donar', 'publicar',
+    'bicicleta', 'ropa', 'celular', 'artículo', 'articulo'
+  ];
+  
+  // Si es de remarket-db → usar Supabase (más adelante)
+  if (palabrasPropias.some(p => t.includes(p))) return 'PRODUCTOS';
+  
+  // Si es búsqueda general → usar Wikipedia/YouTube
+  if (palabrasBusqueda.some(p => t.includes(p))) return 'WEB';
+  
+  // Si no → conversación normal con IA
+  return 'CONVERSACION';
+}
+
+// ==========================================
+// 6. ASISTENTE IA (Chat + Muro Multimedia)
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -68,9 +199,26 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
   
   try {
+    // 1️⃣ Detectar qué tipo de búsqueda es
+    const tipo = detectarTipoDeBusqueda(texto);
+    
+    // 2️⃣ Si es búsqueda web → usar multimedia
+    if (tipo === 'WEB') {
+      document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
+      const resultados = await buscarEnLaWebConMultimedia(texto);
+      
+      if (resultados && resultados.articulos.length > 0) {
+        document.getElementById('ia-escribiendo').remove();
+        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"! 🎯 Te dejé artículos, imágenes y videos en el panel central. Échales un vistazo. 👇</div>`;
+        mostrarResultadosMultimediaEnMuro(resultados, texto);
+        return; // Terminamos aquí, no llamamos a Groq
+      }
+    }
+    
+    // 3️⃣ Si NO es búsqueda web → usar IA normal (cascada Groq)
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Desconocida";
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-    const mensajeEnriquecido = `[CONTEXTO: Usuario en ${ubicacion}, hora actual: ${horaActual}] ${texto}`;
+    const mensajeEnriquecido = `[CONTEXTO: Usuario en ${ubicacion}, hora: ${horaActual}] ${texto}`;
     
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
@@ -82,13 +230,16 @@ async function enviarMensajeIA() {
     }
     
     actualizarMuroPorIA(texto);
+    
   } catch (error) {
     console.error("❌ Error de IA:", error);
     document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
   }
 }
 
-// ✅ CONSULTA MODELOS DISPONIBLES (CASCADA)
+// ==========================================
+// 7. CASCADA DE MODELOS GROQ
+// ==========================================
 async function obtenerModelosDisponibles() {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/models', {
@@ -108,7 +259,7 @@ async function obtenerModelosDisponibles() {
     
     return modelosChat.map(m => m.id);
   } catch (error) {
-    console.error("❌ Error obteniendo modelos:", error);
+    console.error(" Error obteniendo modelos:", error);
     return [
       'llama-3.1-70b-versatile',
       'llama-3.1-8b-instant',
@@ -118,7 +269,6 @@ async function obtenerModelosDisponibles() {
   }
 }
 
-// ✅ IA CON PERSONALIDAD NATURAL
 async function llamarGroqConModeloDisponible(mensaje) {
   const modelos = await obtenerModelosDisponibles();
   if (modelos.length === 0) throw new Error('No hay modelos disponibles');
@@ -168,10 +318,7 @@ Puedes hablar de cualquier tema: historia, noticias, ciencia, hora, clima, etc. 
       if (data.error) throw new Error(data.error.message);
       
       let respuestaFinal = data.choices[0].message.content;
-      console.log('📝 Respuesta cruda de la IA:', respuestaFinal);
-      
       respuestaFinal = limpiarRespuestaIA(respuestaFinal);
-      console.log('✅ Respuesta limpia:', respuestaFinal);
       
       return respuestaFinal;
       
@@ -183,60 +330,37 @@ Puedes hablar de cualquier tema: historia, noticias, ciencia, hora, clima, etc. 
   throw new Error(ultimoError?.message || 'Ningún modelo disponible');
 }
 
-// 🛡️ FILTRO INTELIGENTE - Solo rechaza respuestas que sean 100% reglas
+// ==========================================
+// 8. ️ FILTRO DE LIMPIEZA
+// ==========================================
 function limpiarRespuestaIA(respuesta) {
-  console.log(' Analizando respuesta:', respuesta.substring(0, 100));
-  
-  // Dividir en líneas
-  const lineas = respuesta.split('\n').filter(l => l.trim().length > 0);
-  
-  // Contar cuántas líneas son "reglas" vs contenido real
-  let lineasRegla = 0;
-  let lineasContenido = 0;
+  const lineas = respuesta.split('\n');
   const lineasLimpias = [];
   
-  const palabrasRegla = [
-    'respond in spanish', 'never show', 'never repeat', 'only deliver',
-    'always respond', 'you are', 'your name', 'important:'
+  const palabrasProhibidas = [
+    'matches the mental', 'All rules satisfied', 'Output matches',
+    'thinking process', 'Analyze User', 'Identify Key', 'Draft Response', 
+    'Final Output Generation', 'system prompt', 'requirements',
+    'user says', 'my role', 'personality', 'strict rules', 'response strategy'
   ];
   
   for (let linea of lineas) {
-    const lineaLower = linea.toLowerCase().trim();
+    const esLineaTecnica = palabrasProhibidas.some(palabra => 
+      linea.toLowerCase().includes(palabra)
+    );
+    const esVerificacion = linea.startsWith('Checked:') || 
+                          linea.startsWith('- User says') || 
+                          linea.startsWith('- Context');
     
-    // Es una línea de regla si:
-    // 1. Empieza con número seguido de punto (1. 2. 3.)
-    // 2. Contiene palabras de regla Y es corta (< 50 chars)
-    const esNumeroRegla = /^\d+[\.\)]\s/.test(linea);
-    const contienePalabraRegla = palabrasRegla.some(p => lineaLower.includes(p));
-    const esCorta = linea.length < 50;
-    
-    if (esNumeroRegla || (contienePalabraRegla && esCorta)) {
-      lineasRegla++;
-      console.log('⚠️ Línea de regla detectada:', linea);
-    } else {
-      lineasContenido++;
+    if (!esLineaTecnica && !esVerificacion && linea.trim().length > 0) {
       lineasLimpias.push(linea.trim());
     }
   }
   
-  console.log(`📊 Estadísticas: ${lineasRegla} reglas, ${lineasContenido} contenido`);
-  
-  // Si TODAS las líneas son reglas (o no hay contenido real), retornar mensaje amigable
-  if (lineasContenido === 0 && lineasRegla > 0) {
-    console.warn('⚠️ Respuesta es solo reglas, generando respuesta por defecto');
-    return "¡Hola! Soy tu asistente de remarket-db. ¿En qué puedo ayudarte hoy?";
-  }
-  
-  // Si hay contenido real, usar solo las líneas limpias
   let respuestaLimpia = lineasLimpias.join(' ');
   respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '').trim();
   
-  // Si la respuesta limpia es muy corta, agregar saludo
-  if (respuestaLimpia.length < 20) {
-    respuestaLimpia = "¡Hola! ¿En qué puedo ayudarte hoy? " + respuestaLimpia;
-  }
-  
-  return respuestaLimpia;
+  return respuestaLimpia.length > 10 ? respuestaLimpia : "Hola, ¿en qué puedo ayudarte?";
 }
 
 function actualizarMuroPorIA(texto) {
@@ -244,12 +368,12 @@ function actualizarMuroPorIA(texto) {
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
     muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
-    muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
+    muro.innerHTML = `<h3> Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
 }
 
 // ==========================================
-// 4. TRADUCTOR AUTOMÁTICO
+// 9. TRADUCTOR AUTOMÁTICO
 // ==========================================
 function traducirPagina(idioma) {
   console.log(`🌍 Traduciendo página a: ${idioma}`);
@@ -258,10 +382,155 @@ function traducirPagina(idioma) {
 }
 
 // ==========================================
-// INICIAR EL SISTEMA
+// 10. 🎨 ESTILOS DINÁMICOS PARA EL BUSCADOR
+// ==========================================
+function agregarEstilosBuscador() {
+  if (document.getElementById('estilos-buscador')) return;
+  
+  const estilos = `
+    <style id="estilos-buscador">
+      .multimedia-search {
+        padding: 20px;
+        animation: fadeIn 0.5s ease;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .search-title {
+        color: #2c3e50;
+        margin-bottom: 5px;
+        font-size: 24px;
+      }
+      
+      .search-subtitle {
+        color: #7f8c8d;
+        margin-bottom: 25px;
+        font-size: 14px;
+      }
+      
+      .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+      
+      .result-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .result-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      }
+      
+      .card-img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+      }
+      
+      .card-img-placeholder {
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 60px;
+        color: white;
+      }
+      
+      .card-body {
+        padding: 15px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .card-body h4 {
+        color: #2980b9;
+        margin: 0 0 10px 0;
+        font-size: 16px;
+      }
+      
+      .card-body p {
+        color: #555;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 0 0 15px 0;
+        flex-grow: 1;
+      }
+      
+      .btn-leer {
+        color: #27ae60;
+        font-weight: bold;
+        font-size: 13px;
+      }
+      
+      .video-section {
+        margin-top: 30px;
+      }
+      
+      .video-section h3 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        font-size: 20px;
+      }
+      
+      .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      }
+      
+      .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      
+      .search-empty {
+        text-align: center;
+        padding: 40px;
+        color: #7f8c8d;
+      }
+      
+      @media (max-width: 768px) {
+        .results-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  `;
+  
+  document.head.insertAdjacentHTML('beforeend', estilos);
+}
+
+// Llamar al iniciar
+agregarEstilosBuscador();
+
+// ==========================================
+// 11. INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log(" remarket-db OS Iniciado");
+  console.log("🚀 remarket-db OS Iniciado");
   console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
