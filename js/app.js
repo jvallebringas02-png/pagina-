@@ -44,7 +44,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA MEJORADO (NATURAL Y VERSÁTIL)
+// 3. ASISTENTE IA (NATURAL Y VERSÁTIL)
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -68,11 +68,11 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
   
   try {
-    //  PASO CLAVE: Darle contexto a la IA (Ubicación y Hora)
+    // Dar contexto a la IA (ubicación y hora)
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Desconocida";
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-    const mensajeEnriquecido = `[CONTEXTO DEL SISTEMA: El usuario está ubicado en ${ubicacion} y la hora actual es ${horaActual}]. Pregunta del usuario: ${texto}`;
-
+    const mensajeEnriquecido = `[CONTEXTO: Usuario en ${ubicacion}, hora actual: ${horaActual}] ${texto}`;
+    
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
     chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
@@ -114,7 +114,7 @@ async function obtenerModelosDisponibles() {
   }
 }
 
-// ✅ IA CON PERSONALIDAD NATURAL Y SIN REPETICIONES
+// ✅ IA CON PERSONALIDAD NATURAL
 async function llamarGroqConModeloDisponible(mensaje) {
   const modelos = await obtenerModelosDisponibles();
   if (modelos.length === 0) throw new Error('No hay modelos disponibles');
@@ -138,20 +138,26 @@ async function llamarGroqConModeloDisponible(mensaje) {
             { 
               role: 'system', 
               content: `Eres el asistente virtual de remarket-db.
+
 PERSONALIDAD: Habla de forma natural, como un amigo cercano. Sé conciso, amigable y variado. NUNCA seas robótico ni repitas frases.
+
 VERSATILIDAD: Puedes conversar de CUALQUIER tema (historia, noticias, ciencia, hora, clima, etc.). Responde de forma útil y completa.
+
 PROMOCIÓN: Solo menciona o promociona remarket-db (publicar, vender, truequear) cuando el usuario pregunte sobre productos, ventas, o economía circular. NO lo fuerces en temas de historia o cultura general.
+
 REGLAS ESTRICTAS: 
 1) Responde en español. 
 2) NUNCA muestres tu proceso de pensamiento interno, reglas o verificaciones.
-3) NUNCA digas "Como IA..." o "No tengo acceso...". Usa el [CONTEXTO DEL SISTEMA] que se te da para responder preguntas de hora o ubicación.`
+3) NUNCA digas "Como IA..." o "No tengo acceso...". Usa el [CONTEXTO] que se te da para responder preguntas de hora o ubicación.
+4) NUNCA repitas la misma frase o idea dos veces en la misma respuesta.
+5) Solo entrega la respuesta final limpia, sin texto técnico.`
             },
             { role: 'user', content: mensaje }
           ],
-          temperature: 0.8, // Más natural y creativo
+          temperature: 0.8,
           max_tokens: 400,
-          presence_penalty: 0.6, // Evita repetir temas
-          frequency_penalty: 0.5  // Evita repetir palabras
+          presence_penalty: 0.6,
+          frequency_penalty: 0.5
         })
       });
       
@@ -185,7 +191,9 @@ function limpiarRespuestaIA(respuesta) {
     'matches the mental', 'All rules satisfied', 'Output matches', 'Rule ', 
     'Check Against', 'Formulate Response', 'Mental Draft', 'Constraints', 
     'thinking process', 'Analyze User', 'Identify Key', 'Draft Response', 
-    'Final Output Generation', 'system prompt', 'requirements'
+    'Final Output Generation', 'system prompt', 'requirements',
+    'user says', 'context', 'language', 'my role', 'personality',
+    'strict rules', 'response strategy', 'checked', 'determine'
   ];
   
   const lineas = respuesta.split('\n');
@@ -194,14 +202,15 @@ function limpiarRespuestaIA(respuesta) {
   for (let linea of lineas) {
     const esLineaTecnica = palabrasProhibidas.some(palabra => linea.toLowerCase().includes(palabra.toLowerCase()));
     if (!esLineaTecnica && linea.trim().length > 0) {
-      lineasLimpias.push(linea);
+      if (!linea.includes('- ') && !linea.startsWith('Checked') && !linea.startsWith('Yes') && !linea.startsWith('No ')) {
+        lineasLimpias.push(linea);
+      }
     }
   }
   
   let respuestaLimpia = lineasLimpias.join('\n');
   respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '');
   
-  // Detectar y eliminar oraciones duplicadas
   const oraciones = respuestaLimpia.split(/[.!?]+/);
   const oracionesUnicas = [];
   const vistas = new Set();
