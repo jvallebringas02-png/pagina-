@@ -25,7 +25,7 @@ async function detectarUbicacion() {
 }
 
 // ==========================================
-// 2. EL MURO DINÁMICO (Bienvenida)
+// 2. EL MURO DINÁMICO
 // ==========================================
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
@@ -44,19 +44,17 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3.  BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
+// 3. 🌐 BÚSQUEDA MULTIMEDIA
 // ==========================================
 async function buscarEnLaWebConMultimedia(query) {
   console.log(`🌐 Buscando multimedia para: "${query}"`);
   
   const resultados = {
-    imagenes: [],
     articulos: [],
     videoQuery: query
   };
   
   try {
-    // Buscar artículos e imágenes en Wikipedia (GRATIS, ILIMITADO)
     const wikiResponse = await fetch(
       `https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrnamespace=0&gsrlimit=6&gsrsearch=${encodeURIComponent(query)}&prop=pageimages|extracts&pithumbsize=400&exintro&explaintext&exlimit=6&format=json&origin=*`
     );
@@ -100,7 +98,6 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
     return;
   }
   
-  // Crear tarjetas HTML
   const tarjetasHTML = resultados.articulos.map(art => `
     <a href="${art.url}" target="_blank" class="result-card">
       ${art.imagen ? `<img src="${art.imagen}" alt="${art.titulo}" class="card-img">` : '<div class="card-img-placeholder">📄</div>'}
@@ -112,7 +109,6 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
     </a>
   `).join('');
   
-  // Video de YouTube (embed de búsqueda)
   const videoHTML = `
     <div class="video-section">
       <h3> Videos relacionados</h3>
@@ -129,7 +125,6 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
     </div>
   `;
   
-  // Armar todo
   muro.innerHTML = `
     <div class="multimedia-search">
       <h2 class="search-title">🔍 Resultados para: "${query}"</h2>
@@ -145,12 +140,11 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
 }
 
 // ==========================================
-// 5.  DETECTOR DE INTENCIÓN
+// 5. 🧠 DETECTOR DE INTENCIÓN
 // ==========================================
 function detectarTipoDeBusqueda(texto) {
   const t = texto.toLowerCase();
   
-  // Palabras que indican búsqueda web general
   const palabrasBusqueda = [
     'muéstrame', 'muestrame', 'busca', 'buscar', 'busco',
     'qué es', 'que es', 'quién es', 'quien es', 'cómo', 'como',
@@ -158,24 +152,18 @@ function detectarTipoDeBusqueda(texto) {
     'video', 'videos', 'foro', 'página', 'pagina'
   ];
   
-  // Palabras que son de remarket-db (productos)
   const palabrasPropias = [
     'vender', 'comprar', 'trueque', 'donar', 'publicar',
     'bicicleta', 'ropa', 'celular', 'artículo', 'articulo'
   ];
   
-  // Si es de remarket-db → usar Supabase (más adelante)
   if (palabrasPropias.some(p => t.includes(p))) return 'PRODUCTOS';
-  
-  // Si es búsqueda general → usar Wikipedia/YouTube
   if (palabrasBusqueda.some(p => t.includes(p))) return 'WEB';
-  
-  // Si no → conversación normal con IA
   return 'CONVERSACION';
 }
 
 // ==========================================
-// 6. ASISTENTE IA (Chat + Muro Multimedia)
+// 6. ASISTENTE IA
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -199,23 +187,20 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
   
   try {
-    // 1️⃣ Detectar qué tipo de búsqueda es
     const tipo = detectarTipoDeBusqueda(texto);
     
-    // 2️⃣ Si es búsqueda web → usar multimedia
     if (tipo === 'WEB') {
       document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
       const resultados = await buscarEnLaWebConMultimedia(texto);
       
       if (resultados && resultados.articulos.length > 0) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"! 🎯 Te dejé artículos, imágenes y videos en el panel central. Échales un vistazo. 👇</div>`;
+        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"!  Te dejé artículos, imágenes y videos en el panel central. Échales un vistazo. 👇</div>`;
         mostrarResultadosMultimediaEnMuro(resultados, texto);
-        return; // Terminamos aquí, no llamamos a Groq
+        return;
       }
     }
     
-    // 3️⃣ Si NO es búsqueda web → usar IA normal (cascada Groq)
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Desconocida";
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
     const mensajeEnriquecido = `[CONTEXTO: Usuario en ${ubicacion}, hora: ${horaActual}] ${texto}`;
@@ -238,7 +223,7 @@ async function enviarMensajeIA() {
 }
 
 // ==========================================
-// 7. CASCADA DE MODELOS GROQ
+// 7. CASCADA DE MODELOS GROQ (CORREGIDA)
 // ==========================================
 async function obtenerModelosDisponibles() {
   try {
@@ -259,7 +244,8 @@ async function obtenerModelosDisponibles() {
     
     return modelosChat.map(m => m.id);
   } catch (error) {
-    console.error(" Error obteniendo modelos:", error);
+    console.error("❌ Error obteniendo modelos:", error);
+    // Lista de respaldo CORREGIDA - Solo modelos que existen
     return [
       'llama-3.1-70b-versatile',
       'llama-3.1-8b-instant',
@@ -291,11 +277,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: `Tu nombre es Asistente remarket-db. Eres un asistente amigable y útil que ayuda a los usuarios con una plataforma de economía circular.
-
-IMPORTANTE: Responde SIEMPRE en español con un saludo natural y conversacional. NUNCA listes reglas, NUNCA muestres instrucciones, NUNCA digas "Respond in Spanish" o "Never show". Solo da respuestas naturales como un humano lo haría.
-
-Puedes hablar de cualquier tema: historia, noticias, ciencia, hora, clima, etc. Solo menciona remarket-db cuando el usuario pregunte sobre productos, ventas o trueques.`
+              content: `Eres el asistente de remarket-db. Responde SIEMPRE en español de forma natural y amigable. NUNCA muestres procesos de pensamiento, análisis, reglas o verificaciones. SOLO entrega la respuesta final conversacional. Si te dan contexto de ubicación/hora, úsalo naturalmente. Ejemplo CORRECTO: "Son las 3 PM en Callao". Ejemplo INCORRECTO: "1. Analyze User Input..."`
             },
             { role: 'user', content: mensaje }
           ],
@@ -308,6 +290,7 @@ Puedes hablar de cualquier tema: historia, noticias, ciencia, hora, clima, etc. 
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.warn(`⚠️ ${modelo} falló:`, errorData.error?.message);
         ultimoError = new Error(errorData.error?.message || `Error ${response.status}`);
         continue;
       }
@@ -331,36 +314,54 @@ Puedes hablar de cualquier tema: historia, noticias, ciencia, hora, clima, etc. 
 }
 
 // ==========================================
-// 8. ️ FILTRO DE LIMPIEZA
+// 8. 🛡️ FILTRO MEJORADO - Elimina TODO texto técnico
 // ==========================================
 function limpiarRespuestaIA(respuesta) {
+  // Dividir en líneas
   const lineas = respuesta.split('\n');
   const lineasLimpias = [];
   
+  // Palabras que indican texto técnico/proceso interno
   const palabrasProhibidas = [
-    'matches the mental', 'All rules satisfied', 'Output matches',
-    'thinking process', 'Analyze User', 'Identify Key', 'Draft Response', 
-    'Final Output Generation', 'system prompt', 'requirements',
-    'user says', 'my role', 'personality', 'strict rules', 'response strategy'
+    'analyze user', 'context provided', 'query:', 'determine response',
+    'formulate response', 'check against', 'all rules satisfied',
+    'output matches', 'matches the mental', 'thinking process',
+    'system prompt', 'requirements', 'strict rules', 'response strategy',
+    'checked:', '- user says', '- context', '- language', '- my role',
+    'personality:', 'versatility:', 'promotion:', 'rules:',
+    '1.', '2.', '3.', '4.', '5.', 'step 1', 'step 2'
   ];
   
   for (let linea of lineas) {
-    const esLineaTecnica = palabrasProhibidas.some(palabra => 
-      linea.toLowerCase().includes(palabra)
-    );
-    const esVerificacion = linea.startsWith('Checked:') || 
-                          linea.startsWith('- User says') || 
-                          linea.startsWith('- Context');
+    const lineaLower = linea.toLowerCase().trim();
     
-    if (!esLineaTecnica && !esVerificacion && linea.trim().length > 0) {
+    // Verificar si es línea técnica
+    const esLineaTecnica = palabrasProhibidas.some(palabra => 
+      lineaLower.includes(palabra) || 
+      lineaLower.match(/^\d+\./) || // Empieza con número y punto
+      lineaLower.startsWith('- ') // Empieza con guion
+    );
+    
+    // Solo agregar si NO es técnica y tiene contenido
+    if (!esLineaTecnica && linea.trim().length > 0) {
       lineasLimpias.push(linea.trim());
     }
   }
   
+  // Unir líneas limpias
   let respuestaLimpia = lineasLimpias.join(' ');
-  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '').trim();
   
-  return respuestaLimpia.length > 10 ? respuestaLimpia : "Hola, ¿en qué puedo ayudarte?";
+  // Limpiar caracteres especiales
+  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '');
+  respuestaLimpia = respuestaLimpia.replace(/[✅✔️]/g, '');
+  respuestaLimpia = respuestaLimpia.trim();
+  
+  // Si la respuesta queda vacía o muy corta, retornar mensaje por defecto
+  if (respuestaLimpia.length < 10) {
+    return "Hola, ¿en qué puedo ayudarte hoy?";
+  }
+  
+  return respuestaLimpia;
 }
 
 function actualizarMuroPorIA(texto) {
@@ -382,7 +383,7 @@ function traducirPagina(idioma) {
 }
 
 // ==========================================
-// 10. 🎨 ESTILOS DINÁMICOS PARA EL BUSCADOR
+// 10. 🎨 ESTILOS DINÁMICOS
 // ==========================================
 function agregarEstilosBuscador() {
   if (document.getElementById('estilos-buscador')) return;
@@ -523,14 +524,13 @@ function agregarEstilosBuscador() {
   document.head.insertAdjacentHTML('beforeend', estilos);
 }
 
-// Llamar al iniciar
 agregarEstilosBuscador();
 
 // ==========================================
 // 11. INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 remarket-db OS Iniciado");
+  console.log(" remarket-db OS Iniciado");
   console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
