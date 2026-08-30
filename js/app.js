@@ -7,14 +7,12 @@ async function detectarUbicacion() {
   try {
     const respuesta = await fetch('https://ipapi.co/json/');
     const datos = await respuesta.json();
-    if (datos.error) {
-      throw new Error("API de IP falló: " + datos.error);
-    }
-    console.log("Usuario detectado en:", datos.city, datos.country);
+    if (datos.error) throw new Error("API falló");
+    console.log("Usuario en:", datos.city, datos.country);
     document.getElementById('texto-ubicacion').innerText = datos.city + ', ' + datos.country;
     cargarMuroDinamico(datos.city, datos.country);
   } catch (error) {
-    console.error("Error detectando IP:", error);
+    console.error("Error IP:", error);
     document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
     cargarMuroDinamico("Callao", "Perú");
   }
@@ -26,20 +24,43 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = '<p>Buscando artículos en <b>' + ciudad + '</b>...</p>';
-  setTimeout(function() {
-    muro.innerHTML = '<div class="tarjeta-destacada"><h3>Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
-    if (patrocinadores) {
-      patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
-    }
-  }, 1500);
+  muro.innerHTML = '<div class="tarjeta-destacada"><h3>🌱 Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
+  if (patrocinadores) {
+    patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
+  }
 }
 
 // ==========================================
-// SECCIÓN 3: BÚSQUEDA MULTIMEDIA
+// SECCIÓN 3: CLIMA (Open-Meteo - GRATIS, SIN API KEY)
+// ==========================================
+async function obtenerClima(ciudad) {
+  // Coordenadas aproximadas de ciudades peruanas
+  const ciudades = {
+    'callao': { lat: -12.05, lon: -77.12 },
+    'lima': { lat: -12.04, lon: -77.03 },
+    'viru': { lat: -8.13, lon: -78.47 },
+    'cusco': { lat: -13.53, lon: -71.97 },
+    'arequipa': { lat: -16.40, lon: -71.53 },
+    'trujillo': { lat: -8.11, lon: -79.03 }
+  };
+  
+  const ciudadLower = ciudad.toLowerCase().trim();
+  const coords = ciudades[ciudadLower] || { lat: -12.05, lon: -77.12 };
+  
+  try {
+    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + coords.lat + '&longitude=' + coords.lon + '&current_weather=true');
+    const data = await response.json();
+    return data.current_weather;
+  } catch (error) {
+    console.error("Error clima:", error);
+    return null;
+  }
+}
+
+// ==========================================
+// SECCIÓN 4: BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
 // ==========================================
 async function buscarEnLaWebConMultimedia(query) {
-  console.log("Buscando multimedia para:", query);
   const resultados = { articulos: [], videos: [], query: query };
   
   try {
@@ -49,45 +70,35 @@ async function buscarEnLaWebConMultimedia(query) {
       Object.values(wikiData.query.pages).forEach(function(page) {
         resultados.articulos.push({
           titulo: page.title,
-          extracto: page.extract ? page.extract.substring(0, 200) : 'Sin descripción disponible.',
+          extracto: page.extract ? page.extract.substring(0, 200) : 'Sin descripción.',
           imagen: page.thumbnail ? page.thumbnail.source : null,
-          url: 'https://es.wikipedia.org/wiki/' + encodeURIComponent(page.title.replace(/ /g, '_')),
-          tipo: 'wikipedia'
+          url: 'https://es.wikipedia.org/wiki/' + encodeURIComponent(page.title.replace(/ /g, '_'))
         });
       });
     }
     
     resultados.videos.push({
-      titulo: 'Videos sobre "' + query + '"',
-      embedUrl: null,
-      searchUrl: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query),
-      tipo: 'youtube-link'
+      titulo: '🎥 Videos sobre "' + query + '"',
+      searchUrl: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query)
     });
     
     return resultados;
   } catch (error) {
-    console.error("Error buscando multimedia:", error);
+    console.error("Error multimedia:", error);
     return null;
   }
 }
 
 // ==========================================
-// SECCIÓN 4: BÚSQUEDA EN SUPABASE
+// SECCIÓN 5: BÚSQUEDA EN SUPABASE
 // ==========================================
 async function buscarEnSupabase(query, ciudad) {
-  if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
-    console.warn("Supabase no configurado");
-    return [];
-  }
+  if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) return [];
   
   try {
     const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/articulos?or=(titulo.ilike.%' + query + '%,descripcion.ilike.%' + query + '%)&limit=6', {
-      headers: {
-        'apikey': CONFIG.SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
-      }
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY }
     });
-    
     if (!response.ok) return [];
     const data = await response.json();
     return data.map(function(item) {
@@ -96,24 +107,22 @@ async function buscarEnSupabase(query, ciudad) {
         descripcion: item.descripcion || 'Sin descripción',
         precio: item.precio || 'Consultar',
         imagen: item.imagen_url || null,
-        ciudad: item.ciudad || ciudad,
-        id: item.id,
-        tipo: 'producto'
+        ciudad: item.ciudad || ciudad
       };
     });
   } catch (error) {
-    console.error("Error buscando en Supabase:", error);
+    console.error("Error Supabase:", error);
     return [];
   }
 }
 
 // ==========================================
-// SECCIÓN 5: PINTAR RESULTADOS EN EL MURO
+// SECCIÓN 6: PINTAR RESULTADOS EN EL MURO
 // ==========================================
 function mostrarResultadosMultimediaEnMuro(resultados, query) {
   const muro = document.getElementById('muro-publicaciones');
   if (!resultados || (resultados.articulos.length === 0 && resultados.videos.length === 0)) {
-    muro.innerHTML = '<div class="search-empty"><h3>No encontré resultados para "' + query + '"</h3><p>Intenta con otra palabra.</p></div>';
+    muro.innerHTML = '<div class="search-empty"><h3>🔍 No encontré resultados para "' + query + '"</h3><p>Intenta con otra palabra.</p></div>';
     return;
   }
   
@@ -123,49 +132,82 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
       '<div class="card-body"><h4>' + art.titulo + '</h4><p>' + art.extracto + '</p><span class="btn-leer">Leer más →</span></div></a>';
   }).join('');
   
-  var videosHTML = '';
-  if (resultados.videos.length > 0) {
-    var primerVideo = resultados.videos[0];
-    if (primerVideo.tipo === 'youtube-link') {
-      videosHTML = '<div class="video-section"><h3>Videos relacionados</h3><a href="' + primerVideo.searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + primerVideo.titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>';
-    }
-  }
+  var videosHTML = resultados.videos.length > 0 ? 
+    '<div class="video-section"><h3>🎥 Videos relacionados</h3><a href="' + resultados.videos[0].searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + resultados.videos[0].titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>' : '';
   
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos + videos encontrados</p>' + 
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🔍 Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos encontrados</p>' + 
     (tarjetasHTML ? '<div class="results-grid">' + tarjetasHTML + '</div>' : '') + videosHTML + '</div>';
 }
 
 function mostrarProductosEnMuro(productos, query) {
   const muro = document.getElementById('muro-publicaciones');
   if (productos.length === 0) {
-    muro.innerHTML = '<div class="search-empty"><h3>No hay "' + query + '" disponible en tu zona</h3><p>¿Quieres ser el primero en publicar uno?</p></div>';
+    muro.innerHTML = '<div class="search-empty"><h3>😕 No hay "' + query + '" disponible</h3><p>¿Quieres ser el primero en publicar uno?</p></div>';
     return;
   }
   
   var tarjetasHTML = productos.map(function(prod) {
     return '<div class="result-card producto-card">' + 
-      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder"></div>') +
-      '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">' + prod.precio + '</span><span class="ciudad">' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
+      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📦</div>') +
+      '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad">📍 ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
   }).join('');
   
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
+}
+
+function mostrarClimaEnMuro(clima, ciudad) {
+  const muro = document.getElementById('muro-publicaciones');
+  if (!clima) {
+    muro.innerHTML = '<div class="search-empty"><h3>⚠️ No pude obtener el clima</h3></div>';
+    return;
+  }
+  
+  const iconos = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '️' };
+  const icono = iconos[clima.weathercode] || '️';
+  
+  muro.innerHTML = '<div class="multimedia-search"><div class="clima-card"><h2>' + icono + ' Clima en ' + ciudad + '</h2><div class="clima-temp">' + clima.temperature + '°C</div><p>Viento: ' + clima.windspeed + ' km/h</p></div></div>';
 }
 
 // ==========================================
-// SECCIÓN 6: DETECTOR DE INTENCIÓN
+// SECCIÓN 7: DETECTOR DE INTENCIÓN AMPLIADO
 // ==========================================
 function detectarTipoDeBusqueda(texto) {
   const t = texto.toLowerCase();
-  const palabrasBusqueda = ['muéstrame', 'muestrame', 'busca', 'buscar', 'busco', 'qué es', 'que es', 'quién es', 'quien es', 'cómo', 'como', 'explicame', 'explícame', 'historia', 'información', 'video', 'videos', 'foro', 'noticias', 'últimas', 'actualidad', 'novedades', 'noticia', 'nuevo', 'nueva', 'youtube'];
-  const palabrasPropias = ['vender', 'comprar', 'trueque', 'donar', 'publicar', 'bicicleta', 'ropa', 'celular', 'artículo', 'articulo', 'laptop', 'mueble', 'libro', 'zapato', 'carro', 'auto'];
   
-  if (palabrasPropias.some(function(p) { return t.includes(p); })) return 'PRODUCTOS';
-  if (palabrasBusqueda.some(function(p) { return t.includes(p); })) return 'WEB';
+  // CLIMA
+  if (t.includes('clima') || t.includes('tiempo') || t.includes('temperatura') || t.includes('lluvia') || t.includes('hace calor') || t.includes('hace frio')) {
+    return 'CLIMA';
+  }
+  
+  // HORA
+  if (t.includes('hora') || t.includes('qué hora') || t.includes('que hora')) {
+    return 'HORA';
+  }
+  
+  // SOBRE REMARKET-DB
+  const preguntasPlataforma = ['que ofrece', 'qué ofrece', 'que es remarket', 'qué es remarket', 'sobre la pagina', 'sobre la página', 'sobre remarket', 'de que trata', 'de qué trata', 'para que sirve', 'para qué sirve', 'como funciona', 'cómo funciona', 'que hace', 'qué hace', 'que venden', 'qué venden', 'que puedo hacer', 'qué puedo hacer', 'que novedades', 'qué novedades', 'novedades de la pagina', 'novedades de la página'];
+  if (preguntasPlataforma.some(function(p) { return t.includes(p); })) {
+    return 'PLATAFORMA';
+  }
+  
+  // PRODUCTOS (Supabase)
+  const palabrasPropias = ['vender', 'comprar', 'trueque', 'donar', 'publicar', 'bicicleta', 'ropa', 'celular', 'artículo', 'articulo', 'laptop', 'mueble', 'libro', 'zapato', 'carro', 'auto', 'busco', 'buscando'];
+  if (palabrasPropias.some(function(p) { return t.includes(p); })) {
+    return 'PRODUCTOS';
+  }
+  
+  // BÚSQUEDA WEB (Wikipedia + YouTube)
+  const palabrasBusqueda = ['muéstrame', 'muestrame', 'busca', 'buscar', 'qué es', 'que es', 'quién es', 'quien es', 'cómo', 'como', 'explicame', 'explícame', 'historia', 'información', 'video', 'videos', 'foro', 'noticias', 'últimas', 'actualidad', 'novedades', 'noticia', 'nuevo', 'nueva', 'youtube', 'dime sobre', 'dime de'];
+  if (palabrasBusqueda.some(function(p) { return t.includes(p); })) {
+    return 'WEB';
+  }
+  
+  // CONVERSACIÓN NORMAL
   return 'CONVERSACION';
 }
 
 // ==========================================
-// SECCIÓN 7: ASISTENTE IA
+// SECCIÓN 8: ASISTENTE IA
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -180,67 +222,93 @@ async function enviarMensajeIA() {
   
   chatHistorial.innerHTML += '<div class="msg-usuario">' + texto + '</div>';
   chatInput.value = '';
-  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">Pensando...</div>';
+  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>';
   
   try {
     const tipo = detectarTipoDeBusqueda(texto);
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Callao, Perú";
     const ciudad = ubicacion.split(',')[0].trim();
     
-    // DETECTOR DE PREGUNTAS SOBRE REMARKET-DB
-    const preguntasSobrePlataforma = ['que ofrece', 'qué ofrece', 'que es remarket', 'qué es remarket', 'sobre la pagina', 'sobre la página', 'sobre remarket', 'de que trata', 'de qué trata', 'para que sirve', 'para qué sirve', 'como funciona', 'cómo funciona', 'que hace', 'qué hace', 'que venden', 'qué venden', 'que puedo hacer', 'qué puedo hacer'];
-    const esSobrePlataforma = preguntasSobrePlataforma.some(function(p) { return texto.toLowerCase().includes(p); });
-    
-    if (esSobrePlataforma) {
-      document.getElementById('ia-escribiendo').remove();
-      chatHistorial.innerHTML += '<div class="msg-ia">remarket-db es una plataforma peruana de economía circular donde puedes:<br><br>✅ <b>Publicar</b> artículos de segunda mano<br>✅ <b>Vender</b> o <b>comprar</b> productos usados<br>✅ <b>Truequear</b> objetos sin usar dinero<br>✅ <b>Donar</b> lo que ya no necesitas<br><br>Todo esto ayuda a reutilizar en lugar de botar a la basura. ¿Quieres publicar algo o buscar algún artículo?</div>';
+    // CLIMA
+    if (tipo === 'CLIMA') {
+      document.getElementById('ia-escribiendo').innerText = "🌤️ Consultando el clima...";
+      const clima = await obtenerClima(ciudad);
+      if (clima) {
+        document.getElementById('ia-escribiendo').remove();
+        chatHistorial.innerHTML += '<div class="msg-ia">🌡️ En ' + ciudad + ' hay ' + clima.temperature + '°C con viento de ' + clima.windspeed + ' km/h. Te dejé los detalles en el panel central.</div>';
+        mostrarClimaEnMuro(clima, ciudad);
+      } else {
+        document.getElementById('ia-escribiendo').remove();
+        chatHistorial.innerHTML += '<div class="msg-ia">⚠️ No pude obtener el clima ahora. Intenta de nuevo.</div>';
+      }
       return;
     }
     
+    // HORA
+    if (tipo === 'HORA') {
+      const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('ia-escribiendo').remove();
+      chatHistorial.innerHTML += '<div class="msg-ia">🕐 Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
+      return;
+    }
+    
+    // PLATAFORMA
+    if (tipo === 'PLATAFORMA') {
+      document.getElementById('ia-escribiendo').remove();
+      chatHistorial.innerHTML += '<div class="msg-ia">remarket-db es una plataforma peruana de economía circular donde puedes:<br><br>✅ <b>Publicar</b> artículos de segunda mano<br>✅ <b>Vender</b> o <b>comprar</b> productos usados<br>✅ <b>Truequear</b> objetos sin usar dinero<br>✅ <b>Donar</b> lo que ya no necesitas<br><br>Todo esto ayuda a reutilizar en lugar de botar a la basura. ️<br><br>¿Quieres publicar algo o buscar algún artículo?</div>';
+      cargarMuroDinamico(ciudad, '');
+      return;
+    }
+    
+    // PRODUCTOS
     if (tipo === 'PRODUCTOS') {
-      document.getElementById('ia-escribiendo').innerText = "Buscando productos...";
+      document.getElementById('ia-escribiendo').innerText = " Buscando productos...";
       const productos = await buscarEnSupabase(texto, ciudad);
       if (productos.length > 0) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! Los puedes ver en el panel central.</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! 🛍️ Los puedes ver en el panel central.</div>';
         mostrarProductosEnMuro(productos, texto);
-        return;
       } else {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno.</div>';
-        return;
+        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. 📸</div>';
       }
+      return;
     }
     
+    // WEB
     if (tipo === 'WEB') {
-      document.getElementById('ia-escribiendo').innerText = "Buscando en la web...";
+      document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
       const resultados = await buscarEnLaWebConMultimedia(texto);
       if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! Te dejé artículos y videos en el panel central.</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. 👇</div>';
         mostrarResultadosMultimediaEnMuro(resultados, texto);
-        return;
+      } else {
+        document.getElementById('ia-escribiendo').remove();
+        chatHistorial.innerHTML += '<div class="msg-ia">No encontré resultados para "' + texto + '". Intenta con otra palabra. 🔍</div>';
       }
+      return;
     }
     
+    // CONVERSACIÓN (IA)
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-    const mensajeEnriquecido = '[CONTEXTO: Usuario en ' + ubicacion + ', hora: ' + horaActual + '] ' + texto;
+    const mensajeEnriquecido = '[Usuario en ' + ubicacion + ', hora: ' + horaActual + '] ' + texto;
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
     
     if (!respuestaIA || respuestaIA.trim().length < 5) {
-      chatHistorial.innerHTML += '<div class="msg-ia">No pude generar una respuesta. Intenta de nuevo.</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia">⚠️ No pude generar una respuesta. Intenta de nuevo.</div>';
     } else {
       chatHistorial.innerHTML += '<div class="msg-ia">' + respuestaIA + '</div>';
     }
   } catch (error) {
     console.error("Error:", error);
-    document.getElementById('ia-escribiendo').innerText = "Error: " + error.message;
+    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
   }
 }
 
 // ==========================================
-// SECCIÓN 8: GROQ
+// SECCIÓN 9: GROQ
 // ==========================================
 async function obtenerModelosDisponibles() {
   try {
@@ -273,9 +341,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
             { role: 'user', content: mensaje }
           ],
           temperature: 0.5,
-          max_tokens: 150,
-          presence_penalty: 0.6,
-          frequency_penalty: 0.5
+          max_tokens: 150
         })
       });
       if (!response.ok) {
@@ -294,14 +360,12 @@ async function llamarGroqConModeloDisponible(mensaje) {
 }
 
 // ==========================================
-// SECCIÓN 9: FILTRO ULTRA-AGRESIVO
+// SECCIÓN 10: FILTRO ULTRA-AGRESIVO
 // ==========================================
 function limpiarRespuestaIA(respuesta) {
-  // Dividir en líneas
   const lineas = respuesta.split('\n');
   const validas = [];
   
-  // Palabras que INDICAN que es texto técnico (eliminar toda la línea)
   const palabrasTecnicas = [
     'analyze user', 'role/constraints', 'key requirements', 
     'context acknowledgment', 'mention location', 'remarket-db assistant',
@@ -311,31 +375,27 @@ function limpiarRespuestaIA(respuesta) {
     'virtual assistant for', 'circular economy platform',
     'max 2-3 sentences', 'like talking to a friend',
     'draft response', 'check constraints', 'final polish',
-    'mental draft', 'all rules satisfied', 'output matches'
+    'mental draft', 'all rules satisfied', 'output matches',
+    'here\'s a thinking', 'thinking process', 'formulate response'
   ];
   
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i].trim();
     const lower = linea.toLowerCase();
     
-    // Saltar líneas vacías o muy cortas
     if (linea.length < 15) continue;
     
-    // Si la línea contiene CUALQUIERA de las palabras técnicas, la saltamos
     const esTecnica = palabrasTecnicas.some(function(palabra) {
       return lower.includes(palabra);
     });
     
     if (esTecnica) continue;
     
-    // Si llegamos aquí, es una línea válida
     validas.push(linea);
   }
   
-  // Unir líneas válidas
   let final = validas.join(' ').replace(/\s+/g, ' ').replace(/\*\*/g, '').trim();
   
-  // Si quedó muy corta o vacía, respuesta por defecto
   if (final.length < 10 || final.toLowerCase().includes('analyze') || final.toLowerCase().includes('constraint')) {
     return "¡Hola! ¿En qué puedo ayudarte hoy?";
   }
@@ -344,22 +404,20 @@ function limpiarRespuestaIA(respuesta) {
 }
 
 // ==========================================
-// SECCIÓN 10: ESTILOS
+// SECCIÓN 11: ESTILOS
 // ==========================================
 function agregarEstilosBuscador() {
   if (document.getElementById('estilos-buscador')) return;
-  const estilos = '<style id="estilos-buscador">.multimedia-search{padding:20px;animation:fadeIn 0.5s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.search-title{color:#2c3e50;margin-bottom:5px;font-size:24px}.search-subtitle{color:#7f8c8d;margin-bottom:25px;font-size:14px}.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-bottom:30px}.result-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);text-decoration:none;color:inherit;transition:all 0.3s ease;display:flex;flex-direction:column}.result-card:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.15)}.card-img{width:100%;height:180px;object-fit:cover}.card-img-placeholder{width:100%;height:180px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:60px;color:white}.card-body{padding:15px;flex-grow:1;display:flex;flex-direction:column}.card-body h4{color:#2980b9;margin:0 0 10px 0;font-size:16px}.card-body p{color:#555;font-size:13px;line-height:1.5;margin:0 0 15px 0;flex-grow:1}.btn-leer{color:#27ae60;font-weight:bold;font-size:13px}.producto-meta{display:flex;justify-content:space-between;margin:10px 0;font-size:13px}.precio{color:#27ae60;font-weight:bold}.ciudad{color:#7f8c8d}.btn-contactar{background:#27ae60;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px}.video-section{margin-top:30px}.video-section h3{color:#2c3e50;margin-bottom:15px;font-size:20px}.youtube-link-card{display:flex;align-items:center;gap:15px;background:#ff0000;color:white;padding:20px;border-radius:12px;text-decoration:none;transition:all 0.3s}.youtube-link-card:hover{background:#cc0000;transform:translateY(-3px)}.youtube-icon{font-size:40px}.youtube-link-card h4{margin:0 0 5px 0}.youtube-link-card p{margin:0;font-size:13px;opacity:0.9}.search-empty{text-align:center;padding:40px;color:#7f8c8d}@media (max-width:768px){.results-grid{grid-template-columns:1fr}}</style>';
+  const estilos = '<style id="estilos-buscador">.multimedia-search{padding:20px;animation:fadeIn 0.5s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.search-title{color:#2c3e50;margin-bottom:5px;font-size:24px}.search-subtitle{color:#7f8c8d;margin-bottom:25px;font-size:14px}.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-bottom:30px}.result-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);text-decoration:none;color:inherit;transition:all 0.3s ease;display:flex;flex-direction:column}.result-card:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.15)}.card-img{width:100%;height:180px;object-fit:cover}.card-img-placeholder{width:100%;height:180px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:60px;color:white}.card-body{padding:15px;flex-grow:1;display:flex;flex-direction:column}.card-body h4{color:#2980b9;margin:0 0 10px 0;font-size:16px}.card-body p{color:#555;font-size:13px;line-height:1.5;margin:0 0 15px 0;flex-grow:1}.btn-leer{color:#27ae60;font-weight:bold;font-size:13px}.producto-meta{display:flex;justify-content:space-between;margin:10px 0;font-size:13px}.precio{color:#27ae60;font-weight:bold}.ciudad{color:#7f8c8d}.btn-contactar{background:#27ae60;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px}.video-section{margin-top:30px}.video-section h3{color:#2c3e50;margin-bottom:15px;font-size:20px}.youtube-link-card{display:flex;align-items:center;gap:15px;background:#ff0000;color:white;padding:20px;border-radius:12px;text-decoration:none;transition:all 0.3s}.youtube-link-card:hover{background:#cc0000;transform:translateY(-3px)}.youtube-icon{font-size:40px}.youtube-link-card h4{margin:0 0 5px 0}.youtube-link-card p{margin:0;font-size:13px;opacity:0.9}.search-empty{text-align:center;padding:40px;color:#7f8c8d}.clima-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:40px;border-radius:16px;text-align:center}.clima-card h2{margin:0 0 20px 0;font-size:28px}.clima-temp{font-size:72px;font-weight:bold;margin:20px 0}@media (max-width:768px){.results-grid{grid-template-columns:1fr}}</style>';
   document.head.insertAdjacentHTML('beforeend', estilos);
 }
 
 agregarEstilosBuscador();
 
 // ==========================================
-// SECCIÓN 11: INICIO
+// SECCIÓN 12: INICIO
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
   console.log("remarket-db OS Iniciado");
-  console.log("Groq API Key:", CONFIG.GROQ_API_KEY ? CONFIG.GROQ_API_KEY.substring(0, 15) + "..." : "NO CONFIGURADA");
-  console.log("Supabase:", CONFIG.SUPABASE_URL ? "Configurado" : "NO CONFIGURADO");
   detectarUbicacion();
 });
