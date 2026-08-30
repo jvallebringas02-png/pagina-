@@ -44,36 +44,45 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. 🌐 BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
+// 3.  BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
 // ==========================================
 async function buscarEnLaWebConMultimedia(query) {
   console.log(`🌐 Buscando multimedia para: "${query}"`);
   
   const resultados = {
     articulos: [],
-    videoQuery: query
+    videos: [],
+    query: query
   };
   
   try {
+    // 1️⃣ Wikipedia (información general)
     const wikiResponse = await fetch(
-      `https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrnamespace=0&gsrlimit=6&gsrsearch=${encodeURIComponent(query)}&prop=pageimages|extracts&pithumbsize=400&exintro&explaintext&exlimit=6&format=json&origin=*`
+      `https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrnamespace=0&gsrlimit=4&gsrsearch=${encodeURIComponent(query)}&prop=pageimages|extracts&pithumbsize=400&exintro&explaintext&exlimit=4&format=json&origin=*`
     );
     const wikiData = await wikiResponse.json();
     
     if (wikiData.query && wikiData.query.pages) {
       const pages = Object.values(wikiData.query.pages);
-      
       pages.forEach(page => {
         resultados.articulos.push({
           titulo: page.title,
           extracto: page.extract ? page.extract.substring(0, 200) : 'Sin descripción disponible.',
           imagen: page.thumbnail ? page.thumbnail.source : null,
-          url: `https://es.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`
+          url: `https://es.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`,
+          tipo: 'wikipedia'
         });
       });
     }
     
-    console.log(`✅ Encontrados ${resultados.articulos.length} artículos`);
+    // 2️⃣ YouTube (videos - especialmente útil para noticias)
+    resultados.videos.push({
+      titulo: `🎥 Videos sobre "${query}"`,
+      embedUrl: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}`,
+      tipo: 'youtube'
+    });
+    
+    console.log(`✅ Encontrados: ${resultados.articulos.length} artículos, ${resultados.videos.length} videos`);
     return resultados;
     
   } catch (error) {
@@ -88,17 +97,18 @@ async function buscarEnLaWebConMultimedia(query) {
 function mostrarResultadosMultimediaEnMuro(resultados, query) {
   const muro = document.getElementById('muro-publicaciones');
   
-  if (!resultados || resultados.articulos.length === 0) {
+  if (!resultados || (resultados.articulos.length === 0 && resultados.videos.length === 0)) {
     muro.innerHTML = `
       <div class="search-empty">
-        <h3>🔍 No encontré resultados para "${query}"</h3>
+        <h3> No encontré resultados para "${query}"</h3>
         <p>Intenta con otra palabra o pregunta.</p>
       </div>
     `;
     return;
   }
   
-  const tarjetasHTML = resultados.articulos.map(art => `
+  // Tarjetas de artículos (Wikipedia)
+  const tarjetasHTML = resultados.articulos.length > 0 ? resultados.articulos.map(art => `
     <a href="${art.url}" target="_blank" class="result-card">
       ${art.imagen ? `<img src="${art.imagen}" alt="${art.titulo}" class="card-img">` : '<div class="card-img-placeholder">📄</div>'}
       <div class="card-body">
@@ -107,55 +117,55 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
         <span class="btn-leer">Leer más →</span>
       </div>
     </a>
-  `).join('');
+  `).join('') : '';
   
-  const videoHTML = `
+  // Videos de YouTube
+  const videosHTML = resultados.videos.length > 0 ? `
     <div class="video-section">
       <h3>🎥 Videos relacionados</h3>
       <div class="video-container">
         <iframe 
           width="100%" 
-          height="315" 
-          src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}" 
+          height="450" 
+          src="${resultados.videos[0].embedUrl}" 
           frameborder="0" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
           allowfullscreen>
         </iframe>
       </div>
+      <p style="color: #7f8c8d; font-size: 14px; margin-top: 10px;">
+        💡 Videos en vivo y grabados sobre "${query}"
+      </p>
     </div>
-  `;
+  ` : '';
   
   muro.innerHTML = `
     <div class="multimedia-search">
-      <h2 class="search-title">🔍 Resultados para: "${query}"</h2>
-      <p class="search-subtitle">${resultados.articulos.length} artículos encontrados</p>
+      <h2 class="search-title"> Resultados para: "${query}"</h2>
+      <p class="search-subtitle">${resultados.articulos.length} artículos + videos encontrados</p>
       
-      <div class="results-grid">
-        ${tarjetasHTML}
-      </div>
+      ${tarjetasHTML ? `<div class="results-grid">${tarjetasHTML}</div>` : ''}
       
-      ${videoHTML}
+      ${videosHTML}
     </div>
   `;
 }
 
 // ==========================================
-// 5. 🧠 DETECTOR DE INTENCIÓN (MEJORADO)
+// 5. 🧠 DETECTOR DE INTENCIÓN
 // ==========================================
 function detectarTipoDeBusqueda(texto) {
   const t = texto.toLowerCase();
   
-  // Palabras que indican búsqueda web general
   const palabrasBusqueda = [
     'muéstrame', 'muestrame', 'busca', 'buscar', 'busco',
     'qué es', 'que es', 'quién es', 'quien es', 'cómo', 'como',
     'explicame', 'explícame', 'historia', 'información',
     'video', 'videos', 'foro', 'página', 'pagina',
     'noticias', 'últimas', 'actualidad', 'novedades',
-    'noticia', 'nuevo', 'nueva'
+    'noticia', 'nuevo', 'nueva', 'youtube'
   ];
   
-  // Palabras que son de remarket-db (productos)
   const palabrasPropias = [
     'vender', 'comprar', 'trueque', 'donar', 'publicar',
     'bicicleta', 'ropa', 'celular', 'artículo', 'articulo'
@@ -194,12 +204,12 @@ async function enviarMensajeIA() {
     const tipo = detectarTipoDeBusqueda(texto);
     
     if (tipo === 'WEB') {
-      document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
+      document.getElementById('ia-escribiendo').innerText = " Buscando en la web...";
       const resultados = await buscarEnLaWebConMultimedia(texto);
       
-      if (resultados && resultados.articulos.length > 0) {
+      if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"! 🎯 Te dejé artículos, imágenes y videos en el panel central. Échales un vistazo. 👇</div>`;
+        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"!  Te dejé artículos y videos en el panel central. Échales un vistazo. 👇</div>`;
         mostrarResultadosMultimediaEnMuro(resultados, texto);
         return;
       }
@@ -213,7 +223,7 @@ async function enviarMensajeIA() {
     document.getElementById('ia-escribiendo').remove();
     
     if (!respuestaIA || respuestaIA.trim().length < 5) {
-      chatHistorial.innerHTML += `<div class="msg-ia">⚠️ La IA no generó una respuesta válida. Intenta de nuevo.</div>`;
+      chatHistorial.innerHTML += `<div class="msg-ia">️ La IA no generó una respuesta válida. Intenta de nuevo.</div>`;
     } else {
       chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     }
@@ -280,7 +290,7 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: `Eres el asistente de remarket-db. Responde en español de forma BREVE y NATURAL (máximo 2-3 oraciones). NUNCA repitas el mismo mensaje. NUNCA muestres texto técnico como "constraints met", "proceed", "[Done]", "Analyze User". SOLO da la respuesta final limpia. Si te preguntan por noticias, clima o información general, responde brevemente y sugiere buscar más detalles.`
+              content: `Eres el asistente de remarket-db. Responde SIEMPRE en español de forma BREVE y NATURAL (máximo 2-3 oraciones). NUNCA muestres tu proceso de pensamiento, reglas, verificaciones o análisis interno. NUNCA uses inglés. SOLO entrega la respuesta final conversacional limpia. Ejemplo CORRECTO: "Son las 3 PM en Callao. ¿Necesitas algo más?". Ejemplo INCORRECTO: "The user is asking... Check constraints... Draft response..."`
             },
             { role: 'user', content: mensaje }
           ],
@@ -317,55 +327,107 @@ async function llamarGroqConModeloDisponible(mensaje) {
 }
 
 // ==========================================
-// 8. 🛡️ FILTRO MEJORADO - Elimina TODO texto técnico y duplicados
+// 8. ️ FILTRO SUPER MEJORADO - Elimina TODO texto técnico
 // ==========================================
 function limpiarRespuestaIA(respuesta) {
-  // 1️⃣ Eliminar texto técnico OBVIO
-  respuesta = respuesta.replace(/All constraints met\.? Proceed\.?/gi, '');
-  respuesta = respuesta.replace(/\[Done\]/gi, '');
-  respuesta = respuesta.replace(/\[.*?\]/g, '');
-  respuesta = respuesta.replace(/Analyze User Input:/gi, '');
-  respuesta = respuesta.replace(/Context provided:/gi, '');
-  respuesta = respuesta.replace(/Query:/gi, '');
+  console.log('📝 Respuesta original:', respuesta.substring(0, 200));
   
-  // 2️⃣ Dividir en oraciones
-  const oraciones = respuesta.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
-  
-  // 3️⃣ Eliminar duplicados y texto técnico
-  const oracionesUnicas = [];
-  const vistas = new Set();
-  
-  const palabrasTecnicas = [
-    'constraints met', 'analyze user', 'context provided', 
-    'proceed', 'all rules satisfied', 'output matches',
-    'thinking process', 'system prompt', 'requirements'
+  // 1️⃣ Eliminar patrones de texto técnico en INGLÉS y ESPAÑOL
+  const patronesProhibidos = [
+    /The user is asking for/gi,
+    /The persona is/gi,
+    /Response language:/gi,
+    /Response style:/gi,
+    /Constraints:/gi,
+    /Constraint:/gi,
+    /Drafting response:/gi,
+    /Draft Response/gi,
+    /Draft response/gi,
+    /Check constraints:/gi,
+    /Check Constraints:/gi,
+    /Check constraint/gi,
+    /Final Polish:/gi,
+    /Added a/gi,
+    /Mental Draft/gi,
+    /Formulate Response/gi,
+    /Analyze User/gi,
+    /Identify Key/gi,
+    /All rules satisfied/gi,
+    /Output matches/gi,
+    /Proceed\.?/gi,
+    /\[.*?\]/g,
+    /-\s+[A-Z][a-z]+:/g,
+    /Spanish\./gi,
+    /Brief\./gi,
+    /Natural\./gi,
+    /Yes \(\d+ sentence/gi,
+    /No technical text/gi,
+    /Clean response/gi,
+    /Only give the clean final response/gi,
+    /If asked about/gi,
+    /suggest looking/gi,
+    /suggest checking/gi,
+    /reliable source/gi,
+    /No repetition/gi,
+    /Acknowledge request/gi,
+    /give a brief response/gi,
+    /tone: natural/gi,
+    /Content:/gi,
+    /- Brief & natural/gi,
+    /Checked\./gi
   ];
   
-  for (let oracion of oraciones) {
-    const normalizada = oracion.toLowerCase();
+  let respuestaLimpia = respuesta;
+  
+  patronesProhibidos.forEach(patron => {
+    respuestaLimpia = respuestaLimpia.replace(patron, '');
+  });
+  
+  // 2️⃣ Dividir en líneas
+  const lineas = respuestaLimpia.split('\n');
+  const lineasValidas = [];
+  
+  for (let linea of lineas) {
+    const lineaTrim = linea.trim();
+    const lineaLower = lineaTrim.toLowerCase();
     
-    // Saltar si es texto técnico
-    if (palabrasTecnicas.some(p => normalizada.includes(p))) {
+    // Saltar líneas vacías o muy cortas
+    if (lineaTrim.length < 10) continue;
+    
+    // Saltar líneas que son claramente instrucciones/metadatos
+    if (lineaLower.includes('check ') ||
+        lineaLower.includes('constraint') ||
+        lineaLower.includes('draft') ||
+        lineaLower.includes('analyze') ||
+        lineaLower.includes('formulate') ||
+        lineaLower.includes('mental') ||
+        lineaLower.includes('rules satisfied') ||
+        lineaLower.match(/^\d+\./) ||
+        lineaLower.match(/^-\s+[a-z]/) ||
+        lineaTrim.match(/^[A-Z][a-z]+:/)) {
       continue;
     }
     
-    // Solo agregar si no se ha visto antes y tiene contenido
-    if (!vistas.has(normalizada) && oracion.length > 5) {
-      vistas.add(normalizada);
-      oracionesUnicas.push(oracion);
-    }
+    lineasValidas.push(lineaTrim);
   }
   
-  // 4️⃣ Unir y limpiar
-  let respuestaLimpia = oracionesUnicas.join('. ');
-  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '').trim();
+  // 3️⃣ Unir líneas válidas
+  respuestaLimpia = lineasValidas.join(' ');
   
-  // Asegurar que termine con punto
-  if (respuestaLimpia.length > 0 && !respuestaLimpia.endsWith('.')) {
-    respuestaLimpia += '.';
+  // 4️⃣ Limpieza final
+  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '');
+  respuestaLimpia = respuestaLimpia.replace(/[✅✔️]/g, '');
+  respuestaLimpia = respuestaLimpia.replace(/\s+/g, ' ');
+  respuestaLimpia = respuestaLimpia.trim();
+  
+  // 5️⃣ Si quedó vacía o muy corta, usar respuesta por defecto
+  if (respuestaLimpia.length < 15) {
+    console.warn('⚠️ Respuesta muy corta después de limpiar, usando default');
+    return "Hola, ¿en qué puedo ayudarte hoy?";
   }
   
-  return respuestaLimpia.length > 10 ? respuestaLimpia : "Hola, ¿en qué puedo ayudarte?";
+  console.log('✅ Respuesta limpia:', respuestaLimpia.substring(0, 200));
+  return respuestaLimpia;
 }
 
 function actualizarMuroPorIA(texto) {
@@ -520,6 +582,9 @@ function agregarEstilosBuscador() {
       @media (max-width: 768px) {
         .results-grid {
           grid-template-columns: 1fr;
+        }
+        .video-container {
+          padding-bottom: 75%;
         }
       }
     </style>
