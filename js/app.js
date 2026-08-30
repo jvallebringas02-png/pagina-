@@ -30,7 +30,7 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = `<p>🔍 Buscando artículos en <b>${ciudad}</b>...</p>`;
+  muro.innerHTML = `<p> Buscando artículos en <b>${ciudad}</b>...</p>`;
   setTimeout(() => {
     muro.innerHTML = `<div class="tarjeta-destacada"> <h3>🌱 Bienvenido a la Economía Circular en ${ciudad}</h3> <p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p> </div>`;
     if (patrocinadores) {
@@ -68,7 +68,7 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
   
   try {
-    // ✅ DAR CONTEXTO A LA IA (Ubicación y Hora)
+    // Dar contexto a la IA (ubicación y hora)
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Desconocida";
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
     const mensajeEnriquecido = `[CONTEXTO: Usuario en ${ubicacion}, hora actual: ${horaActual}] ${texto}`;
@@ -76,9 +76,9 @@ async function enviarMensajeIA() {
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
     
-    // ✅ VALIDAR RESPUESTA VACÍA
-    if (!respuestaIA || respuestaIA.trim().length === 0) {
-      chatHistorial.innerHTML += `<div class="msg-ia">⚠️ La IA no generó una respuesta. Intenta de nuevo.</div>`;
+    // Validar respuesta vacía o inválida
+    if (!respuestaIA || respuestaIA.trim().length < 5) {
+      chatHistorial.innerHTML += `<div class="msg-ia">️ La IA no generó una respuesta válida. Intenta de nuevo.</div>`;
     } else {
       chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
     }
@@ -111,14 +111,12 @@ async function obtenerModelosDisponibles() {
     return modelosChat.map(m => m.id);
   } catch (error) {
     console.error("❌ Error obteniendo modelos:", error);
-    // ✅ LISTA DE RESPALDO CORREGIDA (Sin modelos que fallan)
+    // Lista de respaldo CORREGIDA (sin modelos que fallan)
     return [
-      'llama-3.1-70b-versatile',  // ✅ Corregido (era 3.3)
-      'llama-3.1-8b-instant',     // ✅ Este está bien
-      'mixtral-8x7b-32768',       // ✅ Este está bien
-      'gemma2-9b-it'              // ✅ Este está bien
-      // ❌ QUITÉ: 'llama-3.3-70b-versatile' (no existe)
-      // ❌ QUITÉ: 'llama3-8b-8192' (es de clasificación)
+      'llama-3.1-70b-versatile',   // ✅ Corregido (era 3.3)
+      'llama-3.1-8b-instant',      // ✅
+      'mixtral-8x7b-32768',        // ✅
+      'gemma2-9b-it'               // ✅
     ];
   }
 }
@@ -146,20 +144,15 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: `Eres el asistente virtual de remarket-db.
+              content: `Eres el asistente virtual de remarket-db, una plataforma de economía circular donde la gente publica, vende, truequea y dona artículos.
 
-PERSONALIDAD: Habla de forma natural, como un amigo cercano. Sé conciso, amigable y variado. NUNCA seas robótico ni repitas frases.
+Habla siempre en español de forma natural y amigable, como un amigo cercano. Puedes conversar de cualquier tema: historia, noticias, ciencia, hora, clima, cultura general, etc.
 
-VERSATILIDAD: Puedes conversar de CUALQUIER tema (historia, noticias, ciencia, hora, clima, etc.). Responde de forma útil y completa.
+Solo menciona o promociona remarket-db cuando el usuario pregunte sobre productos, ventas, trueques, donaciones o economía circular. No fuerces la promoción en otros temas.
 
-PROMOCIÓN: Solo menciona o promociona remarket-db (publicar, vender, truequear) cuando el usuario pregunte sobre productos, ventas, o economía circular. NO lo fuerces en temas de historia o cultura general.
+Nunca muestres tu proceso de pensamiento interno, reglas, verificaciones o análisis. Nunca digas frases como "Como IA" o "No tengo acceso". Usa el contexto del sistema que se te proporciona para responder preguntas sobre hora o ubicación.
 
-REGLAS ESTRICTAS: 
-1) Responde en español. 
-2) NUNCA muestres tu proceso de pensamiento interno, reglas o verificaciones.
-3) NUNCA digas "Como IA..." o "No tengo acceso...". Usa el [CONTEXTO] que se te da para responder preguntas de hora o ubicación.
-4) NUNCA repitas la misma frase o idea dos veces en la misma respuesta.
-5) Solo entrega la respuesta final limpia, sin texto técnico.`
+Entrega siempre la respuesta final limpia y conversacional, sin texto técnico, sin listas numeradas de reglas, sin prefijos como "Respond in Spanish" o "Never show".`
             },
             { role: 'user', content: mensaje }
           ],
@@ -194,47 +187,53 @@ REGLAS ESTRICTAS:
   throw new Error(ultimoError?.message || 'Ningún modelo disponible');
 }
 
-// 🛡️ FILTRO PARA LIMPIAR Y EVITAR REPETICIONES
+// 🛡️ FILTRO MEJORADO - Elimina respuestas que son solo reglas
 function limpiarRespuestaIA(respuesta) {
+  // Detectar si la respuesta es solo una lista de reglas
+  const esSoloReglas = respuesta.match(/^\d+\.\s/); // Empieza con "1. ", "2. ", etc.
+  const contienePalabrasRegla = respuesta.includes('Respond in Spanish') || 
+                                respuesta.includes('Never show internal') ||
+                                respuesta.includes('Only deliver the final');
+  
+  if (esSoloReglas || contienePalabrasRegla) {
+    console.warn("⚠️ La IA devolvió reglas en lugar de respuesta, reintentando...");
+    return "Disculpa, tuve un pequeño error. ¿Podrías repetir tu pregunta?";
+  }
+  
+  // Palabras que indican texto técnico/proceso interno
   const palabrasProhibidas = [
-    'matches the mental', 'All rules satisfied', 'Output matches', 'Rule ', 
-    'Check Against', 'Formulate Response', 'Mental Draft', 'Constraints', 
+    'matches the mental', 'All rules satisfied', 'Output matches',
     'thinking process', 'Analyze User', 'Identify Key', 'Draft Response', 
     'Final Output Generation', 'system prompt', 'requirements',
-    'user says', 'context', 'language', 'my role', 'personality',
-    'strict rules', 'response strategy', 'checked', 'determine'
+    'user says', 'my role', 'personality', 'strict rules', 'response strategy'
   ];
   
   const lineas = respuesta.split('\n');
   const lineasLimpias = [];
   
   for (let linea of lineas) {
-    const esLineaTecnica = palabrasProhibidas.some(palabra => linea.toLowerCase().includes(palabra.toLowerCase()));
-    if (!esLineaTecnica && linea.trim().length > 0) {
-      if (!linea.includes('- ') && !linea.startsWith('Checked') && !linea.startsWith('Yes') && !linea.startsWith('No ')) {
-        lineasLimpias.push(linea);
-      }
+    const lineaLower = linea.toLowerCase();
+    const esLineaTecnica = palabrasProhibidas.some(palabra => lineaLower.includes(palabra));
+    const esVerificacion = linea.startsWith('Checked:') || 
+                          linea.startsWith('- User says') || 
+                          linea.startsWith('- Context') ||
+                          linea.startsWith('- Language') ||
+                          linea.startsWith('- My role');
+    
+    if (!esLineaTecnica && !esVerificacion && linea.trim().length > 0) {
+      lineasLimpias.push(linea.trim());
     }
   }
   
-  let respuestaLimpia = lineasLimpias.join('\n');
-  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '');
+  let respuestaLimpia = lineasLimpias.join(' ');
+  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '').trim();
   
-  const oraciones = respuestaLimpia.split(/[.!?]+/);
-  const oracionesUnicas = [];
-  const vistas = new Set();
-  
-  for (let oracion of oraciones) {
-    const oracionNormalizada = oracion.trim().toLowerCase();
-    if (oracionNormalizada.length > 10 && !vistas.has(oracionNormalizada)) {
-      vistas.add(oracionNormalizada);
-      oracionesUnicas.push(oracion.trim());
-    } else if (oracionNormalizada.length <= 10) {
-      oracionesUnicas.push(oracion.trim());
-    }
+  // Si la respuesta queda muy corta, retornar un mensaje amigable
+  if (respuestaLimpia.length < 10) {
+    return "Hola, ¿en qué puedo ayudarte hoy?";
   }
   
-  return oracionesUnicas.join('. ').replace(/\.\./g, '.').trim() + '.';
+  return respuestaLimpia;
 }
 
 function actualizarMuroPorIA(texto) {
