@@ -44,7 +44,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. 🌐 BÚSQUEDA MULTIMEDIA
+// 3. 🌐 BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
 // ==========================================
 async function buscarEnLaWebConMultimedia(query) {
   console.log(`🌐 Buscando multimedia para: "${query}"`);
@@ -83,7 +83,7 @@ async function buscarEnLaWebConMultimedia(query) {
 }
 
 // ==========================================
-// 4.  PINTAR RESULTADOS EN EL MURO
+// 4. 🎨 PINTAR RESULTADOS EN EL MURO
 // ==========================================
 function mostrarResultadosMultimediaEnMuro(resultados, query) {
   const muro = document.getElementById('muro-publicaciones');
@@ -91,7 +91,7 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
   if (!resultados || resultados.articulos.length === 0) {
     muro.innerHTML = `
       <div class="search-empty">
-        <h3> No encontré resultados para "${query}"</h3>
+        <h3>🔍 No encontré resultados para "${query}"</h3>
         <p>Intenta con otra palabra o pregunta.</p>
       </div>
     `;
@@ -111,7 +111,7 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
   
   const videoHTML = `
     <div class="video-section">
-      <h3> Videos relacionados</h3>
+      <h3>🎥 Videos relacionados</h3>
       <div class="video-container">
         <iframe 
           width="100%" 
@@ -140,18 +140,22 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
 }
 
 // ==========================================
-// 5. 🧠 DETECTOR DE INTENCIÓN
+// 5. 🧠 DETECTOR DE INTENCIÓN (MEJORADO)
 // ==========================================
 function detectarTipoDeBusqueda(texto) {
   const t = texto.toLowerCase();
   
+  // Palabras que indican búsqueda web general
   const palabrasBusqueda = [
     'muéstrame', 'muestrame', 'busca', 'buscar', 'busco',
     'qué es', 'que es', 'quién es', 'quien es', 'cómo', 'como',
     'explicame', 'explícame', 'historia', 'información',
-    'video', 'videos', 'foro', 'página', 'pagina'
+    'video', 'videos', 'foro', 'página', 'pagina',
+    'noticias', 'últimas', 'actualidad', 'novedades',
+    'noticia', 'nuevo', 'nueva'
   ];
   
+  // Palabras que son de remarket-db (productos)
   const palabrasPropias = [
     'vender', 'comprar', 'trueque', 'donar', 'publicar',
     'bicicleta', 'ropa', 'celular', 'artículo', 'articulo'
@@ -195,7 +199,7 @@ async function enviarMensajeIA() {
       
       if (resultados && resultados.articulos.length > 0) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"!  Te dejé artículos, imágenes y videos en el panel central. Échales un vistazo. 👇</div>`;
+        chatHistorial.innerHTML += `<div class="msg-ia">¡Encontré información sobre "${texto}"! 🎯 Te dejé artículos, imágenes y videos en el panel central. Échales un vistazo. 👇</div>`;
         mostrarResultadosMultimediaEnMuro(resultados, texto);
         return;
       }
@@ -223,7 +227,7 @@ async function enviarMensajeIA() {
 }
 
 // ==========================================
-// 7. CASCADA DE MODELOS GROQ (CORREGIDA)
+// 7. CASCADA DE MODELOS GROQ
 // ==========================================
 async function obtenerModelosDisponibles() {
   try {
@@ -245,7 +249,6 @@ async function obtenerModelosDisponibles() {
     return modelosChat.map(m => m.id);
   } catch (error) {
     console.error("❌ Error obteniendo modelos:", error);
-    // Lista de respaldo CORREGIDA - Solo modelos que existen
     return [
       'llama-3.1-70b-versatile',
       'llama-3.1-8b-instant',
@@ -277,12 +280,12 @@ async function llamarGroqConModeloDisponible(mensaje) {
           messages: [
             { 
               role: 'system', 
-              content: `Eres el asistente de remarket-db. Responde SIEMPRE en español de forma natural y amigable. NUNCA muestres procesos de pensamiento, análisis, reglas o verificaciones. SOLO entrega la respuesta final conversacional. Si te dan contexto de ubicación/hora, úsalo naturalmente. Ejemplo CORRECTO: "Son las 3 PM en Callao". Ejemplo INCORRECTO: "1. Analyze User Input..."`
+              content: `Eres el asistente de remarket-db. Responde en español de forma BREVE y NATURAL (máximo 2-3 oraciones). NUNCA repitas el mismo mensaje. NUNCA muestres texto técnico como "constraints met", "proceed", "[Done]", "Analyze User". SOLO da la respuesta final limpia. Si te preguntan por noticias, clima o información general, responde brevemente y sugiere buscar más detalles.`
             },
             { role: 'user', content: mensaje }
           ],
           temperature: 0.8,
-          max_tokens: 400,
+          max_tokens: 300,
           presence_penalty: 0.6,
           frequency_penalty: 0.5
         })
@@ -314,54 +317,55 @@ async function llamarGroqConModeloDisponible(mensaje) {
 }
 
 // ==========================================
-// 8. 🛡️ FILTRO MEJORADO - Elimina TODO texto técnico
+// 8. 🛡️ FILTRO MEJORADO - Elimina TODO texto técnico y duplicados
 // ==========================================
 function limpiarRespuestaIA(respuesta) {
-  // Dividir en líneas
-  const lineas = respuesta.split('\n');
-  const lineasLimpias = [];
+  // 1️⃣ Eliminar texto técnico OBVIO
+  respuesta = respuesta.replace(/All constraints met\.? Proceed\.?/gi, '');
+  respuesta = respuesta.replace(/\[Done\]/gi, '');
+  respuesta = respuesta.replace(/\[.*?\]/g, '');
+  respuesta = respuesta.replace(/Analyze User Input:/gi, '');
+  respuesta = respuesta.replace(/Context provided:/gi, '');
+  respuesta = respuesta.replace(/Query:/gi, '');
   
-  // Palabras que indican texto técnico/proceso interno
-  const palabrasProhibidas = [
-    'analyze user', 'context provided', 'query:', 'determine response',
-    'formulate response', 'check against', 'all rules satisfied',
-    'output matches', 'matches the mental', 'thinking process',
-    'system prompt', 'requirements', 'strict rules', 'response strategy',
-    'checked:', '- user says', '- context', '- language', '- my role',
-    'personality:', 'versatility:', 'promotion:', 'rules:',
-    '1.', '2.', '3.', '4.', '5.', 'step 1', 'step 2'
+  // 2️⃣ Dividir en oraciones
+  const oraciones = respuesta.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+  
+  // 3️⃣ Eliminar duplicados y texto técnico
+  const oracionesUnicas = [];
+  const vistas = new Set();
+  
+  const palabrasTecnicas = [
+    'constraints met', 'analyze user', 'context provided', 
+    'proceed', 'all rules satisfied', 'output matches',
+    'thinking process', 'system prompt', 'requirements'
   ];
   
-  for (let linea of lineas) {
-    const lineaLower = linea.toLowerCase().trim();
+  for (let oracion of oraciones) {
+    const normalizada = oracion.toLowerCase();
     
-    // Verificar si es línea técnica
-    const esLineaTecnica = palabrasProhibidas.some(palabra => 
-      lineaLower.includes(palabra) || 
-      lineaLower.match(/^\d+\./) || // Empieza con número y punto
-      lineaLower.startsWith('- ') // Empieza con guion
-    );
+    // Saltar si es texto técnico
+    if (palabrasTecnicas.some(p => normalizada.includes(p))) {
+      continue;
+    }
     
-    // Solo agregar si NO es técnica y tiene contenido
-    if (!esLineaTecnica && linea.trim().length > 0) {
-      lineasLimpias.push(linea.trim());
+    // Solo agregar si no se ha visto antes y tiene contenido
+    if (!vistas.has(normalizada) && oracion.length > 5) {
+      vistas.add(normalizada);
+      oracionesUnicas.push(oracion);
     }
   }
   
-  // Unir líneas limpias
-  let respuestaLimpia = lineasLimpias.join(' ');
+  // 4️⃣ Unir y limpiar
+  let respuestaLimpia = oracionesUnicas.join('. ');
+  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '').replace(/[✅✔️]/g, '').trim();
   
-  // Limpiar caracteres especiales
-  respuestaLimpia = respuestaLimpia.replace(/\*\*/g, '');
-  respuestaLimpia = respuestaLimpia.replace(/[✅✔️]/g, '');
-  respuestaLimpia = respuestaLimpia.trim();
-  
-  // Si la respuesta queda vacía o muy corta, retornar mensaje por defecto
-  if (respuestaLimpia.length < 10) {
-    return "Hola, ¿en qué puedo ayudarte hoy?";
+  // Asegurar que termine con punto
+  if (respuestaLimpia.length > 0 && !respuestaLimpia.endsWith('.')) {
+    respuestaLimpia += '.';
   }
   
-  return respuestaLimpia;
+  return respuestaLimpia.length > 10 ? respuestaLimpia : "Hola, ¿en qué puedo ayudarte?";
 }
 
 function actualizarMuroPorIA(texto) {
@@ -369,7 +373,7 @@ function actualizarMuroPorIA(texto) {
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
     muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
-    muro.innerHTML = `<h3> Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
+    muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
 }
 
@@ -377,7 +381,7 @@ function actualizarMuroPorIA(texto) {
 // 9. TRADUCTOR AUTOMÁTICO
 // ==========================================
 function traducirPagina(idioma) {
-  console.log(`🌍 Traduciendo página a: ${idioma}`);
+  console.log(` Traduciendo página a: ${idioma}`);
   if (idioma === 'en') document.querySelector('h1').innerText = 'Circular Economy Catalog';
   if (idioma === 'it') document.querySelector('h1').innerText = 'Catalogo di Economia Circolare';
 }
@@ -530,7 +534,7 @@ agregarEstilosBuscador();
 // 11. INICIAR EL SISTEMA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log(" remarket-db OS Iniciado");
+  console.log("🚀 remarket-db OS Iniciado");
   console.log("🔑 Groq API Key:", CONFIG.GROQ_API_KEY.substring(0, 15) + "...");
   detectarUbicacion();
 });
