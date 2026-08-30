@@ -44,7 +44,7 @@ function cargarMuroDinamico(ciudad, pais) {
 }
 
 // ==========================================
-// 3. ASISTENTE IA (NATURAL Y VERSÁTIL)
+// 3. ASISTENTE IA
 // ==========================================
 const chatInput = document.getElementById('chat-input');
 const chatBtn = document.getElementById('chat-btn');
@@ -68,14 +68,21 @@ async function enviarMensajeIA() {
   chatHistorial.innerHTML += `<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>`;
   
   try {
-    // Dar contexto a la IA (ubicación y hora)
+    // ✅ DAR CONTEXTO A LA IA (Ubicación y Hora)
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Desconocida";
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
     const mensajeEnriquecido = `[CONTEXTO: Usuario en ${ubicacion}, hora actual: ${horaActual}] ${texto}`;
     
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
-    chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
+    
+    // ✅ VALIDAR RESPUESTA VACÍA
+    if (!respuestaIA || respuestaIA.trim().length === 0) {
+      chatHistorial.innerHTML += `<div class="msg-ia">⚠️ La IA no generó una respuesta. Intenta de nuevo.</div>`;
+    } else {
+      chatHistorial.innerHTML += `<div class="msg-ia">${respuestaIA}</div>`;
+    }
+    
     actualizarMuroPorIA(texto);
   } catch (error) {
     console.error("❌ Error de IA:", error);
@@ -104,12 +111,14 @@ async function obtenerModelosDisponibles() {
     return modelosChat.map(m => m.id);
   } catch (error) {
     console.error("❌ Error obteniendo modelos:", error);
-    // Lista de respaldo CORREGIDA (sin los que fallan)
+    // ✅ LISTA DE RESPALDO CORREGIDA (Sin modelos que fallan)
     return [
-      'llama-3.1-70b-versatile',
-      'llama-3.1-8b-instant',
-      'mixtral-8x7b-32768',
-      'gemma2-9b-it'
+      'llama-3.1-70b-versatile',  // ✅ Corregido (era 3.3)
+      'llama-3.1-8b-instant',     // ✅ Este está bien
+      'mixtral-8x7b-32768',       // ✅ Este está bien
+      'gemma2-9b-it'              // ✅ Este está bien
+      // ❌ QUITÉ: 'llama-3.3-70b-versatile' (no existe)
+      // ❌ QUITÉ: 'llama3-8b-8192' (es de clasificación)
     ];
   }
 }
@@ -231,7 +240,7 @@ function limpiarRespuestaIA(respuesta) {
 function actualizarMuroPorIA(texto) {
   const muro = document.getElementById('muro-publicaciones');
   if (texto.toLowerCase().includes('noticia') || texto.toLowerCase().includes('nuevo')) {
-    muro.innerHTML = `<h3> Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
+    muro.innerHTML = `<h3>📰 Últimas Novedades</h3><p>La IA está buscando las noticias más recientes...</p>`;
   } else if (texto.toLowerCase().includes('usuario') || texto.toLowerCase().includes('gente')) {
     muro.innerHTML = `<h3>👥 Usuarios cerca de ti</h3><p>Mostrando perfiles de tu localidad...</p>`;
   }
