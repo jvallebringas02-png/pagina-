@@ -695,3 +695,43 @@ if (buscadorArriba && chatInput && chatBtn) {
     }
   });
 }
+// ==========================================
+// CONTROL DEL MENÚ DESPLEGABLE CON CLIC
+// ==========================================
+const btnIdioma = document.querySelector('.btn-idioma');
+const idiomaMenu = document.querySelector('.idioma-menu');
+
+if (btnIdioma && idiomaMenu) {
+  // Abrir/cerrar menú al hacer clic en el botón
+  btnIdioma.addEventListener('click', function(evento) {
+    evento.stopPropagation();
+    idiomaMenu.classList.toggle('activo');
+  });
+
+  // Cerrar menú al hacer clic fuera
+  document.addEventListener('click', function(evento) {
+    if (!idiomaMenu.contains(evento.target) && !btnIdioma.contains(evento.target)) {
+      idiomaMenu.classList.remove('activo');
+    }
+  });
+
+  // Cerrar menú al seleccionar una opción
+  const opciones = document.querySelectorAll('.idioma-opcion');
+  opciones.forEach(function(opcion) {
+    opcion.addEventListener('click', function() {
+      idiomaMenu.classList.remove('activo');
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
