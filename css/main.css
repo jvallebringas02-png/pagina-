@@ -88,6 +88,11 @@ body {
   margin-top: 0.5rem;
 }
 
+/* AGREGA ESTO */
+.idioma-menu.activo {
+  display: block;
+}
+
 .idioma-opcion {
   padding: 0.7rem 1rem;
   cursor: pointer;
