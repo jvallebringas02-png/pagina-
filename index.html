@@ -6,11 +6,11 @@
   <title>remarket-db - Portal Economía Circular IA</title>
   
   <style>
-    /* ESTILOS BÁSICOS PARA QUE SE VEA BIEN AL INSTANTE */
+    /* ESTILOS BÁSICOS */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
     body { background: #f4f6f8; color: #333; }
     
-    /* HEADER Y BUSCADOR */
+    /* HEADER */
     header {
       background: #2c3e50;
       color: white;
@@ -100,29 +100,29 @@
 
   <!-- HEADER CON BUSCADOR Y SELECTOR DE IDIOMAS -->
   <header>
-    <h1> remarket-db OS</h1>
+    <h1>🌱 remarket-db OS</h1>
     <div class="header-right">
       <input type="text" id="buscador-principal" placeholder="¿Qué estás buscando hoy?">
       
-      <!-- SELECTOR DE IDIOMAS -->
+      <!-- SELECTOR DE IDIOMAS CON ONCLICK -->
       <div class="idioma-selector">
         <button class="btn-idioma">🌐 Español ▼</button>
         <div class="idioma-menu">
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('es')">🇪🇸 Español</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('es')">🇸 Español</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('en')">🇬🇧 English</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('pt')">🇧🇷 Português</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('zh')">🇨🇳 中文 (Chino)</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('fr')">🇫🇷 Français</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('de')">🇪 Deutsch</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇮 Italiano</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯🇵 日本語 (Japonés)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇰 한국어 (Coreano)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇸 العربية (Árabe)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('hi')">🇮🇳 हिन्दी (Hindi)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('de')">🇩🇪 Deutsch</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇹 Italiano</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯 日本語 (Japonés)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇰🇷 한국어 (Coreano)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇸🇦 العربية (Árabe)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('hi')">🇳 हिन्दी (Hindi)</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('nl')">🇳🇱 Nederlands</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('tr')">🇷 Türkçe</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇧🇬 Български</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇵 Quechua</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('tr')">🇹🇷 Türkçe</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇧 Български</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇵🇪 Quechua</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('ay')">🇧🇴 Aymara</div>
         </div>
       </div>
@@ -134,7 +134,7 @@
     
     <!-- ASISTENTE IA -->
     <aside class="panel-ia">
-      <h3>🤖 Asistente IA</h3>
+      <h3> Asistente IA</h3>
       <div id="chat-historial">
         <div class="msg-ia">¡Hola! Soy tu asistente. ¿Qué necesitas hoy?</div>
       </div>
