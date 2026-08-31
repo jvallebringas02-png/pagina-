@@ -1,7 +1,7 @@
 /* ==========================================
-   remarket-db - Estilos Principales
-   Portal de Economía Circular IA
-   ========================================== */
+remarket-db - Estilos Principales
+Portal de Economía Circular IA
+========================================== */
 
 /* RESET Y BASE */
 * {
@@ -88,7 +88,7 @@ body {
   margin-top: 0.5rem;
 }
 
-/* AGREGA ESTO */
+/* ✅ AGREGADO: Clase para mostrar el menú con clic */
 .idioma-menu.activo {
   display: block;
 }
@@ -104,9 +104,7 @@ body {
   background: #f8f9fa;
 }
 
-.idioma-selector:hover .idioma-menu {
-  display: block;
-}
+/*  ELIMINADO: .idioma-selector:hover .idioma-menu { display: block; } */
 
 /* MENÚ DE USUARIO */
 .menu-usuario {
@@ -193,32 +191,7 @@ body {
 .dropdown-usuario:hover .dropdown-menu {
   display: block;
 }
-/* BUSCADOR PRINCIPAL */
-#buscador-principal {
-  width: 100%;
-  max-width: 600px;
-  padding: 15px 25px;
-  font-size: 16px;
-  border: none;
-  border-radius: 30px;
-  background: white;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  outline: none;
-  margin: 20px auto;
-  display: block;
-  transition: all 0.3s ease;
-}
 
-#buscador-principal:focus {
-  box-shadow: 0 4px 20px rgba(39, 174, 96, 0.3);
-  transform: scale(1.02);
-  border: 2px solid #27ae60;
-}
-
-#buscador-principal::placeholder {
-  color: #7f8c8d;
-  opacity: 0.7;
-}
 /* CONTENIDO PRINCIPAL */
 .main-content {
   max-width: 1400px;
