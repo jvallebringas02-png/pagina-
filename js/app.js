@@ -12,8 +12,8 @@ const traducciones = {
     catalogoSub: "Descubre artículos disponibles para intercambio en tu zona",
     btnPublicar: "📦 Publicar",
     saludoIA: "¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?",
-    detectandoUbicacion: "🔍 Detectando tu ubicación y cargando publicaciones...",
-    tuAlcance: " Tu Alcance",
+    detectandoUbicacion: " Detectando tu ubicación y cargando publicaciones...",
+    tuAlcance: "📍 Tu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
   },
@@ -21,7 +21,7 @@ const traducciones = {
     logo: "🌱 remarket-db OS",
     chatPlaceholder: "Type your question here...",
     chatBtn: "Send",
-    catalogoTitulo: "🌱 Circular Economy Catalog",
+    catalogoTitulo: " Circular Economy Catalog",
     catalogoSub: "Discover items available for exchange in your area",
     btnPublicar: "📦 Publish",
     saludoIA: "Hello! I'm your global circular economy assistant. What do you need today?",
@@ -34,7 +34,7 @@ const traducciones = {
     logo: "🌱 remarket-db 操作系统",
     chatPlaceholder: "在这里输入您的问题...",
     chatBtn: "发送",
-    catalogoTitulo: "🌱 循环经济目录",
+    catalogoTitulo: " 循环经济目录",
     catalogoSub: "发现您所在地区可用于交换的物品",
     btnPublicar: "📦 发布",
     saludoIA: "你好！我是您的全球循环经济助手。您今天需要什么？",
@@ -49,10 +49,10 @@ const traducciones = {
     chatBtn: "Enviar",
     catalogoTitulo: "🌱 Catálogo de Economia Circular",
     catalogoSub: "Descubra artigos disponíveis para troca na sua zona",
-    btnPublicar: " Publicar",
+    btnPublicar: "📦 Publicar",
     saludoIA: "Olá! Sou seu assistente de economia circular global. O que você precisa hoje?",
     detectandoUbicacion: "🔍 Detectando sua localização e carregando publicações...",
-    tuAlcance: " Seu Alcance",
+    tuAlcance: "📍 Seu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
   },
@@ -65,12 +65,12 @@ const traducciones = {
     btnPublicar: "📦 Publier",
     saludoIA: "Bonjour! Je suis votre assistant d'économie circulaire global. Que vous faut-il aujourd'hui?",
     detectandoUbicacion: "🔍 Détection de votre emplacement et chargement des publications...",
-    tuAlcance: "📍 Votre Portée",
+    tuAlcance: " Votre Portée",
     detectandoIP: "Détection IP...",
     patrocinadores: "Sponsors"
   },
   de: {
-    logo: " remarket-db OS",
+    logo: "🌱 remarket-db OS",
     chatPlaceholder: "Geben Sie Ihre Frage hier ein...",
     chatBtn: "Senden",
     catalogoTitulo: "🌱 Kreislaufwirtschaft Katalog",
@@ -90,7 +90,7 @@ const traducciones = {
     catalogoSub: "Scopri articoli disponibili per lo scambio nella tua zona",
     btnPublicar: "📦 Pubblica",
     saludoIA: "Ciao! Sono il tuo assistente di economia circolare globale. Cosa ti serve oggi?",
-    detectandoUbicacion: " Rilevamento della posizione e caricamento pubblicazioni...",
+    detectandoUbicacion: "🔍 Rilevamento della posizione e caricamento pubblicazioni...",
     tuAlcance: "📍 La tua Portata",
     detectandoIP: "Rilevamento IP...",
     patrocinadores: "Sponsor"
@@ -103,21 +103,21 @@ const traducciones = {
     catalogoSub: "お住まいの地域で交換可能なアイテムを発見",
     btnPublicar: "📦 公開",
     saludoIA: "こんにちは！グローバル循環型経済アシスタントです。今日は何が必要ですか？",
-    detectandoUbicacion: "🔍 場所を検出して出版物を読み込んでいます...",
+    detectandoUbicacion: " 場所を検出して出版物を読み込んでいます...",
     tuAlcance: "📍 あなたのカバレッジ",
     detectandoIP: "IP検出中...",
     patrocinadores: "スポンサー"
   },
   ko: {
-    logo: " remarket-db 운영체제",
+    logo: "🌱 remarket-db 운영체제",
     chatPlaceholder: "여기에 질문을 입력하세요...",
     chatBtn: "보내기",
     catalogoTitulo: "🌱 순환 경제 카탈로그",
     catalogoSub: "귀하의 지역에서 교환 가능한 항목 발견",
     btnPublicar: "📦 게시",
     saludoIA: "안녕하세요! 글로벌 순환 경제 어시스턴트입니다. 오늘 무엇이 필요하신가요?",
-    detectandoUbicacion: " 위치 감지 및 출판물 로딩 중...",
-    tuAlcance: " 당신의 범위",
+    detectandoUbicacion: "🔍 위치 감지 및 출판물 로딩 중...",
+    tuAlcance: "📍 당신의 범위",
     detectandoIP: "IP 감지 중...",
     patrocinadores: "스폰서"
   },
@@ -125,11 +125,11 @@ const traducciones = {
     logo: "🌱 remarket-db نظام التشغيل",
     chatPlaceholder: "اكتب سؤالك هنا...",
     chatBtn: "إرسال",
-    catalogoTitulo: " كتالوج الاقتصاد الدائري",
+    catalogoTitulo: "🌱 كتالوج الاقتصاد الدائري",
     catalogoSub: "اكتشف العناصر المتاحة للتبادل في منطقتك",
     btnPublicar: "📦 نشر",
     saludoIA: "مرحبا! أنا مساعد الاقتصاد الدائري العالمي. ماذا تحتاج اليوم؟",
-    detectandoUbicacion: "🔍 اكتشاف موقعك وتحميل المنشورات...",
+    detectandoUbicacion: " اكتشاف موقعك وتحميل المنشورات...",
     tuAlcance: "📍 نطاقك",
     detectandoIP: "اكتشاف IP...",
     patrocinadores: "الرعاة"
@@ -138,7 +138,7 @@ const traducciones = {
     logo: " remarket-db ऑपरेटिंग सिस्टम",
     chatPlaceholder: "अपना प्रश्न यहां लिखें...",
     chatBtn: "भेजें",
-    catalogoTitulo: "🌱 चक्रीय अर्थव्यवस्था कैटलॉग",
+    catalogoTitulo: " चक्रीय अर्थव्यवस्था कैटलॉग",
     catalogoSub: "अपने क्षेत्र में विनिमय के लिए उपलब्ध वस्तुओं की खोज करें",
     btnPublicar: "📦 प्रकाशित करें",
     saludoIA: "नमस्ते! मैं आपका वैश्विक चक्रीय अर्थव्यवस्था सहायक हूं। आज आपको क्या चाहिए?",
@@ -148,7 +148,7 @@ const traducciones = {
     patrocinadores: "प्रायोजक"
   },
   nl: {
-    logo: "🌱 remarket-db OS",
+    logo: " remarket-db OS",
     chatPlaceholder: "Typ hier uw vraag...",
     chatBtn: "Verzenden",
     catalogoTitulo: "🌱 Circulaire Economie Catalogus",
@@ -156,12 +156,12 @@ const traducciones = {
     btnPublicar: "📦 Publiceren",
     saludoIA: "Hallo! Ik ben uw wereldwijde circulaire economie assistent. Wat heeft u vandaag nodig?",
     detectandoUbicacion: "🔍 Uw locatie detecteren en publicaties laden...",
-    tuAlcance: "📍 Uw Bereik",
+    tuAlcance: " Uw Bereik",
     detectandoIP: "IP detecteren...",
     patrocinadores: "Sponsors"
   },
   tr: {
-    logo: " remarket-db İşletim Sistemi",
+    logo: "🌱 remarket-db İşletim Sistemi",
     chatPlaceholder: "Sorunuzu buraya yazın...",
     chatBtn: "Gönder",
     catalogoTitulo: "🌱 Döngüsel Ekonomi Kataloğu",
@@ -177,20 +177,20 @@ const traducciones = {
     logo: "🌱 remarket-db ОС",
     chatPlaceholder: "Въведете въпроса си тук...",
     chatBtn: "Изпрати",
-    catalogoTitulo: " Каталог на циркулярната икономика",
+    catalogoTitulo: "🌱 Каталог на циркулярната икономика",
     catalogoSub: "Открийте артикули за обмен във вашия район",
     btnPublicar: "📦 Публикуване",
     saludoIA: "Здравейте! Аз съм вашият глобален асистент за циркулярна икономика. Какво ви трябва днес?",
     detectandoUbicacion: "🔍 Откриване на местоположението ви и зареждане на публикации...",
-    tuAlcance: " Вашият обхват",
+    tuAlcance: "📍 Вашият обхват",
     detectandoIP: "Откриване на IP...",
     patrocinadores: "Спонсори"
   },
   qu: {
-    logo: " remarket-db Llamk'ay Sistema",
+    logo: "🌱 remarket-db Llamk'ay Sistema",
     chatPlaceholder: "Tapuyniykita kaypi qillqay...",
     chatBtn: "Kachay",
-    catalogoTitulo: " Muyuq Economia Qhatu",
+    catalogoTitulo: "🌱 Muyuq Economia Qhatu",
     catalogoSub: "Llaqtaykipi tikranapaq kaqkunata taripay",
     btnPublicar: "📦 Qillqay",
     saludoIA: "Allillanchu! Noqaqa global muyuq economia yanapaqmi. Imatataq kunan p'unchaw munanki?",
@@ -207,7 +207,7 @@ const traducciones = {
     catalogoSub: "Aka markanxa tukuyata uñjaña",
     btnPublicar: "📦 Qillqt'aña",
     saludoIA: "Aski urukipansa! Noqaxa global muyt'awi economía yanapt'ayiriwa. Kunatix jichhüruxa muntaxa?",
-    detectandoUbicacion: "🔍 Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
+    detectandoUbicacion: " Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
     tuAlcance: "📍 Kamachima",
     detectandoIP: "IP mayacht'askiwa...",
     patrocinadores: "Yanapt'irinaka"
@@ -338,8 +338,8 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
       '<div class="card-body"><h4>' + art.titulo + '</h4><p>' + art.extracto + '</p><span class="btn-leer">Leer más →</span></div></a>';
   }).join('');
   var videosHTML = resultados.videos.length > 0 ?
-    '<div class="video-section"><h3> Videos relacionados</h3><a href="' + resultados.videos[0].searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + resultados.videos[0].titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>' : '';
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🔍 Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos encontrados</p>' +
+    '<div class="video-section"><h3>🎥 Videos relacionados</h3><a href="' + resultados.videos[0].searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + resultados.videos[0].titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>' : '';
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title"> Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos encontrados</p>' +
     (tarjetasHTML ? '<div class="results-grid">' + tarjetasHTML + '</div>' : '') + videosHTML + '</div>';
 }
 
@@ -363,7 +363,7 @@ function mostrarClimaEnMuro(clima, ciudad) {
     muro.innerHTML = '<div class="search-empty"><h3>⚠️ No pude obtener el clima</h3></div>';
     return;
   }
-  const iconos = { 0: '☀️', 1: '️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '⛈️' };
+  const iconos = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '🌧️', 71: '️', 80: '🌦️', 95: '⛈️' };
   const icono = iconos[clima.weathercode] || '🌡️';
   muro.innerHTML = '<div class="multimedia-search"><div class="clima-card"><h2>' + icono + ' Clima en ' + ciudad + '</h2><div class="clima-temp">' + clima.temperature + '°C</div><p>Viento: ' + clima.windspeed + ' km/h</p></div></div>';
 }
@@ -414,7 +414,7 @@ async function enviarMensajeIA() {
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Callao, Perú";
     const ciudad = ubicacion.split(',')[0].trim();
     if (tipo === 'CLIMA') {
-      document.getElementById('ia-escribiendo').innerText = "️ Consultando el clima...";
+      document.getElementById('ia-escribiendo').innerText = "🌤️ Consultando el clima...";
       const clima = await obtenerClima(ciudad);
       if (clima) {
         document.getElementById('ia-escribiendo').remove();
@@ -429,7 +429,7 @@ async function enviarMensajeIA() {
     if (tipo === 'HORA') {
       const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('ia-escribiendo').remove();
-      chatHistorial.innerHTML += '<div class="msg-ia">🕐 Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia"> Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
       return;
     }
     if (tipo === 'PLATAFORMA') {
@@ -456,7 +456,7 @@ async function enviarMensajeIA() {
       const resultados = await buscarEnLaWebConMultimedia(texto);
       if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. </div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. 👇</div>';
         mostrarResultadosMultimediaEnMuro(resultados, texto);
       } else {
         document.getElementById('ia-escribiendo').remove();
@@ -578,60 +578,42 @@ agregarEstilosBuscador();
 // ==========================================
 // SECCIÓN 13: SISTEMA DE TRADUCCIÓN
 // ==========================================
-
-// Función para aplicar la traducción
 function aplicarTraduccion(idioma) {
   const t = traducciones[idioma] || traducciones['es'];
-
-  // Cambiar textos en la página
   const logo = document.querySelector('.logo');
   if (logo) logo.textContent = t.logo;
-
-  const chatInput = document.getElementById('chat-input');
-  if (chatInput) chatInput.placeholder = t.chatPlaceholder;
-
-  const chatBtn = document.getElementById('chat-btn');
-  if (chatBtn) chatBtn.textContent = t.chatBtn;
-
+  const chatInputEl = document.getElementById('chat-input');
+  if (chatInputEl) chatInputEl.placeholder = t.chatPlaceholder;
+  const chatBtnEl = document.getElementById('chat-btn');
+  if (chatBtnEl) chatBtnEl.textContent = t.chatBtn;
   const catTitulo = document.querySelector('.catalogo h2');
   if (catTitulo) catTitulo.textContent = t.catalogoTitulo;
-
   const catSub = document.querySelector('.subtitulo');
   if (catSub) catSub.textContent = t.catalogoSub;
-
   const saludoIA = document.querySelector('#chat-historial .msg-ia');
   if (saludoIA) saludoIA.textContent = t.saludoIA;
-
   const muroTexto = document.querySelector('#muro-publicaciones p');
   if (muroTexto && muroTexto.textContent.includes('Detectando')) {
     muroTexto.textContent = t.detectandoUbicacion;
   }
-
   const textoUbicacion = document.querySelector('#texto-ubicacion');
   if (textoUbicacion && textoUbicacion.textContent.includes('Detectando')) {
     textoUbicacion.textContent = t.detectandoIP;
   }
-
-  // Guardar preferencia
   localStorage.setItem('idiomaPreferido', idioma);
   console.log("✅ Idioma aplicado:", idioma);
 }
 
-// Detección automática por IP
 async function detectarYAplicarIdioma() {
-  // ¿Ya eligió idioma antes?
   const guardado = localStorage.getItem('idiomaPreferido');
   if (guardado && traducciones[guardado]) {
     aplicarTraduccion(guardado);
     return;
   }
-
-  // Si no, detectamos por IP
   try {
     const res = await fetch('https://ipapi.co/json/');
     const data = await res.json();
     const pais = data.country_code;
-
     const mapa = { 
       'PE': 'es', 'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'CL': 'es', 'EC': 'es', 'BO': 'es', 'VE': 'es',
       'US': 'en', 'GB': 'en', 'CA': 'en', 'AU': 'en',
@@ -639,18 +621,10 @@ async function detectarYAplicarIdioma() {
       'BR': 'pt', 'PT': 'pt',
       'FR': 'fr', 'BE': 'fr', 'CH': 'fr',
       'DE': 'de', 'AT': 'de',
-      'IT': 'it',
-      'JP': 'ja',
-      'KR': 'ko',
+      'IT': 'it', 'JP': 'ja', 'KR': 'ko',
       'SA': 'ar', 'AE': 'ar', 'EG': 'ar',
-      'IN': 'hi',
-      'NL': 'nl',
-      'TR': 'tr',
-      'BG': 'bg',
-      'QU': 'qu',
-      'AY': 'ay'
+      'IN': 'hi', 'NL': 'nl', 'TR': 'tr', 'BG': 'bg', 'QU': 'qu', 'AY': 'ay'
     };
-    
     const idiomaDetectado = mapa[pais] || 'es';
     aplicarTraduccion(idiomaDetectado);
   } catch (error) {
@@ -659,13 +633,10 @@ async function detectarYAplicarIdioma() {
   }
 }
 
-// Cambio manual desde el menú
 function cambiarIdiomaManual(idioma) {
   aplicarTraduccion(idioma);
   location.reload();
 }
-
-// Hacer disponible globalmente
 window.cambiarIdiomaManual = cambiarIdiomaManual;
 
 // ==========================================
