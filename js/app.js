@@ -424,20 +424,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // ==========================================
 // CONECTAR EL BUSCADOR DE ARRIBA
 // ==========================================
+// Nota: chatInput y chatBtn ya están declarados arriba en el archivo
 const buscadorArriba = document.getElementById('buscador-principal');
-const chatInput = document.getElementById('chat-input');
-const chatBtn = document.getElementById('chat-btn');
 
 if (buscadorArriba && chatInput && chatBtn) {
   buscadorArriba.addEventListener('keypress', function(evento) {
     if (evento.key === 'Enter') {
       const texto = buscadorArriba.value.trim();
       if (texto.length > 0) {
-        // Copiar al chat
         chatInput.value = texto;
-        // Activar el cerebro
         chatBtn.click();
-        // Limpiar buscador
         buscadorArriba.value = '';
       }
     }
