@@ -421,3 +421,25 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log("remarket-db OS Iniciado");
   detectarUbicacion();
 });
+// ==========================================
+// CONECTAR EL BUSCADOR DE ARRIBA
+// ==========================================
+const buscadorArriba = document.getElementById('buscador-principal');
+const chatInput = document.getElementById('chat-input');
+const chatBtn = document.getElementById('chat-btn');
+
+if (buscadorArriba && chatInput && chatBtn) {
+  buscadorArriba.addEventListener('keypress', function(evento) {
+    if (evento.key === 'Enter') {
+      const texto = buscadorArriba.value.trim();
+      if (texto.length > 0) {
+        // Copiar el texto al chat
+        chatInput.value = texto;
+        // Hacer clic en el botón para activar el cerebro
+        chatBtn.click();
+        // Limpiar el buscador
+        buscadorArriba.value = '';
+      }
+    }
+  });
+}
