@@ -433,11 +433,11 @@ if (buscadorArriba && chatInput && chatBtn) {
     if (evento.key === 'Enter') {
       const texto = buscadorArriba.value.trim();
       if (texto.length > 0) {
-        // Copiar el texto al chat
+        // Copiar al chat
         chatInput.value = texto;
-        // Hacer clic en el botón para activar el cerebro
+        // Activar el cerebro
         chatBtn.click();
-        // Limpiar el buscador
+        // Limpiar buscador
         buscadorArriba.value = '';
       }
     }
