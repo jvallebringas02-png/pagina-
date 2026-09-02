@@ -106,8 +106,6 @@ body {
   color: #27ae60;
 }
 
-/* ❌ ELIMINADO: .idioma-selector:hover .idioma-menu */
-
 /* MENÚ DE USUARIO */
 .menu-usuario {
   display: flex;
