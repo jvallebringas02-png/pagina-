@@ -1,12 +1,12 @@
 import CONFIG from './config.js';
 
 // ==========================================
-// DICCIONARIO DE TRADUCCIONES
+// DICCIONARIO DE TRADUCCIONES (16 IDIOMAS)
 // ==========================================
 const traducciones = {
   es: {
-    nombreIdioma: "🌐 Español ▼",
-    logo: "🌱 remarket-db OS",
+    nombreIdioma: " Español ▼",
+    logo: " remarket-db OS",
     chatPlaceholder: "Escribe tu duda aquí...",
     chatBtn: "Enviar",
     catalogoTitulo: "🌱 Catálogo de Economía Circular",
@@ -14,13 +14,13 @@ const traducciones = {
     btnPublicar: "📦 Publicar",
     saludoIA: "¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?",
     detectandoUbicacion: "🔍 Detectando tu ubicación y cargando publicaciones...",
-    tuAlcance: " Tu Alcance",
+    tuAlcance: "📍 Tu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
   },
   en: {
-    nombreIdioma: "🌐 English ▼",
-    logo: "🌱 remarket-db OS",
+    nombreIdioma: " English ▼",
+    logo: " remarket-db OS",
     chatPlaceholder: "Type your question here...",
     chatBtn: "Send",
     catalogoTitulo: "🌱 Circular Economy Catalog",
@@ -37,11 +37,11 @@ const traducciones = {
     logo: "🌱 remarket-db 操作系统",
     chatPlaceholder: "在这里输入您的问题...",
     chatBtn: "发送",
-    catalogoTitulo: "🌱 循环经济目录",
+    catalogoTitulo: " 循环经济目录",
     catalogoSub: "发现您所在地区可用于交换的物品",
     btnPublicar: "📦 发布",
     saludoIA: "你好！我是您的全球循环经济助手。您今天需要什么？",
-    detectandoUbicacion: "🔍 正在检测您的位置并加载出版物...",
+    detectandoUbicacion: " 正在检测您的位置并加载出版物...",
     tuAlcance: "📍 您的覆盖范围",
     detectandoIP: "正在检测 IP...",
     patrocinadores: "赞助商"
@@ -51,11 +51,11 @@ const traducciones = {
     logo: "🌱 remarket-db OS",
     chatPlaceholder: "Escreva sua dúvida aqui...",
     chatBtn: "Enviar",
-    catalogoTitulo: "🌱 Catálogo de Economia Circular",
+    catalogoTitulo: " Catálogo de Economia Circular",
     catalogoSub: "Descubra artigos disponíveis para troca na sua zona",
     btnPublicar: "📦 Publicar",
     saludoIA: "Olá! Sou seu assistente de economia circular global. O que você precisa hoje?",
-    detectandoUbicacion: "🔍 Detectando sua localização e carregando publicações...",
+    detectandoUbicacion: " Detectando sua localização e carregando publicações...",
     tuAlcance: "📍 Seu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
@@ -69,14 +69,14 @@ const traducciones = {
     catalogoSub: "Découvrez les articles disponibles pour l'échange dans votre zone",
     btnPublicar: "📦 Publier",
     saludoIA: "Bonjour! Je suis votre assistant d'économie circulaire global. Que vous faut-il aujourd'hui?",
-    detectandoUbicacion: "🔍 Détection de votre emplacement et chargement des publications...",
+    detectandoUbicacion: " Détection de votre emplacement et chargement des publications...",
     tuAlcance: "📍 Votre Portée",
     detectandoIP: "Détection IP...",
     patrocinadores: "Sponsors"
   },
   de: {
     nombreIdioma: "🌐 Deutsch ▼",
-    logo: " remarket-db OS",
+    logo: "🌱 remarket-db OS",
     chatPlaceholder: "Geben Sie Ihre Frage hier ein...",
     chatBtn: "Senden",
     catalogoTitulo: "🌱 Kreislaufwirtschaft Katalog",
@@ -109,7 +109,7 @@ const traducciones = {
     chatBtn: "送信",
     catalogoTitulo: "🌱 循環型経済カタログ",
     catalogoSub: "お住まいの地域で交換可能なアイテムを発見",
-    btnPublicar: " 公開",
+    btnPublicar: "📦 公開",
     saludoIA: "こんにちは！グローバル循環型経済アシスタントです。今日は何が必要ですか？",
     detectandoUbicacion: "🔍 場所を検出して出版物を読み込んでいます...",
     tuAlcance: "📍 あなたのカバレッジ",
@@ -117,8 +117,8 @@ const traducciones = {
     patrocinadores: "スポンサー"
   },
   ko: {
-    nombreIdioma: "🌐 한국어 ▼",
-    logo: "🌱 remarket-db 운영체제",
+    nombreIdioma: " 한국어 ▼",
+    logo: " remarket-db 운영체제",
     chatPlaceholder: "여기에 질문을 입력하세요...",
     chatBtn: "보내기",
     catalogoTitulo: "🌱 순환 경제 카탈로그",
@@ -139,8 +139,8 @@ const traducciones = {
     catalogoSub: "اكتشف العناصر المتاحة للتبادل في منطقتك",
     btnPublicar: "📦 نشر",
     saludoIA: "مرحبا! أنا مساعد الاقتصاد الدائري العالمي. ماذا تحتاج اليوم؟",
-    detectandoUbicacion: "🔍 اكتشاف موقعك وتحميل المنشورات...",
-    tuAlcance: " نطاقك",
+    detectandoUbicacion: " اكتشاف موقعك وتحميل المنشورات...",
+    tuAlcance: "📍 نطاقك",
     detectandoIP: "اكتشاف IP...",
     patrocinadores: "الرعاة"
   },
@@ -153,7 +153,7 @@ const traducciones = {
     catalogoSub: "अपने क्षेत्र में विनिमय के लिए उपलब्ध वस्तुओं की खोज करें",
     btnPublicar: "📦 प्रकाशित करें",
     saludoIA: "नमस्ते! मैं आपका वैश्विक चक्रीय अर्थव्यवस्था सहायक हूं। आज आपको क्या चाहिए?",
-    detectandoUbicacion: " आपका स्थान पहचान रहे हैं और प्रकाशन लोड हो रहे हैं...",
+    detectandoUbicacion: "🔍 आपका स्थान पहचान रहे हैं और प्रकाशन लोड हो रहे हैं...",
     tuAlcance: "📍 आपकी पहुंच",
     detectandoIP: "IP पहचान रहे हैं...",
     patrocinadores: "प्रायोजक"
@@ -165,9 +165,9 @@ const traducciones = {
     chatBtn: "Verzenden",
     catalogoTitulo: "🌱 Circulaire Economie Catalogus",
     catalogoSub: "Ontdek items beschikbaar voor uitwisseling in uw regio",
-    btnPublicar: "📦 Publiceren",
+    btnPublicar: " Publiceren",
     saludoIA: "Hallo! Ik ben uw wereldwijde circulaire economie assistent. Wat heeft u vandaag nodig?",
-    detectandoUbicacion: " Uw locatie detecteren en publicaties laden...",
+    detectandoUbicacion: "🔍 Uw locatie detecteren en publicaties laden...",
     tuAlcance: "📍 Uw Bereik",
     detectandoIP: "IP detecteren...",
     patrocinadores: "Sponsors"
@@ -187,7 +187,7 @@ const traducciones = {
     patrocinadores: "Sponsorlar"
   },
   bg: {
-    nombreIdioma: " Български ▼",
+    nombreIdioma: "🌐 Български ▼",
     logo: "🌱 remarket-db ОС",
     chatPlaceholder: "Въведете въпроса си тук...",
     chatBtn: "Изпрати",
@@ -202,36 +202,36 @@ const traducciones = {
   },
   qu: {
     nombreIdioma: "🌐 Quechua ▼",
-    logo: " remarket-db Llamk'ay Sistema",
+    logo: "🌱 remarket-db Llamk'ay Sistema",
     chatPlaceholder: "Tapuyniykita kaypi qillqay...",
     chatBtn: "Kachay",
-    catalogoTitulo: " Muyuq Economia Qhatu",
+    catalogoTitulo: "🌱 Muyuq Economia Qhatu",
     catalogoSub: "Llaqtaykipi tikranapaq kaqkunata taripay",
-    btnPublicar: "📦 Qillqay",
+    btnPublicar: " Qillqay",
     saludoIA: "Allillanchu! Noqaqa global muyuq economia yanapaqmi. Imatataq kunan p'unchaw munanki?",
-    detectandoUbicacion: " Maypi kasqaykita tarispa qillqasqakunata apachkani...",
+    detectandoUbicacion: "🔍 Maypi kasqaykita tarispa qillqasqakunata apachkani...",
     tuAlcance: "📍 Qampa chayanan",
     detectandoIP: "IP tarispa...",
     patrocinadores: "Yanapaqkuna"
   },
   ay: {
     nombreIdioma: "🌐 Aymara ▼",
-    logo: " remarket-db Luräwi Sistema",
+    logo: "🌱 remarket-db Luräwi Sistema",
     chatPlaceholder: "Jiskisamaxa aka qillqt'asma...",
     chatBtn: "Apayaña",
     catalogoTitulo: "🌱 Muyt'awi Economía Uñacht'awi",
     catalogoSub: "Aka markanxa tukuyata uñjaña",
     btnPublicar: "📦 Qillqt'aña",
     saludoIA: "Aski urukipansa! Noqaxa global muyt'awi economía yanapt'ayiriwa. Kunatix jichhüruxa muntaxa?",
-    detectandoUbicacion: "🔍 Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
-    tuAlcance: " Kamachima",
+    detectandoUbicacion: " Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
+    tuAlcance: "📍 Kamachima",
     detectandoIP: "IP mayacht'askiwa...",
     patrocinadores: "Yanapt'irinaka"
   }
 };
 
 // ==========================================
-// SECCIÓN 1: DETECTOR DE UBICACIÓN
+// SECCIÓN 1: DETECTOR DE UBICACIÓN POR IP
 // ==========================================
 async function detectarUbicacion() {
   try {
@@ -254,14 +254,14 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = '<div class="tarjeta-destacada"><h3>🌱 Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
+  muro.innerHTML = '<div class="tarjeta-destacada"><h3> Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
   if (patrocinadores) {
     patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
   }
 }
 
 // ==========================================
-// SECCIÓN 3: CLIMA (Open-Meteo - GRATIS, SIN API KEY)
+// SECCIÓN 3: CLIMA (Open-Meteo - GRATIS)
 // ==========================================
 async function obtenerClima(ciudad) {
   const ciudades = {
@@ -368,7 +368,7 @@ function mostrarProductosEnMuro(productos, query) {
   var tarjetasHTML = productos.map(function(prod) {
     return '<div class="result-card producto-card">' +
       (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📦</div>') +
-      '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad">📍 ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
+      '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad"> ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
   }).join('');
   muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🛍️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
 }
@@ -376,16 +376,16 @@ function mostrarProductosEnMuro(productos, query) {
 function mostrarClimaEnMuro(clima, ciudad) {
   const muro = document.getElementById('muro-publicaciones');
   if (!clima) {
-    muro.innerHTML = '<div class="search-empty"><h3>⚠️ No pude obtener el clima</h3></div>';
+    muro.innerHTML = '<div class="search-empty"><h3>️ No pude obtener el clima</h3></div>';
     return;
   }
-  const iconos = { 0: '☀️', 1: '🌤️', 2: '', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '️', 71: '❄️', 80: '🌦️', 95: '⛈️' };
+  const iconos = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '🌧️', 71: '️', 80: '🌦️', 95: '⛈️' };
   const icono = iconos[clima.weathercode] || '🌡️';
   muro.innerHTML = '<div class="multimedia-search"><div class="clima-card"><h2>' + icono + ' Clima en ' + ciudad + '</h2><div class="clima-temp">' + clima.temperature + '°C</div><p>Viento: ' + clima.windspeed + ' km/h</p></div></div>';
 }
 
 // ==========================================
-// SECCIÓN 7: DETECTOR DE INTENCIÓN AMPLIADO
+// SECCIÓN 7: DETECTOR DE INTENCIÓN
 // ==========================================
 function detectarTipoDeBusqueda(texto) {
   const t = texto.toLowerCase();
@@ -424,7 +424,7 @@ async function enviarMensajeIA() {
   if (!texto) return;
   chatHistorial.innerHTML += '<div class="msg-usuario">' + texto + '</div>';
   chatInput.value = '';
-  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo"> Pensando...</div>';
+  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>';
   try {
     const tipo = detectarTipoDeBusqueda(texto);
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Callao, Perú";
@@ -496,7 +496,7 @@ async function enviarMensajeIA() {
 }
 
 // ==========================================
-// SECCIÓN 9: GROQ
+// SECCIÓN 9: GROQ (IA MULTILINGÜE)
 // ==========================================
 async function obtenerModelosDisponibles() {
   try {
@@ -582,7 +582,7 @@ function limpiarRespuestaIA(respuesta) {
 }
 
 // ==========================================
-// SECCIÓN 11: ESTILOS
+// SECCIÓN 11: ESTILOS DINÁMICOS
 // ==========================================
 function agregarEstilosBuscador() {
   if (document.getElementById('estilos-buscador')) return;
@@ -596,41 +596,28 @@ agregarEstilosBuscador();
 // ==========================================
 function aplicarTraduccion(idioma) {
   const t = traducciones[idioma] || traducciones['es'];
-
-  // Actualizar el botón del selector de idiomas
   const btnIdioma = document.querySelector('.btn-idioma');
   if (btnIdioma) btnIdioma.textContent = t.nombreIdioma;
-
-  // Cambiar textos en la página
   const logo = document.querySelector('.logo');
   if (logo) logo.textContent = t.logo;
-
   const chatInputEl = document.getElementById('chat-input');
   if (chatInputEl) chatInputEl.placeholder = t.chatPlaceholder;
-
   const chatBtnEl = document.getElementById('chat-btn');
   if (chatBtnEl) chatBtnEl.textContent = t.chatBtn;
-
   const catTitulo = document.querySelector('.catalogo h2');
   if (catTitulo) catTitulo.textContent = t.catalogoTitulo;
-
   const catSub = document.querySelector('.subtitulo');
   if (catSub) catSub.textContent = t.catalogoSub;
-
   const saludoIA = document.querySelector('#chat-historial .msg-ia');
   if (saludoIA) saludoIA.textContent = t.saludoIA;
-
   const muroTexto = document.querySelector('#muro-publicaciones p');
   if (muroTexto && muroTexto.textContent.includes('Detectando')) {
     muroTexto.textContent = t.detectandoUbicacion;
   }
-
   const textoUbicacion = document.querySelector('#texto-ubicacion');
   if (textoUbicacion && textoUbicacion.textContent.includes('Detectando')) {
     textoUbicacion.textContent = t.detectandoIP;
   }
-
-  // Guardar preferencia
   localStorage.setItem('idiomaPreferido', idioma);
   console.log("✅ Idioma aplicado:", idioma);
 }
@@ -677,6 +664,27 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log("remarket-db OS Iniciado");
   await detectarUbicacion();
   await detectarYAplicarIdioma();
+  
+  // ✅ CONTROL DEL MENÚ DESPLEGABLE CON CLIC
+  const btnIdiomaEl = document.querySelector('.btn-idioma');
+  const idiomaMenuEl = document.querySelector('.idioma-menu');
+  if (btnIdiomaEl && idiomaMenuEl) {
+    btnIdiomaEl.addEventListener('click', function(evento) {
+      evento.stopPropagation();
+      idiomaMenuEl.classList.toggle('activo');
+    });
+    document.addEventListener('click', function(evento) {
+      if (!idiomaMenuEl.contains(evento.target) && !btnIdiomaEl.contains(evento.target)) {
+        idiomaMenuEl.classList.remove('activo');
+      }
+    });
+    const opcionesIdioma = document.querySelectorAll('.idioma-opcion');
+    opcionesIdioma.forEach(function(opcion) {
+      opcion.addEventListener('click', function() {
+        idiomaMenuEl.classList.remove('activo');
+      });
+    });
+  }
 });
 
 // ==========================================
@@ -693,34 +701,5 @@ if (buscadorArriba && chatInput && chatBtn) {
         buscadorArriba.value = '';
       }
     }
-  });
-}
-
-// ==========================================
-// ✅ NUEVO: CONTROL DEL MENÚ DESPLEGABLE CON CLIC
-// ==========================================
-const btnIdiomaEl = document.querySelector('.btn-idioma');
-const idiomaMenuEl = document.querySelector('.idioma-menu');
-
-if (btnIdiomaEl && idiomaMenuEl) {
-  // Abrir/cerrar menú al hacer clic en el botón
-  btnIdiomaEl.addEventListener('click', function(evento) {
-    evento.stopPropagation();
-    idiomaMenuEl.classList.toggle('activo');
-  });
-
-  // Cerrar menú al hacer clic fuera
-  document.addEventListener('click', function(evento) {
-    if (!idiomaMenuEl.contains(evento.target) && !btnIdiomaEl.contains(evento.target)) {
-      idiomaMenuEl.classList.remove('activo');
-    }
-  });
-
-  // Cerrar menú al seleccionar una opción
-  const opcionesIdioma = document.querySelectorAll('.idioma-opcion');
-  opcionesIdioma.forEach(function(opcion) {
-    opcion.addEventListener('click', function() {
-      idiomaMenuEl.classList.remove('activo');
-    });
   });
 }
