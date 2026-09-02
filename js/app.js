@@ -9,12 +9,12 @@ const traducciones = {
     logo: "🌱 remarket-db OS",
     chatPlaceholder: "Escribe tu duda aquí...",
     chatBtn: "Enviar",
-    catalogoTitulo: " Catálogo de Economía Circular",
+    catalogoTitulo: "🌱 Catálogo de Economía Circular",
     catalogoSub: "Descubre artículos disponibles para intercambio en tu zona",
     btnPublicar: "📦 Publicar",
     saludoIA: "¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?",
     detectandoUbicacion: "🔍 Detectando tu ubicación y cargando publicaciones...",
-    tuAlcance: "📍 Tu Alcance",
+    tuAlcance: " Tu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
   },
@@ -53,10 +53,10 @@ const traducciones = {
     chatBtn: "Enviar",
     catalogoTitulo: "🌱 Catálogo de Economia Circular",
     catalogoSub: "Descubra artigos disponíveis para troca na sua zona",
-    btnPublicar: " Publicar",
+    btnPublicar: "📦 Publicar",
     saludoIA: "Olá! Sou seu assistente de economia circular global. O que você precisa hoje?",
     detectandoUbicacion: "🔍 Detectando sua localização e carregando publicações...",
-    tuAlcance: " Seu Alcance",
+    tuAlcance: "📍 Seu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
   },
@@ -70,13 +70,13 @@ const traducciones = {
     btnPublicar: "📦 Publier",
     saludoIA: "Bonjour! Je suis votre assistant d'économie circulaire global. Que vous faut-il aujourd'hui?",
     detectandoUbicacion: "🔍 Détection de votre emplacement et chargement des publications...",
-    tuAlcance: " Votre Portée",
+    tuAlcance: "📍 Votre Portée",
     detectandoIP: "Détection IP...",
     patrocinadores: "Sponsors"
   },
   de: {
     nombreIdioma: "🌐 Deutsch ▼",
-    logo: "🌱 remarket-db OS",
+    logo: " remarket-db OS",
     chatPlaceholder: "Geben Sie Ihre Frage hier ein...",
     chatBtn: "Senden",
     catalogoTitulo: "🌱 Kreislaufwirtschaft Katalog",
@@ -89,16 +89,16 @@ const traducciones = {
     patrocinadores: "Sponsoren"
   },
   it: {
-    nombreIdioma: " Italiano ▼",
-    logo: " remarket-db OS",
+    nombreIdioma: "🌐 Italiano ▼",
+    logo: "🌱 remarket-db OS",
     chatPlaceholder: "Scrivi la tua domanda qui...",
     chatBtn: "Invia",
-    catalogoTitulo: " Catalogo Economia Circolare",
+    catalogoTitulo: "🌱 Catalogo Economia Circolare",
     catalogoSub: "Scopri articoli disponibili per lo scambio nella tua zona",
     btnPublicar: "📦 Pubblica",
     saludoIA: "Ciao! Sono il tuo assistente di economia circolare globale. Cosa ti serve oggi?",
-    detectandoUbicacion: " Rilevamento della posizione e caricamento pubblicazioni...",
-    tuAlcance: " La tua Portata",
+    detectandoUbicacion: "🔍 Rilevamento della posizione e caricamento pubblicazioni...",
+    tuAlcance: "📍 La tua Portata",
     detectandoIP: "Rilevamento IP...",
     patrocinadores: "Sponsor"
   },
@@ -109,7 +109,7 @@ const traducciones = {
     chatBtn: "送信",
     catalogoTitulo: "🌱 循環型経済カタログ",
     catalogoSub: "お住まいの地域で交換可能なアイテムを発見",
-    btnPublicar: "📦 公開",
+    btnPublicar: " 公開",
     saludoIA: "こんにちは！グローバル循環型経済アシスタントです。今日は何が必要ですか？",
     detectandoUbicacion: "🔍 場所を検出して出版物を読み込んでいます...",
     tuAlcance: "📍 あなたのカバレッジ",
@@ -123,10 +123,10 @@ const traducciones = {
     chatBtn: "보내기",
     catalogoTitulo: "🌱 순환 경제 카탈로그",
     catalogoSub: "귀하의 지역에서 교환 가능한 항목 발견",
-    btnPublicar: " 게시",
+    btnPublicar: "📦 게시",
     saludoIA: "안녕하세요! 글로벌 순환 경제 어시스턴트입니다. 오늘 무엇이 필요하신가요?",
     detectandoUbicacion: "🔍 위치 감지 및 출판물 로딩 중...",
-    tuAlcance: " 당신의 범위",
+    tuAlcance: "📍 당신의 범위",
     detectandoIP: "IP 감지 중...",
     patrocinadores: "스폰서"
   },
@@ -140,20 +140,20 @@ const traducciones = {
     btnPublicar: "📦 نشر",
     saludoIA: "مرحبا! أنا مساعد الاقتصاد الدائري العالمي. ماذا تحتاج اليوم؟",
     detectandoUbicacion: "🔍 اكتشاف موقعك وتحميل المنشورات...",
-    tuAlcance: "📍 نطاقك",
+    tuAlcance: " نطاقك",
     detectandoIP: "اكتشاف IP...",
     patrocinadores: "الرعاة"
   },
   hi: {
-    nombreIdioma: " हिन्दी ▼",
-    logo: " remarket-db ऑपरेटिंग सिस्टम",
+    nombreIdioma: "🌐 हिन्दी ▼",
+    logo: "🌱 remarket-db ऑपरेटिंग सिस्टम",
     chatPlaceholder: "अपना प्रश्न यहां लिखें...",
     chatBtn: "भेजें",
     catalogoTitulo: "🌱 चक्रीय अर्थव्यवस्था कैटलॉग",
     catalogoSub: "अपने क्षेत्र में विनिमय के लिए उपलब्ध वस्तुओं की खोज करें",
     btnPublicar: "📦 प्रकाशित करें",
     saludoIA: "नमस्ते! मैं आपका वैश्विक चक्रीय अर्थव्यवस्था सहायक हूं। आज आपको क्या चाहिए?",
-    detectandoUbicacion: "🔍 आपका स्थान पहचान रहे हैं और प्रकाशन लोड हो रहे हैं...",
+    detectandoUbicacion: " आपका स्थान पहचान रहे हैं और प्रकाशन लोड हो रहे हैं...",
     tuAlcance: "📍 आपकी पहुंच",
     detectandoIP: "IP पहचान रहे हैं...",
     patrocinadores: "प्रायोजक"
@@ -163,11 +163,11 @@ const traducciones = {
     logo: "🌱 remarket-db OS",
     chatPlaceholder: "Typ hier uw vraag...",
     chatBtn: "Verzenden",
-    catalogoTitulo: " Circulaire Economie Catalogus",
+    catalogoTitulo: "🌱 Circulaire Economie Catalogus",
     catalogoSub: "Ontdek items beschikbaar voor uitwisseling in uw regio",
-    btnPublicar: " Publiceren",
+    btnPublicar: "📦 Publiceren",
     saludoIA: "Hallo! Ik ben uw wereldwijde circulaire economie assistent. Wat heeft u vandaag nodig?",
-    detectandoUbicacion: "🔍 Uw locatie detecteren en publicaties laden...",
+    detectandoUbicacion: " Uw locatie detecteren en publicaties laden...",
     tuAlcance: "📍 Uw Bereik",
     detectandoIP: "IP detecteren...",
     patrocinadores: "Sponsors"
@@ -187,7 +187,7 @@ const traducciones = {
     patrocinadores: "Sponsorlar"
   },
   bg: {
-    nombreIdioma: "🌐 Български ▼",
+    nombreIdioma: " Български ▼",
     logo: "🌱 remarket-db ОС",
     chatPlaceholder: "Въведете въпроса си тук...",
     chatBtn: "Изпрати",
@@ -202,21 +202,21 @@ const traducciones = {
   },
   qu: {
     nombreIdioma: "🌐 Quechua ▼",
-    logo: "🌱 remarket-db Llamk'ay Sistema",
+    logo: " remarket-db Llamk'ay Sistema",
     chatPlaceholder: "Tapuyniykita kaypi qillqay...",
     chatBtn: "Kachay",
-    catalogoTitulo: "🌱 Muyuq Economia Qhatu",
+    catalogoTitulo: " Muyuq Economia Qhatu",
     catalogoSub: "Llaqtaykipi tikranapaq kaqkunata taripay",
-    btnPublicar: " Qillqay",
+    btnPublicar: "📦 Qillqay",
     saludoIA: "Allillanchu! Noqaqa global muyuq economia yanapaqmi. Imatataq kunan p'unchaw munanki?",
-    detectandoUbicacion: "🔍 Maypi kasqaykita tarispa qillqasqakunata apachkani...",
+    detectandoUbicacion: " Maypi kasqaykita tarispa qillqasqakunata apachkani...",
     tuAlcance: "📍 Qampa chayanan",
     detectandoIP: "IP tarispa...",
     patrocinadores: "Yanapaqkuna"
   },
   ay: {
     nombreIdioma: "🌐 Aymara ▼",
-    logo: "🌱 remarket-db Luräwi Sistema",
+    logo: " remarket-db Luräwi Sistema",
     chatPlaceholder: "Jiskisamaxa aka qillqt'asma...",
     chatBtn: "Apayaña",
     catalogoTitulo: "🌱 Muyt'awi Economía Uñacht'awi",
@@ -224,7 +224,7 @@ const traducciones = {
     btnPublicar: "📦 Qillqt'aña",
     saludoIA: "Aski urukipansa! Noqaxa global muyt'awi economía yanapt'ayiriwa. Kunatix jichhüruxa muntaxa?",
     detectandoUbicacion: "🔍 Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
-    tuAlcance: "📍 Kamachima",
+    tuAlcance: " Kamachima",
     detectandoIP: "IP mayacht'askiwa...",
     patrocinadores: "Yanapt'irinaka"
   }
@@ -367,10 +367,10 @@ function mostrarProductosEnMuro(productos, query) {
   }
   var tarjetasHTML = productos.map(function(prod) {
     return '<div class="result-card producto-card">' +
-      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder"></div>') +
+      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📦</div>') +
       '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad">📍 ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
   }).join('');
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🛍️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
 }
 
 function mostrarClimaEnMuro(clima, ciudad) {
@@ -379,7 +379,7 @@ function mostrarClimaEnMuro(clima, ciudad) {
     muro.innerHTML = '<div class="search-empty"><h3>⚠️ No pude obtener el clima</h3></div>';
     return;
   }
-  const iconos = { 0: '️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '️' };
+  const iconos = { 0: '☀️', 1: '🌤️', 2: '', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '️', 71: '❄️', 80: '🌦️', 95: '⛈️' };
   const icono = iconos[clima.weathercode] || '🌡️';
   muro.innerHTML = '<div class="multimedia-search"><div class="clima-card"><h2>' + icono + ' Clima en ' + ciudad + '</h2><div class="clima-temp">' + clima.temperature + '°C</div><p>Viento: ' + clima.windspeed + ' km/h</p></div></div>';
 }
@@ -424,13 +424,13 @@ async function enviarMensajeIA() {
   if (!texto) return;
   chatHistorial.innerHTML += '<div class="msg-usuario">' + texto + '</div>';
   chatInput.value = '';
-  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>';
+  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo"> Pensando...</div>';
   try {
     const tipo = detectarTipoDeBusqueda(texto);
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Callao, Perú";
     const ciudad = ubicacion.split(',')[0].trim();
     if (tipo === 'CLIMA') {
-      document.getElementById('ia-escribiendo').innerText = "🌤️ Consultando el clima...";
+      document.getElementById('ia-escribiendo').innerText = "️ Consultando el clima...";
       const clima = await obtenerClima(ciudad);
       if (clima) {
         document.getElementById('ia-escribiendo').remove();
@@ -445,7 +445,7 @@ async function enviarMensajeIA() {
     if (tipo === 'HORA') {
       const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('ia-escribiendo').remove();
-      chatHistorial.innerHTML += '<div class="msg-ia"> Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia">🕐 Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
       return;
     }
     if (tipo === 'PLATAFORMA') {
@@ -455,7 +455,7 @@ async function enviarMensajeIA() {
       return;
     }
     if (tipo === 'PRODUCTOS') {
-      document.getElementById('ia-escribiendo').innerText = "🛍️ Buscando productos...";
+      document.getElementById('ia-escribiendo').innerText = "️ Buscando productos...";
       const productos = await buscarEnSupabase(texto, ciudad);
       if (productos.length > 0) {
         document.getElementById('ia-escribiendo').remove();
@@ -463,7 +463,7 @@ async function enviarMensajeIA() {
         mostrarProductosEnMuro(productos, texto);
       } else {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. 📸</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. </div>';
       }
       return;
     }
@@ -472,7 +472,7 @@ async function enviarMensajeIA() {
       const resultados = await buscarEnLaWebConMultimedia(texto);
       if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. 👇</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"!  Te dejé artículos y videos en el panel central. 👇</div>';
         mostrarResultadosMultimediaEnMuro(resultados, texto);
       } else {
         document.getElementById('ia-escribiendo').remove();
@@ -480,247 +480,4 @@ async function enviarMensajeIA() {
       }
       return;
     }
-    const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-    const mensajeEnriquecido = '[Usuario en ' + ubicacion + ', hora: ' + horaActual + '] ' + texto;
-    const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
-    document.getElementById('ia-escribiendo').remove();
-    if (!respuestaIA || respuestaIA.trim().length < 5) {
-      chatHistorial.innerHTML += '<div class="msg-ia">️ No pude generar una respuesta. Intenta de nuevo.</div>';
-    } else {
-      chatHistorial.innerHTML += '<div class="msg-ia">' + respuestaIA + '</div>';
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
-  }
-}
-
-// ==========================================
-// SECCIÓN 9: GROQ
-// ==========================================
-async function obtenerModelosDisponibles() {
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': 'Bearer ' + CONFIG.GROQ_API_KEY } });
-    if (!response.ok) throw new Error('No se pudo obtener la lista');
-    const data = await response.json();
-    return data.data.filter(function(m) {
-      const id = m.id.toLowerCase();
-      return (id.includes('llama') || id.includes('gemma') || id.includes('mixtral') || id.includes('deepseek') || id.includes('qwen')) && !id.includes('classifier') && !id.includes('embed');
-    }).map(function(m) { return m.id; });
-  } catch (error) {
-    return ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
-  }
-}
-
-async function llamarGroqConModeloDisponible(mensaje) {
-  const modelos = await obtenerModelosDisponibles();
-  let ultimoError = null;
-  for (let i = 0; i < modelos.length; i++) {
-    const modelo = modelos[i];
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + CONFIG.GROQ_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelo,
-          messages: [
-            { role: 'system', content: 'Eres el asistente de remarket-db. REGLA DE ORO: Responde SIEMPRE en el mismo idioma en el que el usuario te escribió. Si escribe en español, responde en español. Si escribe en inglés, responde en inglés. Si escribe en chino, responde en chino. Si escribe en quechua, responde en quechua. No traduzcas, piensa y redacta directamente en el idioma del usuario. Responde en 1-2 oraciones.' },
-            { role: 'user', content: mensaje }
-          ],
-          temperature: 0.5,
-          max_tokens: 150
-        })
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        ultimoError = new Error(errorData.error?.message || 'Error ' + response.status);
-        continue;
-      }
-      const data = await response.json();
-      return limpiarRespuestaIA(data.choices[0].message.content);
-    } catch (error) {
-      ultimoError = error;
-      continue;
-    }
-  }
-  throw new Error(ultimoError?.message || 'Ningún modelo disponible');
-}
-
-// ==========================================
-// SECCIÓN 10: FILTRO ULTRA-AGRESIVO
-// ==========================================
-function limpiarRespuestaIA(respuesta) {
-  const lineas = respuesta.split('\n');
-  const validas = [];
-  const palabrasTecnicas = [
-    'analyze user', 'role/constraints', 'key requirements',
-    'context acknowledgment', 'mention location', 'remarket-db assistant',
-    'implies database', 'input:', 'context:', 'language:', 'role:',
-    'length:', 'tone:', 'formulate', 'internal refinement',
-    'user is in', 'spanish - always', 'never use english',
-    'virtual assistant for', 'circular economy platform',
-    'max 2-3 sentences', 'like talking to a friend',
-    'draft response', 'check constraints', 'final polish',
-    'mental draft', 'all rules satisfied', 'output matches',
-    'here\'s a thinking', 'thinking process', 'formulate response'
-  ];
-  for (let i = 0; i < lineas.length; i++) {
-    const linea = lineas[i].trim();
-    const lower = linea.toLowerCase();
-    if (linea.length < 15) continue;
-    const esTecnica = palabrasTecnicas.some(function(palabra) {
-      return lower.includes(palabra);
-    });
-    if (esTecnica) continue;
-    validas.push(linea);
-  }
-  let final = validas.join(' ').replace(/\s+/g, ' ').replace(/\*\*/g, '').trim();
-  if (final.length < 10 || final.toLowerCase().includes('analyze') || final.toLowerCase().includes('constraint')) {
-    return "¡Hola! ¿En qué puedo ayudarte hoy?";
-  }
-  return final;
-}
-
-// ==========================================
-// SECCIÓN 11: ESTILOS
-// ==========================================
-function agregarEstilosBuscador() {
-  if (document.getElementById('estilos-buscador')) return;
-  const estilos = '<style id="estilos-buscador">.multimedia-search{padding:20px;animation:fadeIn 0.5s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.search-title{color:#2c3e50;margin-bottom:5px;font-size:24px}.search-subtitle{color:#7f8c8d;margin-bottom:25px;font-size:14px}.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-bottom:30px}.result-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);text-decoration:none;color:inherit;transition:all 0.3s ease;display:flex;flex-direction:column}.result-card:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.15)}.card-img{width:100%;height:180px;object-fit:cover}.card-img-placeholder{width:100%;height:180px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:60px;color:white}.card-body{padding:15px;flex-grow:1;display:flex;flex-direction:column}.card-body h4{color:#2980b9;margin:0 0 10px 0;font-size:16px}.card-body p{color:#555;font-size:13px;line-height:1.5;margin:0 0 15px 0;flex-grow:1}.btn-leer{color:#27ae60;font-weight:bold;font-size:13px}.producto-meta{display:flex;justify-content:space-between;margin:10px 0;font-size:13px}.precio{color:#27ae60;font-weight:bold}.ciudad{color:#7f8c8d}.btn-contactar{background:#27ae60;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px}.video-section{margin-top:30px}.video-section h3{color:#2c3e50;margin-bottom:15px;font-size:20px}.youtube-link-card{display:flex;align-items:center;gap:15px;background:#ff0000;color:white;padding:20px;border-radius:12px;text-decoration:none;transition:all 0.3s}.youtube-link-card:hover{background:#cc0000;transform:translateY(-3px)}.youtube-icon{font-size:40px}.youtube-link-card h4{margin:0 0 5px 0}.youtube-link-card p{margin:0;font-size:13px;opacity:0.9}.search-empty{text-align:center;padding:40px;color:#7f8c8d}.clima-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:40px;border-radius:16px;text-align:center}.clima-card h2{margin:0 0 20px 0;font-size:28px}.clima-temp{font-size:72px;font-weight:bold;margin:20px 0}@media (max-width:768px){.results-grid{grid-template-columns:1fr}}</style>';
-  document.head.insertAdjacentHTML('beforeend', estilos);
-}
-agregarEstilosBuscador();
-
-// ==========================================
-// SECCIÓN 13: SISTEMA DE TRADUCCIÓN
-// ==========================================
-function aplicarTraduccion(idioma) {
-  const t = traducciones[idioma] || traducciones['es'];
-
-  // Actualizar el botón del selector de idiomas
-  const btnIdioma = document.querySelector('.btn-idioma');
-  if (btnIdioma) btnIdioma.textContent = t.nombreIdioma;
-
-  // Cambiar textos en la página
-  const logo = document.querySelector('.logo');
-  if (logo) logo.textContent = t.logo;
-
-  const chatInputEl = document.getElementById('chat-input');
-  if (chatInputEl) chatInputEl.placeholder = t.chatPlaceholder;
-
-  const chatBtnEl = document.getElementById('chat-btn');
-  if (chatBtnEl) chatBtnEl.textContent = t.chatBtn;
-
-  const catTitulo = document.querySelector('.catalogo h2');
-  if (catTitulo) catTitulo.textContent = t.catalogoTitulo;
-
-  const catSub = document.querySelector('.subtitulo');
-  if (catSub) catSub.textContent = t.catalogoSub;
-
-  const saludoIA = document.querySelector('#chat-historial .msg-ia');
-  if (saludoIA) saludoIA.textContent = t.saludoIA;
-
-  const muroTexto = document.querySelector('#muro-publicaciones p');
-  if (muroTexto && muroTexto.textContent.includes('Detectando')) {
-    muroTexto.textContent = t.detectandoUbicacion;
-  }
-
-  const textoUbicacion = document.querySelector('#texto-ubicacion');
-  if (textoUbicacion && textoUbicacion.textContent.includes('Detectando')) {
-    textoUbicacion.textContent = t.detectandoIP;
-  }
-
-  // Guardar preferencia
-  localStorage.setItem('idiomaPreferido', idioma);
-  console.log("✅ Idioma aplicado:", idioma);
-}
-
-async function detectarYAplicarIdioma() {
-  const guardado = localStorage.getItem('idiomaPreferido');
-  if (guardado && traducciones[guardado]) {
-    aplicarTraduccion(guardado);
-    return;
-  }
-  try {
-    const res = await fetch('https://ipapi.co/json/');
-    const data = await res.json();
-    const pais = data.country_code;
-    const mapa = {
-      'PE': 'es', 'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'CL': 'es', 'EC': 'es', 'BO': 'es', 'VE': 'es',
-      'US': 'en', 'GB': 'en', 'CA': 'en', 'AU': 'en',
-      'CN': 'zh', 'TW': 'zh', 'HK': 'zh',
-      'BR': 'pt', 'PT': 'pt',
-      'FR': 'fr', 'BE': 'fr', 'CH': 'fr',
-      'DE': 'de', 'AT': 'de',
-      'IT': 'it', 'JP': 'ja', 'KR': 'ko',
-      'SA': 'ar', 'AE': 'ar', 'EG': 'ar',
-      'IN': 'hi', 'NL': 'nl', 'TR': 'tr', 'BG': 'bg', 'QU': 'qu', 'AY': 'ay'
-    };
-    const idiomaDetectado = mapa[pais] || 'es';
-    aplicarTraduccion(idiomaDetectado);
-  } catch (error) {
-    console.log("No se pudo detectar IP, usando español.");
-    aplicarTraduccion('es');
-  }
-}
-
-function cambiarIdiomaManual(idioma) {
-  aplicarTraduccion(idioma);
-  location.reload();
-}
-window.cambiarIdiomaManual = cambiarIdiomaManual;
-
-// ==========================================
-// SECCIÓN 12: INICIO
-// ==========================================
-document.addEventListener('DOMContentLoaded', async function() {
-  console.log("remarket-db OS Iniciado");
-  await detectarUbicacion();
-  await detectarYAplicarIdioma();
-});
-
-// ==========================================
-// CONECTAR EL BUSCADOR DE ARRIBA
-// ==========================================
-const buscadorArriba = document.getElementById('buscador-principal');
-if (buscadorArriba && chatInput && chatBtn) {
-  buscadorArriba.addEventListener('keypress', function(evento) {
-    if (evento.key === 'Enter') {
-      const texto = buscadorArriba.value.trim();
-      if (texto.length > 0) {
-        chatInput.value = texto;
-        chatBtn.click();
-        buscadorArriba.value = '';
-      }
-    }
-  });
-}
-
-// ==========================================
-// ✅ NUEVO: CONTROL DEL MENÚ DESPLEGABLE CON CLIC
-// ==========================================
-const btnIdiomaEl = document.querySelector('.btn-idioma');
-const idiomaMenuEl = document.querySelector('.idioma-menu');
-
-if (btnIdiomaEl && idiomaMenuEl) {
-  // Abrir/cerrar menú al hacer clic en el botón
-  btnIdiomaEl.addEventListener('click', function(evento) {
-    evento.stopPropagation();
-    idiomaMenuEl.classList.toggle('activo');
-  });
-
-  // Cerrar menú al hacer clic fuera
-  document.addEventListener('click', function(evento) {
-    if (!idiomaMenuEl.contains(evento.target) && !btnIdiomaEl.contains(evento.target)) {
-      idiomaMenuEl.classList.remove('activo');
-    }
-  });
-
-  // Cerrar menú al seleccionar una opción
-  const opcionesIdioma = document.querySelectorAll('.idioma-opcion');
-  opcionesIdioma.forEach(function(opcion) {
-    opcion.addEventListener('click', function() {
-      idiomaMenuEl.classList.remove('activo');
-    });
-  });
-}
+    const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit',
