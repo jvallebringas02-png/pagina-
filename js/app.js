@@ -1,43 +1,52 @@
 import CONFIG from '../config.js';
 
 const traducciones = {
-  es: { nombreIdioma: "🌐 Español ▼", chatPlaceholder: "Escribe tu duda aquí...", chatBtn: "Enviar", saludoIA: "¡Hola! Soy tu asistente. ¿Qué necesitas hoy?", detectandoUbicacion: " Detectando tu ubicación...", detectandoIP: "Detectando IP..." },
-  en: { nombreIdioma: "🌐 English ▼", chatPlaceholder: "Type your question...", chatBtn: "Send", saludoIA: "Hello! I'm your assistant.", detectandoUbicacion: "🔍 Detecting location...", detectandoIP: "Detecting IP..." },
-  pt: { nombreIdioma: " Português ▼", chatPlaceholder: "Escreva sua dúvida...", chatBtn: "Enviar", saludoIA: "Olá! Sou seu assistente.", detectandoUbicacion: "🔍 Detectando localização...", detectandoIP: "Detectando IP..." },
+  es: { nombreIdioma: "🌐 Español ▼", chatPlaceholder: "Escribe tu duda aquí...", chatBtn: "Enviar", saludoIA: "¡Hola! Soy tu asistente. ¿Qué necesitas hoy?", detectandoUbicacion: "🔍 Detectando tu ubicación...", detectandoIP: "Detectando IP..." },
+  en: { nombreIdioma: "🌐 English ▼", chatPlaceholder: "Type your question...", chatBtn: "Send", saludoIA: "Hello! I'm your assistant.", detectandoUbicacion: " Detecting location...", detectandoIP: "Detecting IP..." },
+  pt: { nombreIdioma: "🌐 Português ▼", chatPlaceholder: "Escreva sua dúvida...", chatBtn: "Enviar", saludoIA: "Olá! Sou seu assistente.", detectandoUbicacion: "🔍 Detectando localização...", detectandoIP: "Detectando IP..." },
   fr: { nombreIdioma: "🌐 Français ▼", chatPlaceholder: "Tapez votre question...", chatBtn: "Envoyer", saludoIA: "Bonjour! Je suis votre assistant.", detectandoUbicacion: "🔍 Détection...", detectandoIP: "Détection IP..." },
-  de: { nombreIdioma: "🌐 Deutsch ▼", chatPlaceholder: "Geben Sie Ihre Frage ein...", chatBtn: "Senden", saludoIA: "Hallo! Ich bin Ihr Assistent.", detectandoUbicacion: " Standort...", detectandoIP: "IP wird erkannt..." },
+  de: { nombreIdioma: "🌐 Deutsch ▼", chatPlaceholder: "Geben Sie Ihre Frage ein...", chatBtn: "Senden", saludoIA: "Hallo! Ich bin Ihr Assistent.", detectandoUbicacion: "🔍 Standort...", detectandoIP: "IP wird erkannt..." },
   it: { nombreIdioma: "🌐 Italiano ▼", chatPlaceholder: "Scrivi la tua domanda...", chatBtn: "Invia", saludoIA: "Ciao! Sono il tuo assistente.", detectandoUbicacion: "🔍 Rilevamento...", detectandoIP: "Rilevamento IP..." },
-  zh: { nombreIdioma: "🌐 中文 ▼", chatPlaceholder: "输入您的问题...", chatBtn: "发送", saludoIA: "你好！我是你的助手。", detectandoUbicacion: "🔍 检测位置...", detectandoIP: "检测 IP..." },
-  ja: { nombreIdioma: "🌐 日本語 ▼", chatPlaceholder: "質問を入力...", chatBtn: "送信", saludoIA: "こんにちは！アシスタントです。", detectandoUbicacion: " 場所を検出...", detectandoIP: "IP検出..." },
+  zh: { nombreIdioma: "🌐 中文 ▼", chatPlaceholder: "输入您的问题...", chatBtn: "发送", saludoIA: "你好！我是你的助手。", detectandoUbicacion: " 检测位置...", detectandoIP: "检测 IP..." },
+  ja: { nombreIdioma: "🌐 日本語 ▼", chatPlaceholder: "質問を入力...", chatBtn: "送信", saludoIA: "こんにちは！アシスタントです。", detectandoUbicacion: "🔍 場所を検出...", detectandoIP: "IP検出..." },
   ko: { nombreIdioma: "🌐 한국어 ▼", chatPlaceholder: "질문을 입력...", chatBtn: "보내기", saludoIA: "안녕하세요! 어시스턴트입니다.", detectandoUbicacion: "🔍 위치 감지...", detectandoIP: "IP 감지..." },
   ar: { nombreIdioma: "🌐 العربية ▼", chatPlaceholder: "اكتب سؤالك...", chatBtn: "إرسال", saludoIA: "مرحبا! أنا مساعدك.", detectandoUbicacion: "🔍 اكتشاف الموقع...", detectandoIP: "اكتشاف IP..." },
-  hi: { nombreIdioma: " हिन्दी ▼", chatPlaceholder: "अपना प्रश्न लिखें...", chatBtn: "भेजें", saludoIA: "नमस्ते! मैं आपका सहायक हूं।", detectandoUbicacion: "🔍 स्थान पहचान...", detectandoIP: "IP पहचान..." },
+  hi: { nombreIdioma: "🌐 हिन्दी ▼", chatPlaceholder: "अपना प्रश्न लिखें...", chatBtn: "भेजें", saludoIA: "नमस्ते! मैं आपका सहायक हूं।", detectandoUbicacion: "🔍 स्थान पहचान...", detectandoIP: "IP पहचान..." },
   nl: { nombreIdioma: "🌐 Nederlands ▼", chatPlaceholder: "Typ uw vraag...", chatBtn: "Verzenden", saludoIA: "Hallo! Ik ben uw assistent.", detectandoUbicacion: "🔍 Locatie...", detectandoIP: "IP detecteren..." },
-  tr: { nombreIdioma: " Türkçe ▼", chatPlaceholder: "Sorunuzu yazın...", chatBtn: "Gönder", saludoIA: "Merhaba! Ben asistanınız.", detectandoUbicacion: " Konum...", detectandoIP: "IP algılanıyor..." },
-  bg: { nombreIdioma: "🌐 Български ▼", chatPlaceholder: "Въведете въпрос...", chatBtn: "Изпрати", saludoIA: "Здравейте! Аз съм вашият асистент.", detectandoUbicacion: "🔍 Откриване...", detectandoIP: "Откриване на IP..." },
+  tr: { nombreIdioma: "🌐 Türkçe ▼", chatPlaceholder: "Sorunuzu yazın...", chatBtn: "Gönder", saludoIA: "Merhaba! Ben asistanınız.", detectandoUbicacion: "🔍 Konum...", detectandoIP: "IP algılanıyor..." },
+  bg: { nombreIdioma: "🌐 Български ▼", chatPlaceholder: "Въведете въпрос...", chatBtn: "Изпрати", saludoIA: "Здравейте! Аз съм вашият асистент.", detectandoUbicacion: " Откриване...", detectandoIP: "Откриване на IP..." },
   qu: { nombreIdioma: "🌐 Quechua ▼", chatPlaceholder: "Tapuyniykita qillqay...", chatBtn: "Kachay", saludoIA: "Allillanchu! Noqaqa yanapaqmi.", detectandoUbicacion: "🔍 Maypi kasqayta...", detectandoIP: "IP tarispa..." },
   ay: { nombreIdioma: "🌐 Aymara ▼", chatPlaceholder: "Jiskisamaxa qillqt'asma...", chatBtn: "Apayaña", saludoIA: "Aski urukipansa! Noqaxa yanapt'ayiriwa.", detectandoUbicacion: "🔍 Mayacht'ataskiwa...", detectandoIP: "IP mayacht'askiwa..." }
 };
 
 async function detectarUbicacion() {
   try {
-    const respuesta = await fetch('http://ip-api.com/json/?lang=es');
+    const respuesta = await fetch('https://ipapi.co/json/');
     const datos = await respuesta.json();
-    if (datos.status === 'fail') throw new Error("API falló");
+    if (datos.error) throw new Error("API falló");
     console.log("Usuario en:", datos.city, datos.country);
     document.getElementById('texto-ubicacion').innerText = datos.city + ', ' + datos.country;
     cargarMuroDinamico(datos.city, datos.country);
   } catch (error) {
     console.error("Error IP:", error);
-    document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
-    cargarMuroDinamico("Callao", "Perú");
+    try {
+      const res2 = await fetch('https://ipinfo.io/json');
+      const dat2 = await res2.json();
+      const ciudad = dat2.city || 'Callao';
+      const pais = dat2.country || 'Perú';
+      document.getElementById('texto-ubicacion').innerText = ciudad + ', ' + pais;
+      cargarMuroDinamico(ciudad, pais);
+    } catch (error2) {
+      document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
+      cargarMuroDinamico("Callao", "Perú");
+    }
   }
 }
 
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = '<div class="tarjeta-destacada"><h3> Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
+  muro.innerHTML = '<div class="tarjeta-destacada"><h3>🌱 Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
   if (patrocinadores) {
     patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
   }
@@ -89,7 +98,7 @@ function mostrarResultadosMultimediaEnMuro(resultados, query) {
     return '<a href="' + art.url + '" target="_blank" class="result-card">' + (art.imagen ? '<img src="' + art.imagen + '" alt="' + art.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📄</div>') + '<div class="card-body"><h4>' + art.titulo + '</h4><p>' + art.extracto + '</p><span class="btn-leer">Leer más →</span></div></a>';
   }).join('');
   var videosHTML = resultados.videos.length > 0 ? '<div class="video-section"><h3>🎥 Videos relacionados</h3><a href="' + resultados.videos[0].searchUrl + '" target="_blank" class="youtube-link-card"><div class="youtube-icon">▶️</div><div><h4>' + resultados.videos[0].titulo + '</h4><p>Haz clic para ver videos en YouTube</p></div></a></div>' : '';
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🔍 Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos encontrados</p>' + (tarjetasHTML ? '<div class="results-grid">' + tarjetasHTML + '</div>' : '') + videosHTML + '</div>';
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title"> Resultados para: "' + query + '"</h2><p class="search-subtitle">' + resultados.articulos.length + ' artículos encontrados</p>' + (tarjetasHTML ? '<div class="results-grid">' + tarjetasHTML + '</div>' : '') + videosHTML + '</div>';
 }
 
 function mostrarProductosEnMuro(productos, query) {
@@ -99,16 +108,16 @@ function mostrarProductosEnMuro(productos, query) {
     return;
   }
   var tarjetasHTML = productos.map(function(prod) {
-    return '<div class="result-card producto-card">' + (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📦</div>') + '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad"> ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
+    return '<div class="result-card producto-card">' + (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder"></div>') + '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad">📍 ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
   }).join('');
   muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🛍️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
 }
 
 function mostrarClimaEnMuro(clima, ciudad) {
   const muro = document.getElementById('muro-publicaciones');
-  if (!clima) { muro.innerHTML = '<div class="search-empty"><h3>⚠️ No pude obtener el clima</h3></div>'; return; }
-  const iconos = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '️', 51: '🌦️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '⛈️' };
-  const icono = iconos[clima.weathercode] || '️';
+  if (!clima) { muro.innerHTML = '<div class="search-empty"><h3>️ No pude obtener el clima</h3></div>'; return; }
+  const iconos = { 0: '☀️', 1: '️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '⛈️' };
+  const icono = iconos[clima.weathercode] || '🌡️';
   muro.innerHTML = '<div class="multimedia-search"><div class="clima-card"><h2>' + icono + ' Clima en ' + ciudad + '</h2><div class="clima-temp">' + clima.temperature + '°C</div><p>Viento: ' + clima.windspeed + ' km/h</p></div></div>';
 }
 
@@ -171,7 +180,7 @@ async function enviarMensajeIA() {
       document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
       const resultados = await buscarEnLaWebConMultimedia(texto);
       if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. 👇</div>'; mostrarResultadosMultimediaEnMuro(resultados, texto); }
-      else { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">No encontré resultados para "' + texto + '". Intenta con otra palabra. 🔍</div>'; }
+      else { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">No encontré resultados para "' + texto + '". Intenta con otra palabra. </div>'; }
       return;
     }
     const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
@@ -246,9 +255,9 @@ async function detectarYAplicarIdioma() {
   const guardado = localStorage.getItem('idiomaPreferido');
   if (guardado && traducciones[guardado]) { aplicarTraduccion(guardado); return; }
   try {
-    const res = await fetch('http://ip-api.com/json/?lang=es');
+    const res = await fetch('https://ipapi.co/json/');
     const data = await res.json();
-    const pais = data.countryCode;
+    const pais = data.country_code;
     const mapa = { 'PE': 'es', 'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'CL': 'es', 'EC': 'es', 'BO': 'es', 'VE': 'es', 'US': 'en', 'GB': 'en', 'CA': 'en', 'AU': 'en', 'CN': 'zh', 'TW': 'zh', 'HK': 'zh', 'BR': 'pt', 'PT': 'pt', 'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'DE': 'de', 'AT': 'de', 'IT': 'it', 'JP': 'ja', 'KR': 'ko', 'SA': 'ar', 'AE': 'ar', 'EG': 'ar', 'IN': 'hi', 'NL': 'nl', 'TR': 'tr', 'BG': 'bg', 'QU': 'qu', 'AY': 'ay' };
     const idiomaDetectado = mapa[pais] || 'es';
     aplicarTraduccion(idiomaDetectado);
