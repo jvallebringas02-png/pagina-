@@ -23,32 +23,43 @@ const traducciones = {
 };
 
 // ==========================================
-// DETECTOR DE UBICACIÓN (con servicio alternativo)
+// DETECTOR DE UBICACIÓN (con APIs alternativas)
 // ==========================================
 async function detectarUbicacion() {
   try {
-    // Usamos ip-api.com como alternativa (más confiable)
+    // Intento 1: ip-api.com (más confiable y no requiere API key)
     const respuesta = await fetch('http://ip-api.com/json/?lang=es');
     const datos = await respuesta.json();
-    if (datos.status === 'fail') throw new Error("API falló");
-    console.log("Usuario en:", datos.city, datos.country);
+    
+    if (datos.status === 'fail') throw new Error("API 1 falló");
+    
+    console.log("Usuario detectado en:", datos.city, datos.country);
     document.getElementById('texto-ubicacion').innerText = datos.city + ', ' + datos.country;
     cargarMuroDinamico(datos.city, datos.country);
+    
   } catch (error) {
-    console.error("Error IP:", error);
-    // Intento con servicio de respaldo
+    console.error("Error con ip-api.com:", error);
+    
+    // Intento 2: ipinfo.io como respaldo
     try {
       const res2 = await fetch('https://ipinfo.io/json?token=');
       const dat2 = await res2.json();
-      document.getElementById('texto-ubicacion').innerText = (dat2.city || 'Callao') + ', ' + (dat2.country || 'Perú');
-      cargarMuroDinamico(dat2.city || 'Callao', dat2.country || 'Perú');
+      
+      const ciudad = dat2.city || 'Callao';
+      const pais = dat2.country || 'Perú';
+      
+      document.getElementById('texto-ubicacion').innerText = ciudad + ', ' + pais;
+      cargarMuroDinamico(ciudad, pais);
+      
     } catch (error2) {
+      console.error("Error con ipinfo.io:", error2);
+      
+      // Fallback final
       document.getElementById('texto-ubicacion').innerText = "Callao, Perú";
       cargarMuroDinamico("Callao", "Perú");
     }
   }
 }
-
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
