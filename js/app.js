@@ -97,7 +97,7 @@ const traducciones = {
     catalogoSub: "Scopri articoli disponibili per lo scambio nella tua zona",
     btnPublicar: "📦 Pubblica",
     saludoIA: "Ciao! Sono il tuo assistente di economia circolare globale. Cosa ti serve oggi?",
-    detectandoUbicacion: "🔍 Rilevamento della posizione e caricamento pubblicazioni...",
+    detectandoUbicacion: " Rilevamento della posizione e caricamento pubblicazioni...",
     tuAlcance: "📍 La tua Portata",
     detectandoIP: "Rilevamento IP...",
     patrocinadores: "Sponsor"
@@ -117,7 +117,7 @@ const traducciones = {
     patrocinadores: "スポンサー"
   },
   ko: {
-    nombreIdioma: " 한국어 ▼",
+    nombreIdioma: "🌐 한국어 ▼",
     logo: " remarket-db 운영체제",
     chatPlaceholder: "여기에 질문을 입력하세요...",
     chatBtn: "보내기",
@@ -126,7 +126,7 @@ const traducciones = {
     btnPublicar: "📦 게시",
     saludoIA: "안녕하세요! 글로벌 순환 경제 어시스턴트입니다. 오늘 무엇이 필요하신가요?",
     detectandoUbicacion: "🔍 위치 감지 및 출판물 로딩 중...",
-    tuAlcance: "📍 당신의 범위",
+    tuAlcance: " 당신의 범위",
     detectandoIP: "IP 감지 중...",
     patrocinadores: "스폰서"
   },
@@ -139,36 +139,36 @@ const traducciones = {
     catalogoSub: "اكتشف العناصر المتاحة للتبادل في منطقتك",
     btnPublicar: "📦 نشر",
     saludoIA: "مرحبا! أنا مساعد الاقتصاد الدائري العالمي. ماذا تحتاج اليوم؟",
-    detectandoUbicacion: " اكتشاف موقعك وتحميل المنشورات...",
+    detectandoUbicacion: "🔍 اكتشاف موقعك وتحميل المنشورات...",
     tuAlcance: "📍 نطاقك",
     detectandoIP: "اكتشاف IP...",
     patrocinadores: "الرعاة"
   },
   hi: {
     nombreIdioma: "🌐 हिन्दी ▼",
-    logo: "🌱 remarket-db ऑपरेटिंग सिस्टम",
+    logo: " remarket-db ऑपरेटिंग सिस्टम",
     chatPlaceholder: "अपना प्रश्न यहां लिखें...",
     chatBtn: "भेजें",
-    catalogoTitulo: "🌱 चक्रीय अर्थव्यवस्था कैटलॉग",
+    catalogoTitulo: " चक्रीय अर्थव्यवस्था कैटलॉग",
     catalogoSub: "अपने क्षेत्र में विनिमय के लिए उपलब्ध वस्तुओं की खोज करें",
     btnPublicar: "📦 प्रकाशित करें",
     saludoIA: "नमस्ते! मैं आपका वैश्विक चक्रीय अर्थव्यवस्था सहायक हूं। आज आपको क्या चाहिए?",
     detectandoUbicacion: "🔍 आपका स्थान पहचान रहे हैं और प्रकाशन लोड हो रहे हैं...",
-    tuAlcance: "📍 आपकी पहुंच",
+    tuAlcance: " आपकी पहुंच",
     detectandoIP: "IP पहचान रहे हैं...",
     patrocinadores: "प्रायोजक"
   },
   nl: {
-    nombreIdioma: "🌐 Nederlands ▼",
-    logo: "🌱 remarket-db OS",
+    nombreIdioma: " Nederlands ▼",
+    logo: " remarket-db OS",
     chatPlaceholder: "Typ hier uw vraag...",
     chatBtn: "Verzenden",
     catalogoTitulo: "🌱 Circulaire Economie Catalogus",
     catalogoSub: "Ontdek items beschikbaar voor uitwisseling in uw regio",
-    btnPublicar: " Publiceren",
+    btnPublicar: "📦 Publiceren",
     saludoIA: "Hallo! Ik ben uw wereldwijde circulaire economie assistent. Wat heeft u vandaag nodig?",
     detectandoUbicacion: "🔍 Uw locatie detecteren en publicaties laden...",
-    tuAlcance: "📍 Uw Bereik",
+    tuAlcance: " Uw Bereik",
     detectandoIP: "IP detecteren...",
     patrocinadores: "Sponsors"
   },
@@ -177,7 +177,7 @@ const traducciones = {
     logo: "🌱 remarket-db İşletim Sistemi",
     chatPlaceholder: "Sorunuzu buraya yazın...",
     chatBtn: "Gönder",
-    catalogoTitulo: "🌱 Döngüsel Ekonomi Kataloğu",
+    catalogoTitulo: " Döngüsel Ekonomi Kataloğu",
     catalogoSub: "Bölgenizde değişim için mevcut öğeleri keşfedin",
     btnPublicar: "📦 Yayınla",
     saludoIA: "Merhaba! Ben küresel döngüsel ekonomi asistanınız. Bugün neye ihtiyacınız var?",
@@ -191,7 +191,7 @@ const traducciones = {
     logo: "🌱 remarket-db ОС",
     chatPlaceholder: "Въведете въпроса си тук...",
     chatBtn: "Изпрати",
-    catalogoTitulo: "🌱 Каталог на циркулярната икономика",
+    catalogoTitulo: " Каталог на циркулярната икономика",
     catalogoSub: "Открийте артикули за обмен във вашия район",
     btnPublicar: "📦 Публикуване",
     saludoIA: "Здравейте! Аз съм вашият глобален асистент за циркулярна икономика. Какво ви трябва днес?",
@@ -207,7 +207,7 @@ const traducciones = {
     chatBtn: "Kachay",
     catalogoTitulo: "🌱 Muyuq Economia Qhatu",
     catalogoSub: "Llaqtaykipi tikranapaq kaqkunata taripay",
-    btnPublicar: " Qillqay",
+    btnPublicar: "📦 Qillqay",
     saludoIA: "Allillanchu! Noqaqa global muyuq economia yanapaqmi. Imatataq kunan p'unchaw munanki?",
     detectandoUbicacion: "🔍 Maypi kasqaykita tarispa qillqasqakunata apachkani...",
     tuAlcance: "📍 Qampa chayanan",
@@ -223,7 +223,7 @@ const traducciones = {
     catalogoSub: "Aka markanxa tukuyata uñjaña",
     btnPublicar: "📦 Qillqt'aña",
     saludoIA: "Aski urukipansa! Noqaxa global muyt'awi economía yanapt'ayiriwa. Kunatix jichhüruxa muntaxa?",
-    detectandoUbicacion: " Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
+    detectandoUbicacion: "🔍 Mayacht'ataskiwa ukat qillqatanaka apthapiskiwa...",
     tuAlcance: "📍 Kamachima",
     detectandoIP: "IP mayacht'askiwa...",
     patrocinadores: "Yanapt'irinaka"
@@ -231,7 +231,7 @@ const traducciones = {
 };
 
 // ==========================================
-// SECCIÓN 1: DETECTOR DE UBICACIÓN POR IP
+// SECCIÓN 1: DETECTOR DE UBICACIÓN
 // ==========================================
 async function detectarUbicacion() {
   try {
@@ -254,14 +254,14 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = '<div class="tarjeta-destacada"><h3> Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
+  muro.innerHTML = '<div class="tarjeta-destacada"><h3>🌱 Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
   if (patrocinadores) {
     patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
   }
 }
 
 // ==========================================
-// SECCIÓN 3: CLIMA (Open-Meteo - GRATIS)
+// SECCIÓN 3: CLIMA
 // ==========================================
 async function obtenerClima(ciudad) {
   const ciudades = {
@@ -285,7 +285,7 @@ async function obtenerClima(ciudad) {
 }
 
 // ==========================================
-// SECCIÓN 4: BÚSQUEDA MULTIMEDIA (Wikipedia + YouTube)
+// SECCIÓN 4: BÚSQUEDA MULTIMEDIA
 // ==========================================
 async function buscarEnLaWebConMultimedia(query) {
   const resultados = { articulos: [], videos: [], query: query };
@@ -340,7 +340,7 @@ async function buscarEnSupabase(query, ciudad) {
 }
 
 // ==========================================
-// SECCIÓN 6: PINTAR RESULTADOS EN EL MURO
+// SECCIÓN 6: PINTAR RESULTADOS
 // ==========================================
 function mostrarResultadosMultimediaEnMuro(resultados, query) {
   const muro = document.getElementById('muro-publicaciones');
@@ -430,7 +430,7 @@ async function enviarMensajeIA() {
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Callao, Perú";
     const ciudad = ubicacion.split(',')[0].trim();
     if (tipo === 'CLIMA') {
-      document.getElementById('ia-escribiendo').innerText = "️ Consultando el clima...";
+      document.getElementById('ia-escribiendo').innerText = "🌤️ Consultando el clima...";
       const clima = await obtenerClima(ciudad);
       if (clima) {
         document.getElementById('ia-escribiendo').remove();
@@ -455,15 +455,15 @@ async function enviarMensajeIA() {
       return;
     }
     if (tipo === 'PRODUCTOS') {
-      document.getElementById('ia-escribiendo').innerText = "️ Buscando productos...";
+      document.getElementById('ia-escribiendo').innerText = "🛍️ Buscando productos...";
       const productos = await buscarEnSupabase(texto, ciudad);
       if (productos.length > 0) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! 🛍️ Los puedes ver en el panel central.</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! ️ Los puedes ver en el panel central.</div>';
         mostrarProductosEnMuro(productos, texto);
       } else {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. </div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. 📸</div>';
       }
       return;
     }
@@ -472,7 +472,7 @@ async function enviarMensajeIA() {
       const resultados = await buscarEnLaWebConMultimedia(texto);
       if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) {
         document.getElementById('ia-escribiendo').remove();
-        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"!  Te dejé artículos y videos en el panel central. 👇</div>';
+        chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. </div>';
         mostrarResultadosMultimediaEnMuro(resultados, texto);
       } else {
         document.getElementById('ia-escribiendo').remove();
@@ -491,7 +491,7 @@ async function enviarMensajeIA() {
     }
   } catch (error) {
     console.error("Error:", error);
-    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
+    document.getElementById('ia-escribiendo').innerText = "️ Error: " + error.message;
   }
 }
 
@@ -703,3 +703,5 @@ if (buscadorArriba && chatInput && chatBtn) {
     }
   });
 }
+  
+  
