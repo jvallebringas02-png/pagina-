@@ -1,5 +1,4 @@
-import CONFIG from './config.js';
-
+import CONFIG from '../config.js';
 const traducciones = {
   es: { nombreIdioma: "🌐 Español ▼", chatPlaceholder: "Escribe tu duda aquí...", chatBtn: "Enviar", saludoIA: "¡Hola! Soy tu asistente. ¿Qué necesitas hoy?", detectandoUbicacion: "🔍 Detectando tu ubicación...", detectandoIP: "Detectando IP..." },
   en: { nombreIdioma: " English ▼", chatPlaceholder: "Type your question...", chatBtn: "Send", saludoIA: "Hello! I'm your assistant.", detectandoUbicacion: "🔍 Detecting location...", detectandoIP: "Detecting IP..." },
