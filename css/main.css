@@ -98,13 +98,15 @@ body {
   cursor: pointer;
   transition: background 0.2s;
   border-bottom: 1px solid #f0f0f0;
+  color: #2c3e50;
 }
 
 .idioma-opcion:hover {
   background: #f8f9fa;
+  color: #27ae60;
 }
 
-/*  ELIMINADO: .idioma-selector:hover .idioma-menu { display: block; } */
+/* ❌ ELIMINADO: .idioma-selector:hover .idioma-menu { display: block; } */
 
 /* MENÚ DE USUARIO */
 .menu-usuario {
@@ -486,3 +488,4 @@ body {
 .patrocinador {
   animation: fadeIn 0.5s ease-out;
 }
+
