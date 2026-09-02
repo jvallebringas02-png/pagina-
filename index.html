@@ -8,61 +8,70 @@
 </head>
 <body>
 
+  <!-- BARRA SUPERIOR -->
   <header class="header">
     <div class="header-content">
       <h1 class="logo"> remarket-db OS</h1>
       <input type="text" id="buscador-principal" placeholder="¿Qué estás buscando hoy?">
+      
       <div class="idioma-selector">
-        <button class="btn-idioma">🌐 Español ▼</button>
-        <div class="idioma-menu">
+        <button class="btn-idioma" id="btn-idioma-display">🌐 Español ▼</button>
+        <div class="idioma-menu" id="menu-idiomas">
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('es')">🇪🇸 Español</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('en')">🇧 English</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('pt')">🇧 Português</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('zh')">🇨🇳 中文</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('en')">🇬🇧 English</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('pt')">🇷 Português</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('zh')">🇨 中文</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('fr')">🇫🇷 Français</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('de')">🇩🇪 Deutsch</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇹 Italiano</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯 日本語</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇰🇷 한국어</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇸🇦 العربية</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇮🇹 Italiano</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯🇵 日本語</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇷 한국어</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇸 العربية</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('hi')">🇮🇳 हिन्दी</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('nl')">🇳🇱 Nederlands</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('tr')">🇹🇷 Türkçe</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇧🇬 Български</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇵🇪 Quechua</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇬 Български</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇪 Quechua</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('ay')">🇧🇴 Aymara</div>
         </div>
       </div>
     </div>
   </header>
 
+  <!-- CONTENIDO PRINCIPAL (3 COLUMNAS) -->
   <div class="main-content">
-    <aside class="catalogo">
+    
+    <!-- COLUMNA 1: CHAT (Izquierda) -->
+    <aside class="catalogo panel-chat">
       <h2>🤖 Asistente IA</h2>
-      <p class="subtitulo">Tu asistente multilingüe</p>
       <div id="chat-historial">
         <div class="msg-ia">¡Hola! Soy tu asistente. ¿Qué necesitas hoy?</div>
       </div>
-      <div class="chat-controles">
+      <div class="chat-input-area">
         <input type="text" id="chat-input" placeholder="Escribe tu duda aquí...">
         <button id="chat-btn">Enviar</button>
       </div>
     </aside>
 
-    <main id="muro-publicaciones">
+    <!-- COLUMNA 2: MURO (Centro) -->
+    <main class="panel-muro" id="muro-publicaciones">
       <h2>🌱 Artículos en tu zona</h2>
       <p>🔍 Detectando tu ubicación y cargando publicaciones...</p>
     </main>
 
-    <aside class="tendencias">
+    <!-- COLUMNA 3: ALCANCE (Derecha) -->
+    <aside class="tendencias panel-lateral">
       <h3>📍 Tu Alcance</h3>
       <p id="texto-ubicacion" style="color: #2980b9; font-weight: bold;">Detectando IP...</p>
+      
       <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-      <h3>🤝 Patrocinadores</h3>
+      
+      <h3> Patrocinadores</h3>
       <div id="lista-patrocinadores" style="color: #7f8c8d; font-size: 14px;">
         Espacio disponible para negocios.
       </div>
     </aside>
+
   </div>
 
   <script type="module" src="js/app.js"></script>
