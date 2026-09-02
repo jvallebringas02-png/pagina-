@@ -1,9 +1,3 @@
-/* ==========================================
-remarket-db - Estilos Principales
-Portal de Economía Circular IA
-========================================== */
-
-/* RESET Y BASE */
 * {
   margin: 0;
   padding: 0;
@@ -18,7 +12,6 @@ body {
   line-height: 1.6;
 }
 
-/* HEADER */
 .header {
   background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
   color: white;
@@ -47,7 +40,6 @@ body {
   text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
 
-/* SELECTOR DE IDIOMA */
 .idioma-selector {
   position: relative;
 }
@@ -83,7 +75,6 @@ body {
   margin-top: 0.5rem;
 }
 
-/* ✅ CLASE PARA MOSTRAR EL MENÚ CON CLIC */
 .idioma-menu.activo {
   display: block;
 }
@@ -101,7 +92,6 @@ body {
   color: #27ae60;
 }
 
-/* BUSCADOR */
 #buscador-principal {
   width: 100%;
   max-width: 600px;
@@ -120,7 +110,6 @@ body {
   transform: scale(1.02);
 }
 
-/* CONTENIDO PRINCIPAL - 3 COLUMNAS */
 .main-content {
   max-width: 1400px;
   margin: 2rem auto;
@@ -131,7 +120,6 @@ body {
   align-items: start;
 }
 
-/* PANEL CHAT (izquierda) */
 .panel-chat {
   background: white;
   border-radius: 15px;
@@ -203,7 +191,6 @@ body {
   background: #219a52;
 }
 
-/* PANEL MURO (centro) */
 .panel-muro {
   background: white;
   border-radius: 15px;
@@ -217,7 +204,6 @@ body {
   margin-bottom: 1rem;
 }
 
-/* PANEL LATERAL (derecha) */
 .panel-lateral {
   background: white;
   border-radius: 15px;
