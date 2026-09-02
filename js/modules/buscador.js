@@ -1,0 +1,22 @@
+var BuscadorMotor = {
+    catalogo: [],
+    JERGA: { 'carro': 'auto', 'carros': 'auto', 'auto': 'auto', 'autos': 'auto', 'vehiculo': 'auto', 'vehiculos': 'auto', 'coche': 'auto', 'coches': 'auto', 'chompa': 'casaca', 'casaca': 'chompa', 'polo': 'camiseta', 'camisa': 'camiseta', 'camiseta': 'camisa', 'blusa': 'camisa', 'playera': 'camiseta', 'remera': 'camiseta', 'zapa': 'zapatilla', 'zapato': 'zapatilla', 'zapatos': 'zapatilla', 'tenis': 'zapatilla', 'celu': 'celular', 'cel': 'celular', 'note': 'laptop', 'lapto': 'laptop', 'compu': 'computadora', 'ordenador': 'computadora', 'tele': 'televisor', 'bici': 'bicicleta', 'carpintero': 'carpinteria', 'chumpi': 'faja', 'aguayo': 'manta', 'poncho': 'poncho', 'chullo': 'gorro', 'lliqlla': 'manta', 'papa': 'papa', 'quinua': 'quinua', 'oca': 'oca', 'alpaca': 'alpaca', 'maskani': 'busco', 'rantini': 'compro', 'rantikuni': 'vendo', 'aljt\'a': 'venta' },
+    STOPWORDS: new Set(['de', 'la', 'el', 'en', 'y', 'a', 'los', 'del', 'se', 'las', 'por', 'un', 'para', 'con', 'no', 'una', 'su', 'al', 'es', 'que', 'si', 'sin', 'sobre', 'este', 'entre', 'cuando', 'muy', 'ya', 'todo', 'esa', 'esos', 'esto', 'eso', 'esta', 'ser', 'ha', 'cada', 'mas', 'pero', 'otro', 'le', 'o', 'estar', 'tener', 'hay', 'aqui', 'bueno', 'tan', 'cual', 'donde', 'mi', 'tu', 'yo', 'me', 'te', 'nos', 'lo', 'como', 'quien', 'porque', 'segun', 'hasta', 'desde', 'hacia']),
+    normalizar: function(t) { return t ? t.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim() : ''; },
+    tokenizar: function(texto) { var n = this.normalizar(texto); if (!n) return []; return n.split(' ').filter(function(t) { return t.length > 2 && !this.STOPWORDS.has(t); }.bind(this)).map(function(t) { return this.JERGA[t] || t; }.bind(this)); },
+    construirIndice: function(articulos) { this.catalogo = articulos; },
+    calcularPuntaje: function(art, tokens) { var p = 0; var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || ''); tokens.forEach(function(token) { if (t.includes(token)) p += 10; else if (c.includes(token)) p += 5; else if (d.includes(token)) p += 2; }); return p; },
+    ejecutarBusquedaHibrida: async function(query) {
+        var tokens = this.tokenizar(query);
+        var resultadosLocales = this.catalogo.map(function(art) { return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: this.calcularPuntaje(art, tokens), _es_expandido: false, _es_externo: false }; }.bind(this)).filter(function(art) { return art._puntaje > 0; });
+        resultadosLocales.sort(function(a, b) { return b._puntaje - a._puntaje; });
+        if (resultadosLocales.length >= 3) { return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false }; }
+        try {
+            var res = await fetch('https://dummyjson.com/products/search?q=' + encodeURIComponent(query) + '&limit=10'); var data = await res.json();
+            var modalidades = ['venta', 'trueque', 'donacion']; var paises_api = ['Estados Unidos', 'Reino Unido', 'Alemania', 'Francia', 'Japón', 'Canadá', 'Italia', 'Bulgaria'];
+            var resultadosExternos = (data.products || []).map(function(p) { return { titulo: p.title, categoria: p.category.charAt(0).toUpperCase() + p.category.slice(1), descripcion: p.description, precio: Math.round(p.price * 3.7), modalidad: modalidades[Math.floor(Math.random() * modalidades.length)], pais: paises_api[Math.floor(Math.random() * paises_api.length)], ciudad: 'Internacional', distancia_km: (Math.random() * 1000 + 500).toFixed(1), imagen_url: p.thumbnail, icono: null, _puntaje: 50, _es_expandido: true, _es_externo: true }; });
+            return { resultados: resultadosLocales.concat(resultadosExternos), total: this.catalogo.length + resultadosExternos.length, coincidencias: resultadosLocales.length + resultadosExternos.length, query: query, es_expandido: resultadosLocales.length === 0, es_hibrido: true };
+        } catch (e) { return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false }; }
+    }
+};
+

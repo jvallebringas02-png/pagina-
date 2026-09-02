@@ -1,0 +1,2 @@
+var UbicacionUsuario = { ciudad: '🌍 Global', pais: 'Mundo', detectarPorIP: async function() { try { var response = await fetch('https://ipapi.co/json/'); var data = await response.json(); if (data && data.city) { this.ciudad = data.city; this.pais = data.country_name; this.actualizarUI(); } } catch (e) { console.warn('IP no detectada, usando Global.'); } }, actualizarUI: function() { var sub = document.getElementById('contentSubtitle'); if (sub) sub.textContent = 'Descubre artículos disponibles para intercambio en ' + this.ciudad + ', ' + this.pais; } };
+

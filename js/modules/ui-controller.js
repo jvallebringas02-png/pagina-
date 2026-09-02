@@ -1,0 +1,54 @@
+var UIController = {
+    elementos: {},
+    init: function() { this.elementos = { assistantResponse: document.getElementById('assistantResponse'), searchResultsContainer: document.getElementById('searchResultsContainer'), searchResultsContent: document.getElementById('searchResultsContent'), articulosContainer: document.getElementById('articulosContainer'), catalogContainer: document.getElementById('catalogContainer'), contentTitle: document.getElementById('contentTitle'), searchBreadcrumb: document.getElementById('searchBreadcrumb'), searchQuery: document.getElementById('searchQuery'), resultCount: document.getElementById('resultCount'), modal: document.getElementById('articuloModal'), qrModal: document.getElementById('qrModal') }; },
+    mostrarRespuestaIA: function(texto, tipo) { tipo = tipo || 'assistant'; var limpio = texto.replace(/\[ACCION:[^\]]+\]/g, '').trim(); var div = document.createElement('div'); div.className = 'chat-message ' + tipo; div.textContent = limpio; this.elementos.assistantResponse.appendChild(div); this.elementos.assistantResponse.scrollTop = this.elementos.assistantResponse.scrollHeight; },
+    mostrarEstadoCarga: function() { var div = document.createElement('div'); div.className = 'chat-message assistant'; div.id = 'typing'; div.textContent = '⏳ Pensando...'; this.elementos.assistantResponse.appendChild(div); },
+    quitarEstadoCarga: function() { var t = document.getElementById('typing'); if (t) t.remove(); },
+    renderizarArticulos: function(lista) { var c = this.elementos.articulosContainer; c.innerHTML = ''; lista.slice(0, 6).forEach(function(art) { var card = document.createElement('div'); card.className = 'card'; var imagenHTML = art.imagen_url ? '<img src="' + art.imagen_url + '" class="card-img-real" alt="' + art.titulo + '">' : '<div class="card-img-top">' + (art.icono || '') + '</div>'; card.innerHTML = imagenHTML + '<h3 class="card-title">' + art.titulo + '</h3>' + '<p class="card-text">' + art.descripcion + '</p>' + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' + '<span style="font-size:20px;font-weight:bold;color:var(--verde-esmeralda);">S/ ' + art.precio + '</span>' + '<span class="badge badge-disponible">🟢 ' + art.modalidad + '</span></div>' + '<button class="btn-read-more" onclick="UIController.abrirModal(\'' + art.titulo.replace(/'/g, "\\'") + '\',\'' + art.descripcion.replace(/'/g, "\\'") + '\',\'' + (art.imagen_url || '') + '\',\'' + (art.icono || '📦') + '\')">Ver detalles</button>'; c.appendChild(card); }); },
+    mostrarResultadosBusqueda: function(resultado) { this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' resultados'; this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Resultados de Búsqueda'; var html = ''; if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>Búsqueda Híbrida:</strong> Combinamos resultados locales con referencias globales.</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>Búsqueda global:</strong> No encontramos resultados cerca, pero te mostramos opciones internacionales.</div>'; } else { html += '<div class="ai-context-banner">📍 Mostrando resultados de ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.coincidencias === 0) { html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos. Intenta con sinónimos (ej: "camisa" o "polo").</p></div>'; } else { html += resultado.resultados.map(function(art) { var icono = art.icono || ''; var imagenHTML = art.imagen_url ? '<img src="' + art.imagen_url + '" class="result-img" alt="' + art.titulo + '">' : '<div class="result-icon-fallback">' + icono + '</div>'; var exp = art._es_externo ? '<span class="badge badge-externo">🌐 Referencia Global</span>' : (art._es_expandido ? '<span class="badge badge-expandido">🌍 Zona lejana</span>' : ''); var pais = art.pais ? '<span class="badge badge-pais">📍 ' + art.pais + '</span>' : ''; var modal = art.modalidad ? '<span class="badge badge-modalidad">' + art.modalidad + '</span>' : ''; return '<div class="result-item" onclick="UIController.abrirModal(\'' + art.titulo.replace(/'/g, "\\'") + '\',\'' + art.descripcion.replace(/'/g, "\\'") + '\',\'' + (art.imagen_url || '') + '\',\'' + icono + '\')">' + imagenHTML + '<div class="result-info"><div class="result-title">' + art.titulo + '</div><div class="result-category">' + art.categoria + '</div><div class="result-desc">' + (art.descripcion || '').substring(0, 100) + '...</div>' + '<div class="result-badges"><span class="badge badge-disponible">🟢 Disponible</span><span class="badge badge-distancia"> ' + art.distancia_km + ' km</span>' + pais + modal + exp + '</div></div>' + '<div class="result-actions"><div class="result-price">S/ ' + art.precio + '</div><button class="btn-contactar" onclick="event.stopPropagation(); alert(\'Función de contacto en desarrollo\')">📞 Contactar</button></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; },
+    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) {
+        this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
+        this.elementos.searchBreadcrumb.style.display = 'flex';
+        this.elementos.searchQuery.textContent = nombreBuscado || '';
+        this.elementos.resultCount.textContent = usuarios.length + (usuarios.length === 1 ? ' persona' : ' personas');
+        this.elementos.catalogContainer.style.display = 'none';
+        this.elementos.searchResultsContainer.style.display = 'block';
+        this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
+        var activo = function(n) { return nivelZona === n ? 'activo' : ''; };
+        var html = '<div class="ai-context-banner">👤 <strong>Búsqueda de personas:</strong> resultados por nombre, iniciales o zona en remarket-db</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px;">' +
+            '<button type="button" id="filtroZona-local-resultados" class="compartir-filtro-zona ' + activo('local') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'local\')">📍 Local</button>' +
+            '<button type="button" id="filtroZona-regional-resultados" class="compartir-filtro-zona ' + activo('regional') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'regional\')">🗺️ Regional</button>' +
+            '<button type="button" id="filtroZona-pais-resultados" class="compartir-filtro-zona ' + activo('pais') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'pais\')">🌎 País</button>' +
+            '</div>';
+        if (!usuarios.length) {
+            html += '<div style="text-align:center;padding:40px;"><p>No encontramos a nadie con ese nombre o zona. Prueba con otro nombre, iniciales, o quita el filtro.</p></div>';
+        } else {
+            html += usuarios.map(function(u) {
+                var iniciales = (u.nombre_completo || 'U').trim().charAt(0).toUpperCase();
+                var avatar = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="result-img" alt="' + u.nombre_completo + '">' : '<div class="result-icon-fallback">' + iniciales + '</div>';
+                return '<div class="result-item" onclick="PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">' + avatar +
+                    '<div class="result-info"><div class="result-title">' + u.nombre_completo + '</div><div class="result-category">Usuario de remarket-db</div></div>' +
+                    '<div class="result-actions">' +
+                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">👁️ Vista previa</button>' +
+                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                    '</div></div>';
+            }).join('');
+        }
+        this.elementos.searchResultsContent.innerHTML = html;
+    },
+    // Vuelve a buscar personas combinando el último nombre escrito con la zona elegida (o la quita si ya estaba activa)
+    filtrarResultadosPersonasPorZona: async function(nivel) {
+        var btn = document.getElementById('filtroZona-' + nivel + '-resultados');
+        var yaActivo = btn && btn.classList.contains('activo');
+        var nuevoNivel = yaActivo ? null : nivel;
+        var nombre = this._ultimaBusquedaPersonaNombre || '';
+        var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre, nuevoNivel);
+        this.mostrarResultadosPersonas(nombre, usuarios, nuevoNivel);
+    },
+    cerrarResultados: function() { this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Catálogo de Economía Circular'; },
+    abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + imgUrl + '" class="modal-img-real" alt="' + titulo + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + icono + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
+    cerrarModal: function() { this.elementos.modal.style.display = 'none'; },
+    cerrarQRModal: function() { document.getElementById('qrModal').style.display = 'none'; }
+};
+
