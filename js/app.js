@@ -9,11 +9,11 @@ const traducciones = {
   it: { nombreIdioma: "🌐 Italiano ▼", chatPlaceholder: "Scrivi la tua domanda...", chatBtn: "Invia", saludoIA: "Ciao! Sono il tuo assistente.", detectandoUbicacion: "🔍 Rilevamento...", detectandoIP: "Rilevamento IP..." },
   zh: { nombreIdioma: "🌐 中文 ▼", chatPlaceholder: "输入您的问题...", chatBtn: "发送", saludoIA: "你好！我是你的助手。", detectandoUbicacion: "🔍 检测位置...", detectandoIP: "检测 IP..." },
   ja: { nombreIdioma: "🌐 日本語 ▼", chatPlaceholder: "質問を入力...", chatBtn: "送信", saludoIA: "こんにちは！アシスタントです。", detectandoUbicacion: " 場所を検出...", detectandoIP: "IP検出..." },
-  ko: { nombreIdioma: "🌐 한국어 ▼", chatPlaceholder: "질문을 입력...", chatBtn: "보내기", saludoIA: "안녕하세요! 어시스턴트입니다.", detectandoUbicacion: " 위치 감지...", detectandoIP: "IP 감지..." },
+  ko: { nombreIdioma: "🌐 한국어 ▼", chatPlaceholder: "질문을 입력...", chatBtn: "보내기", saludoIA: "안녕하세요! 어시스턴트입니다.", detectandoUbicacion: "🔍 위치 감지...", detectandoIP: "IP 감지..." },
   ar: { nombreIdioma: "🌐 العربية ▼", chatPlaceholder: "اكتب سؤالك...", chatBtn: "إرسال", saludoIA: "مرحبا! أنا مساعدك.", detectandoUbicacion: "🔍 اكتشاف الموقع...", detectandoIP: "اكتشاف IP..." },
-  hi: { nombreIdioma: "🌐 हिन्दी ▼", chatPlaceholder: "अपना प्रश्न लिखें...", chatBtn: "भेजें", saludoIA: "नमस्ते! मैं आपका सहायक हूं।", detectandoUbicacion: " स्थान पहचान...", detectandoIP: "IP पहचान..." },
-  nl: { nombreIdioma: "🌐 Nederlands ▼", chatPlaceholder: "Typ uw vraag...", chatBtn: "Verzenden", saludoIA: "Hallo! Ik ben uw assistent.", detectandoUbicacion: " Locatie...", detectandoIP: "IP detecteren..." },
-  tr: { nombreIdioma: "🌐 Türkçe ▼", chatPlaceholder: "Sorunuzu yazın...", chatBtn: "Gönder", saludoIA: "Merhaba! Ben asistanınız.", detectandoUbicacion: " Konum...", detectandoIP: "IP algılanıyor..." },
+  hi: { nombreIdioma: " हिन्दी ▼", chatPlaceholder: "अपना प्रश्न लिखें...", chatBtn: "भेजें", saludoIA: "नमस्ते! मैं आपका सहायक हूं।", detectandoUbicacion: "🔍 स्थान पहचान...", detectandoIP: "IP पहचान..." },
+  nl: { nombreIdioma: "🌐 Nederlands ▼", chatPlaceholder: "Typ uw vraag...", chatBtn: "Verzenden", saludoIA: "Hallo! Ik ben uw assistent.", detectandoUbicacion: "🔍 Locatie...", detectandoIP: "IP detecteren..." },
+  tr: { nombreIdioma: " Türkçe ▼", chatPlaceholder: "Sorunuzu yazın...", chatBtn: "Gönder", saludoIA: "Merhaba! Ben asistanınız.", detectandoUbicacion: " Konum...", detectandoIP: "IP algılanıyor..." },
   bg: { nombreIdioma: "🌐 Български ▼", chatPlaceholder: "Въведете въпрос...", chatBtn: "Изпрати", saludoIA: "Здравейте! Аз съм вашият асистент.", detectandoUbicacion: "🔍 Откриване...", detectandoIP: "Откриване на IP..." },
   qu: { nombreIdioma: "🌐 Quechua ▼", chatPlaceholder: "Tapuyniykita qillqay...", chatBtn: "Kachay", saludoIA: "Allillanchu! Noqaqa yanapaqmi.", detectandoUbicacion: "🔍 Maypi kasqayta...", detectandoIP: "IP tarispa..." },
   ay: { nombreIdioma: "🌐 Aymara ▼", chatPlaceholder: "Jiskisamaxa qillqt'asma...", chatBtn: "Apayaña", saludoIA: "Aski urukipansa! Noqaxa yanapt'ayiriwa.", detectandoUbicacion: "🔍 Mayacht'ataskiwa...", detectandoIP: "IP mayacht'askiwa..." }
@@ -37,7 +37,7 @@ async function detectarUbicacion() {
 function cargarMuroDinamico(ciudad, pais) {
   const muro = document.getElementById('muro-publicaciones');
   const patrocinadores = document.getElementById('lista-patrocinadores');
-  muro.innerHTML = '<div class="tarjeta-destacada"><h3>🌱 Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
+  muro.innerHTML = '<div class="tarjeta-destacada"><h3> Bienvenido a la Economía Circular en ' + ciudad + '</h3><p>Aún no hay muchas publicaciones en tu zona. ¡Sé el primero en publicar!</p></div>';
   if (patrocinadores) {
     patrocinadores.innerHTML = '<div class="patrocinador-vacio"><p>Espacio disponible para negocios de ' + ciudad + '</p></div>';
   }
@@ -161,16 +161,16 @@ async function enviarMensajeIA() {
       return;
     }
     if (tipo === 'PRODUCTOS') {
-      document.getElementById('ia-escribiendo').innerText = "️ Buscando productos...";
+      document.getElementById('ia-escribiendo').innerText = "🛍️ Buscando productos...";
       const productos = await buscarEnSupabase(texto, ciudad);
       if (productos.length > 0) { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré ' + productos.length + ' productos de "' + texto + '" en ' + ciudad + '! 🛍️ Los puedes ver en el panel central.</div>'; mostrarProductosEnMuro(productos, texto); }
-      else { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. 📸</div>'; }
+      else { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">Aún no hay "' + texto + '" en ' + ciudad + ', pero puedes ser el primero en publicar uno. </div>'; }
       return;
     }
     if (tipo === 'WEB') {
       document.getElementById('ia-escribiendo').innerText = "🌐 Buscando en la web...";
       const resultados = await buscarEnLaWebConMultimedia(texto);
-      if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"!  Te dejé artículos y videos en el panel central. 👇</div>'; mostrarResultadosMultimediaEnMuro(resultados, texto); }
+      if (resultados && (resultados.articulos.length > 0 || resultados.videos.length > 0)) { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">¡Encontré información sobre "' + texto + '"! 🎯 Te dejé artículos y videos en el panel central. 👇</div>'; mostrarResultadosMultimediaEnMuro(resultados, texto); }
       else { document.getElementById('ia-escribiendo').remove(); chatHistorial.innerHTML += '<div class="msg-ia">No encontré resultados para "' + texto + '". Intenta con otra palabra. 🔍</div>'; }
       return;
     }
@@ -178,9 +178,9 @@ async function enviarMensajeIA() {
     const mensajeEnriquecido = '[Usuario en ' + ubicacion + ', hora: ' + horaActual + '] ' + texto;
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
-    if (!respuestaIA || respuestaIA.trim().length < 5) { chatHistorial.innerHTML += '<div class="msg-ia">️ No pude generar una respuesta. Intenta de nuevo.</div>'; }
+    if (!respuestaIA || respuestaIA.trim().length < 5) { chatHistorial.innerHTML += '<div class="msg-ia">⚠️ No pude generar una respuesta. Intenta de nuevo.</div>'; }
     else { chatHistorial.innerHTML += '<div class="msg-ia">' + respuestaIA + '</div>'; }
-  } catch (error) { console.error("Error:", error); document.getElementById('ia-escribiendo').innerText = "️ Error: " + error.message; }
+  } catch (error) { console.error("Error:", error); document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message; }
 }
 
 async function obtenerModelosDisponibles() {
