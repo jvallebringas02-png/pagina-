@@ -4,78 +4,87 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>remarket-db - Portal Economía Circular IA</title>
+  
+  <!-- Conectar los estilos -->
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
-  <!-- HEADER CON BUSCADOR Y SELECTOR DE IDIOMAS -->
+  <!-- BARRA SUPERIOR (HEADER) -->
   <header class="header">
     <div class="header-content">
+      <!-- Logo -->
       <h1 class="logo">🌱 remarket-db OS</h1>
       
+      <!-- Buscador Central -->
       <input type="text" id="buscador-principal" placeholder="¿Qué estás buscando hoy?">
       
-      <!-- SELECTOR DE IDIOMAS -->
+      <!-- Selector de Idiomas -->
       <div class="idioma-selector">
-        <button class="btn-idioma">🌐 Español ▼</button>
+        <button class="btn-idioma"> Español ▼</button>
         <div class="idioma-menu">
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('es')">🇸 Español</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('es')">🇪🇸 Español</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('en')">🇬🇧 English</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('pt')">🇧🇷 Português</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('zh')">🇨🇳 中文 (Chino)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('fr')">🇫🇷 Français</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('pt')">🇷 Português</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('zh')">🇨 中文 (Chino)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('fr')">🇫 Français</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('de')">🇩🇪 Deutsch</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇹 Italiano</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯🇵 日本語 (Japonés)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇷 한국어 (Coreano)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇦 العربية (Árabe)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇮🇹 Italiano</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇵 日本語 (Japonés)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇰🇷 한국어 (Coreano)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇸🇦 العربية (Árabe)</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('hi')">🇮🇳 हिन्दी (Hindi)</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('nl')">🇳🇱 Nederlands</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('tr')">🇹🇷 Türkçe</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇧🇬 Български</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇵🇪 Quechua</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇬 Български</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇪 Quechua</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('ay')">🇧🇴 Aymara</div>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- CONTENIDO PRINCIPAL (3 COLUMNAS) -->
   <div class="main-content">
     
-    <!-- ASISTENTE IA -->
+    <!-- COLUMNA IZQUIERDA: ASISTENTE IA -->
     <aside class="catalogo">
-      <h3>🤖 Asistente IA</h3>
+      <h2>🤖 Asistente IA</h2>
+      <p class="subtitulo">Tu asistente multilingüe de economía circular</p>
+      
       <div id="chat-historial">
         <div class="msg-ia">¡Hola! Soy tu asistente. ¿Qué necesitas hoy?</div>
       </div>
-      <div class="chat-controles">
-        <input type="text" id="chat-input" placeholder="Escribe tu duda aquí...">
-        <button id="chat-btn">Enviar</button>
+      
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <input type="text" id="chat-input" placeholder="Escribe tu duda aquí..." style="flex-grow: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+        <button id="chat-btn" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Enviar</button>
       </div>
-      <button id="btn-limpiar" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:12px;margin-top:10px;">🗑️ Limpiar Conversación</button>
+      <button id="btn-limpiar" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:12px; margin-top:10px;">🗑️ Limpiar Conversación</button>
     </aside>
 
-    <!-- MURO CENTRAL -->
-    <main class="muro-central" id="muro-publicaciones">
-      <h2>Artículos en tu zona</h2>
+    <!-- COLUMNA CENTRAL: MURO DE PUBLICACIONES -->
+    <main id="muro-publicaciones">
+      <h2 style="color: #27ae60;">Artículos en tu zona</h2>
       <p>🔍 Detectando tu ubicación y cargando publicaciones...</p>
     </main>
 
-    <!-- PANEL DERECHO -->
+    <!-- COLUMNA DERECHA: ALCANCE Y PATROCINADORES -->
     <aside class="tendencias">
       <h3>📍 Tu Alcance</h3>
       <p id="texto-ubicacion" style="color: #2980b9; font-weight: bold;">Detectando IP...</p>
-      <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
-      <h3>Patrocinadores</h3>
-      <div id="lista-patrocinadores" style="margin-top: 10px; color: #7f8c8d; font-size: 14px;">
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+      
+      <h3>🤝 Patrocinadores</h3>
+      <div id="lista-patrocinadores" style="color: #7f8c8d; font-size: 14px;">
         Espacio disponible para negocios.
       </div>
     </aside>
 
   </div>
 
-  <!-- CONECTAR EL CEREBRO (app.js) -->
+  <!-- Conectar el cerebro (JavaScript) -->
   <script type="module" src="js/app.js"></script>
 
 </body>
