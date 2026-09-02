@@ -106,7 +106,7 @@ body {
   color: #27ae60;
 }
 
-/* ❌ ELIMINADO: .idioma-selector:hover .idioma-menu { display: block; } */
+/* ❌ ELIMINADO: .idioma-selector:hover .idioma-menu */
 
 /* MENÚ DE USUARIO */
 .menu-usuario {
@@ -221,14 +221,115 @@ body {
   opacity: 0.7;
 }
 
-/* CONTENIDO PRINCIPAL */
+/* CONTENIDO PRINCIPAL - 3 COLUMNAS */
 .main-content {
   max-width: 1400px;
   margin: 2rem auto;
   padding: 0 2rem;
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 320px 1fr 300px;
   gap: 2rem;
+  align-items: start;
+}
+
+/* PANEL CHAT (izquierda) */
+.panel-chat {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-chat h2 {
+  color: #27ae60;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+#chat-historial {
+  min-height: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.msg-ia {
+  background: #e8f4f8;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.msg-usuario {
+  background: #2c3e50;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 10px;
+}
+
+#chat-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  outline: none;
+  font-size: 14px;
+}
+
+#chat-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#chat-btn:hover {
+  background: #219a52;
+}
+
+/* PANEL MURO (centro) */
+.panel-muro {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  min-height: 500px;
+}
+
+.panel-muro h2 {
+  color: #27ae60;
+  margin-bottom: 1rem;
+}
+
+/* PANEL LATERAL (derecha) */
+.panel-lateral {
+  background: white;
+  border-radius: 15px;
+  padding: 1.5rem;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  height: fit-content;
+}
+
+.panel-lateral h3 {
+  color: #27ae60;
+  margin-bottom: 1rem;
 }
 
 /* CATÁLOGO */
@@ -428,8 +529,8 @@ body {
   color: #27ae60;
 }
 
-/* PANEL LATERAL */
-.panel-lateral {
+/* PANEL LATERAL FIJO */
+.panel-lateral-fijo {
   position: fixed;
   right: 2rem;
   top: 50%;
@@ -512,6 +613,9 @@ body {
 
 .catalogo,
 .tendencias,
-.patrocinador {
+.patrocinador,
+.panel-chat,
+.panel-muro,
+.panel-lateral {
   animation: fadeIn 0.5s ease-out;
 }
