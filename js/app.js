@@ -1,4 +1,4 @@
-import CONFIG from './config.js';
+import CONFIG from '../config.js';
 
 // ==========================================
 // DICCIONARIO DE TRADUCCIONES (16 IDIOMAS)
