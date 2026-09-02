@@ -4,107 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>remarket-db - Portal Economía Circular IA</title>
-  
-  <style>
-    /* ESTILOS BÁSICOS */
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-    body { background: #f4f6f8; color: #333; }
-    
-    /* HEADER */
-    header {
-      background: #2c3e50;
-      color: white;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    h1 { font-size: 1.5rem; }
-    .header-right { display: flex; align-items: center; gap: 20px; }
-    
-    #buscador-principal {
-      padding: 10px 20px;
-      border-radius: 25px;
-      border: none;
-      width: 300px;
-      outline: none;
-      font-size: 14px;
-    }
-
-    /* SELECTOR DE IDIOMAS */
-    .idioma-selector { position: relative; }
-    .btn-idioma {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      padding: 8px 15px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.3s;
-    }
-    .btn-idioma:hover { background: rgba(255,255,255,0.2); }
-    
-    .idioma-menu {
-      display: none;
-      position: absolute;
-      top: 100%;
-      right: 0;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-      min-width: 220px;
-      z-index: 1000;
-      margin-top: 10px;
-      max-height: 350px;
-      overflow-y: auto;
-    }
-    .idioma-selector:hover .idioma-menu { display: block; }
-    
-    .idioma-opcion {
-      padding: 12px 15px;
-      cursor: pointer;
-      border-bottom: 1px solid #f0f0f0;
-      color: #333;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-    .idioma-opcion:hover { background: #f8f9fa; color: #27ae60; }
-    .idioma-opcion:last-child { border-bottom: none; }
-
-    /* LAYOUT PRINCIPAL */
-    .contenedor-os {
-      display: flex;
-      gap: 20px;
-      padding: 20px;
-      max-width: 1400px;
-      margin: 0 auto;
-      height: calc(100vh - 80px);
-    }
-    .panel-ia { width: 300px; background: white; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .muro-central { flex-grow: 1; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow-y: auto; }
-    .panel-derecho { width: 250px; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-
-    /* CHAT */
-    #chat-historial { flex-grow: 1; overflow-y: auto; margin-bottom: 15px; border: 1px solid #eee; border-radius: 8px; padding: 10px; }
-    .msg-ia { background: #e8f4f8; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; }
-    .msg-usuario { background: #2c3e50; color: white; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; text-align: right; }
-    .chat-controles { display: flex; gap: 10px; }
-    #chat-input { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
-    #chat-btn { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-    #btn-limpiar { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 12px; margin-top: 10px; }
-  </style>
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
   <!-- HEADER CON BUSCADOR Y SELECTOR DE IDIOMAS -->
-  <header>
-    <h1>🌱 remarket-db OS</h1>
-    <div class="header-right">
+  <header class="header">
+    <div class="header-content">
+      <h1 class="logo">🌱 remarket-db OS</h1>
+      
       <input type="text" id="buscador-principal" placeholder="¿Qué estás buscando hoy?">
       
-      <!-- SELECTOR DE IDIOMAS CON ONCLICK -->
+      <!-- SELECTOR DE IDIOMAS -->
       <div class="idioma-selector">
         <button class="btn-idioma">🌐 Español ▼</button>
         <div class="idioma-menu">
@@ -115,13 +26,13 @@
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('fr')">🇫🇷 Français</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('de')">🇩🇪 Deutsch</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('it')">🇹 Italiano</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯 日本語 (Japonés)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇰🇷 한국어 (Coreano)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇸🇦 العربية (Árabe)</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('hi')">🇳 हिन्दी (Hindi)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ja')">🇯🇵 日本語 (Japonés)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ko')">🇷 한국어 (Coreano)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('ar')">🇦 العربية (Árabe)</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('hi')">🇮🇳 हिन्दी (Hindi)</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('nl')">🇳🇱 Nederlands</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('tr')">🇹🇷 Türkçe</div>
-          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇧 Български</div>
+          <div class="idioma-opcion" onclick="cambiarIdiomaManual('bg')">🇧🇬 Български</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('qu')">🇵🇪 Quechua</div>
           <div class="idioma-opcion" onclick="cambiarIdiomaManual('ay')">🇧🇴 Aymara</div>
         </div>
@@ -129,12 +40,12 @@
     </div>
   </header>
 
-  <!-- CONTENEDOR PRINCIPAL -->
-  <div class="contenedor-os">
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="main-content">
     
     <!-- ASISTENTE IA -->
-    <aside class="panel-ia">
-      <h3> Asistente IA</h3>
+    <aside class="catalogo">
+      <h3>🤖 Asistente IA</h3>
       <div id="chat-historial">
         <div class="msg-ia">¡Hola! Soy tu asistente. ¿Qué necesitas hoy?</div>
       </div>
@@ -142,7 +53,7 @@
         <input type="text" id="chat-input" placeholder="Escribe tu duda aquí...">
         <button id="chat-btn">Enviar</button>
       </div>
-      <button id="btn-limpiar">🗑️ Limpiar Conversación</button>
+      <button id="btn-limpiar" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:12px;margin-top:10px;">🗑️ Limpiar Conversación</button>
     </aside>
 
     <!-- MURO CENTRAL -->
@@ -152,8 +63,8 @@
     </main>
 
     <!-- PANEL DERECHO -->
-    <aside class="panel-derecho">
-      <h3> Tu Alcance</h3>
+    <aside class="tendencias">
+      <h3>📍 Tu Alcance</h3>
       <p id="texto-ubicacion" style="color: #2980b9; font-weight: bold;">Detectando IP...</p>
       <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
       <h3>Patrocinadores</h3>
