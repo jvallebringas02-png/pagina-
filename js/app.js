@@ -6,10 +6,10 @@ import CONFIG from './config.js';
 const traducciones = {
   es: {
     nombreIdioma: "🌐 Español ▼",
-    logo: " remarket-db OS",
+    logo: "🌱 remarket-db OS",
     chatPlaceholder: "Escribe tu duda aquí...",
     chatBtn: "Enviar",
-    catalogoTitulo: "🌱 Catálogo de Economía Circular",
+    catalogoTitulo: " Catálogo de Economía Circular",
     catalogoSub: "Descubre artículos disponibles para intercambio en tu zona",
     btnPublicar: "📦 Publicar",
     saludoIA: "¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?",
@@ -23,12 +23,12 @@ const traducciones = {
     logo: "🌱 remarket-db OS",
     chatPlaceholder: "Type your question here...",
     chatBtn: "Send",
-    catalogoTitulo: " Circular Economy Catalog",
+    catalogoTitulo: "🌱 Circular Economy Catalog",
     catalogoSub: "Discover items available for exchange in your area",
     btnPublicar: "📦 Publish",
     saludoIA: "Hello! I'm your global circular economy assistant. What do you need today?",
     detectandoUbicacion: "🔍 Detecting your location and loading publications...",
-    tuAlcance: " Your Reach",
+    tuAlcance: "📍 Your Reach",
     detectandoIP: "Detecting IP...",
     patrocinadores: "Sponsors"
   },
@@ -53,10 +53,10 @@ const traducciones = {
     chatBtn: "Enviar",
     catalogoTitulo: "🌱 Catálogo de Economia Circular",
     catalogoSub: "Descubra artigos disponíveis para troca na sua zona",
-    btnPublicar: "📦 Publicar",
+    btnPublicar: " Publicar",
     saludoIA: "Olá! Sou seu assistente de economia circular global. O que você precisa hoje?",
     detectandoUbicacion: "🔍 Detectando sua localização e carregando publicações...",
-    tuAlcance: "📍 Seu Alcance",
+    tuAlcance: " Seu Alcance",
     detectandoIP: "Detectando IP...",
     patrocinadores: "Patrocinadores"
   },
@@ -70,7 +70,7 @@ const traducciones = {
     btnPublicar: "📦 Publier",
     saludoIA: "Bonjour! Je suis votre assistant d'économie circulaire global. Que vous faut-il aujourd'hui?",
     detectandoUbicacion: "🔍 Détection de votre emplacement et chargement des publications...",
-    tuAlcance: "📍 Votre Portée",
+    tuAlcance: " Votre Portée",
     detectandoIP: "Détection IP...",
     patrocinadores: "Sponsors"
   },
@@ -95,10 +95,10 @@ const traducciones = {
     chatBtn: "Invia",
     catalogoTitulo: " Catalogo Economia Circolare",
     catalogoSub: "Scopri articoli disponibili per lo scambio nella tua zona",
-    btnPublicar: " Pubblica",
+    btnPublicar: "📦 Pubblica",
     saludoIA: "Ciao! Sono il tuo assistente di economia circolare globale. Cosa ti serve oggi?",
-    detectandoUbicacion: "🔍 Rilevamento della posizione e caricamento pubblicazioni...",
-    tuAlcance: "📍 La tua Portata",
+    detectandoUbicacion: " Rilevamento della posizione e caricamento pubblicazioni...",
+    tuAlcance: " La tua Portata",
     detectandoIP: "Rilevamento IP...",
     patrocinadores: "Sponsor"
   },
@@ -109,7 +109,7 @@ const traducciones = {
     chatBtn: "送信",
     catalogoTitulo: "🌱 循環型経済カタログ",
     catalogoSub: "お住まいの地域で交換可能なアイテムを発見",
-    btnPublicar: " 公開",
+    btnPublicar: "📦 公開",
     saludoIA: "こんにちは！グローバル循環型経済アシスタントです。今日は何が必要ですか？",
     detectandoUbicacion: "🔍 場所を検出して出版物を読み込んでいます...",
     tuAlcance: "📍 あなたのカバレッジ",
@@ -123,19 +123,19 @@ const traducciones = {
     chatBtn: "보내기",
     catalogoTitulo: "🌱 순환 경제 카탈로그",
     catalogoSub: "귀하의 지역에서 교환 가능한 항목 발견",
-    btnPublicar: "📦 게시",
+    btnPublicar: " 게시",
     saludoIA: "안녕하세요! 글로벌 순환 경제 어시스턴트입니다. 오늘 무엇이 필요하신가요?",
     detectandoUbicacion: "🔍 위치 감지 및 출판물 로딩 중...",
-    tuAlcance: "📍 당신의 범위",
+    tuAlcance: " 당신의 범위",
     detectandoIP: "IP 감지 중...",
     patrocinadores: "스폰서"
   },
   ar: {
-    nombreIdioma: " العربية ▼",
-    logo: " remarket-db نظام التشغيل",
+    nombreIdioma: "🌐 العربية ▼",
+    logo: "🌱 remarket-db نظام التشغيل",
     chatPlaceholder: "اكتب سؤالك هنا...",
     chatBtn: "إرسال",
-    catalogoTitulo: " كتالوج الاقتصاد الدائري",
+    catalogoTitulo: "🌱 كتالوج الاقتصاد الدائري",
     catalogoSub: "اكتشف العناصر المتاحة للتبادل في منطقتك",
     btnPublicar: "📦 نشر",
     saludoIA: "مرحبا! أنا مساعد الاقتصاد الدائري العالمي. ماذا تحتاج اليوم؟",
@@ -159,11 +159,11 @@ const traducciones = {
     patrocinadores: "प्रायोजक"
   },
   nl: {
-    nombreIdioma: " Nederlands ▼",
+    nombreIdioma: "🌐 Nederlands ▼",
     logo: "🌱 remarket-db OS",
     chatPlaceholder: "Typ hier uw vraag...",
     chatBtn: "Verzenden",
-    catalogoTitulo: "🌱 Circulaire Economie Catalogus",
+    catalogoTitulo: " Circulaire Economie Catalogus",
     catalogoSub: "Ontdek items beschikbaar voor uitwisseling in uw regio",
     btnPublicar: " Publiceren",
     saludoIA: "Hallo! Ik ben uw wereldwijde circulaire economie assistent. Wat heeft u vandaag nodig?",
@@ -207,7 +207,7 @@ const traducciones = {
     chatBtn: "Kachay",
     catalogoTitulo: "🌱 Muyuq Economia Qhatu",
     catalogoSub: "Llaqtaykipi tikranapaq kaqkunata taripay",
-    btnPublicar: "📦 Qillqay",
+    btnPublicar: " Qillqay",
     saludoIA: "Allillanchu! Noqaqa global muyuq economia yanapaqmi. Imatataq kunan p'unchaw munanki?",
     detectandoUbicacion: "🔍 Maypi kasqaykita tarispa qillqasqakunata apachkani...",
     tuAlcance: "📍 Qampa chayanan",
@@ -303,7 +303,7 @@ async function buscarEnLaWebConMultimedia(query) {
       });
     }
     resultados.videos.push({
-      titulo: ' Videos sobre "' + query + '"',
+      titulo: '🎥 Videos sobre "' + query + '"',
       searchUrl: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query)
     });
     return resultados;
@@ -367,10 +367,10 @@ function mostrarProductosEnMuro(productos, query) {
   }
   var tarjetasHTML = productos.map(function(prod) {
     return '<div class="result-card producto-card">' +
-      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder">📦</div>') +
+      (prod.imagen ? '<img src="' + prod.imagen + '" alt="' + prod.titulo + '" class="card-img">' : '<div class="card-img-placeholder"></div>') +
       '<div class="card-body"><h4>' + prod.titulo + '</h4><p>' + prod.descripcion + '</p><div class="producto-meta"><span class="precio">💰 ' + prod.precio + '</span><span class="ciudad">📍 ' + prod.ciudad + '</span></div><button class="btn-contactar">Contactar</button></div></div>';
   }).join('');
-  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">🛍️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
+  muro.innerHTML = '<div class="multimedia-search"><h2 class="search-title">️ Productos: "' + query + '"</h2><p class="search-subtitle">' + productos.length + ' productos encontrados</p><div class="results-grid">' + tarjetasHTML + '</div></div>';
 }
 
 function mostrarClimaEnMuro(clima, ciudad) {
@@ -379,7 +379,7 @@ function mostrarClimaEnMuro(clima, ciudad) {
     muro.innerHTML = '<div class="search-empty"><h3>⚠️ No pude obtener el clima</h3></div>';
     return;
   }
-  const iconos = { 0: '☀️', 1: '️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '⛈️' };
+  const iconos = { 0: '️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '🌧️', 71: '❄️', 80: '🌦️', 95: '️' };
   const icono = iconos[clima.weathercode] || '🌡️';
   muro.innerHTML = '<div class="multimedia-search"><div class="clima-card"><h2>' + icono + ' Clima en ' + ciudad + '</h2><div class="clima-temp">' + clima.temperature + '°C</div><p>Viento: ' + clima.windspeed + ' km/h</p></div></div>';
 }
@@ -424,7 +424,7 @@ async function enviarMensajeIA() {
   if (!texto) return;
   chatHistorial.innerHTML += '<div class="msg-usuario">' + texto + '</div>';
   chatInput.value = '';
-  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo"> Pensando...</div>';
+  chatHistorial.innerHTML += '<div class="msg-ia" id="ia-escribiendo">🤖 Pensando...</div>';
   try {
     const tipo = detectarTipoDeBusqueda(texto);
     const ubicacion = document.getElementById('texto-ubicacion').innerText || "Callao, Perú";
@@ -445,7 +445,7 @@ async function enviarMensajeIA() {
     if (tipo === 'HORA') {
       const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('ia-escribiendo').remove();
-      chatHistorial.innerHTML += '<div class="msg-ia">🕐 Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia"> Son las ' + horaActual + ' en ' + ubicacion + '.</div>';
       return;
     }
     if (tipo === 'PLATAFORMA') {
@@ -485,13 +485,13 @@ async function enviarMensajeIA() {
     const respuestaIA = await llamarGroqConModeloDisponible(mensajeEnriquecido);
     document.getElementById('ia-escribiendo').remove();
     if (!respuestaIA || respuestaIA.trim().length < 5) {
-      chatHistorial.innerHTML += '<div class="msg-ia">⚠️ No pude generar una respuesta. Intenta de nuevo.</div>';
+      chatHistorial.innerHTML += '<div class="msg-ia">️ No pude generar una respuesta. Intenta de nuevo.</div>';
     } else {
       chatHistorial.innerHTML += '<div class="msg-ia">' + respuestaIA + '</div>';
     }
   } catch (error) {
     console.error("Error:", error);
-    document.getElementById('ia-escribiendo').innerText = "️ Error: " + error.message;
+    document.getElementById('ia-escribiendo').innerText = "⚠️ Error: " + error.message;
   }
 }
 
@@ -697,7 +697,7 @@ if (buscadorArriba && chatInput && chatBtn) {
 }
 
 // ==========================================
-// NUEVO: CONTROL DEL MENÚ DESPLEGABLE CON CLIC
+// ✅ NUEVO: CONTROL DEL MENÚ DESPLEGABLE CON CLIC
 // ==========================================
 const btnIdiomaEl = document.querySelector('.btn-idioma');
 const idiomaMenuEl = document.querySelector('.idioma-menu');
