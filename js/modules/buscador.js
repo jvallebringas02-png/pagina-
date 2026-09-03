@@ -6,17 +6,53 @@ var BuscadorMotor = {
     tokenizar: function(texto) { var n = this.normalizar(texto); if (!n) return []; return n.split(' ').filter(function(t) { return t.length > 2 && !this.STOPWORDS.has(t); }.bind(this)).map(function(t) { return this.JERGA[t] || t; }.bind(this)); },
     construirIndice: function(articulos) { this.catalogo = articulos; },
     calcularPuntaje: function(art, tokens) { var p = 0; var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || ''); tokens.forEach(function(token) { if (t.includes(token)) p += 10; else if (c.includes(token)) p += 5; else if (d.includes(token)) p += 2; }); return p; },
+
+    // Busca en internet (Serper) y YouTube a través de chat-ia, SOLO cuando no hay suficientes productos locales.
+    // Reemplaza al respaldo anterior que usaba dummyjson.com (datos de prueba ficticios).
+    buscarEnInternetYVideo: async function(query) {
+        try {
+            var res = await fetch(CONFIG.GROQ_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [
+                        { role: 'system', content: 'El usuario está buscando algo en un marketplace. Si no es un producto que puedas vender, usa tus herramientas de búsqueda web y/o video para ayudarlo, y responde en 1-2 oraciones muy breves.' },
+                        { role: 'user', content: query }
+                    ]
+                })
+            });
+            var data = await res.json();
+            return {
+                resultados_web: data.resultados_web || null,
+                resultados_videos: data.resultados_videos || null,
+                respuesta_ia: (data.choices && data.choices[0]) ? data.choices[0].message.content : null
+            };
+        } catch (e) {
+            return { resultados_web: null, resultados_videos: null, respuesta_ia: null };
+        }
+    },
+
     ejecutarBusquedaHibrida: async function(query) {
         var tokens = this.tokenizar(query);
         var resultadosLocales = this.catalogo.map(function(art) { return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: this.calcularPuntaje(art, tokens), _es_expandido: false, _es_externo: false }; }.bind(this)).filter(function(art) { return art._puntaje > 0; });
         resultadosLocales.sort(function(a, b) { return b._puntaje - a._puntaje; });
-        if (resultadosLocales.length >= 3) { return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false }; }
-        try {
-            var res = await fetch('https://dummyjson.com/products/search?q=' + encodeURIComponent(query) + '&limit=10'); var data = await res.json();
-            var modalidades = ['venta', 'trueque', 'donacion']; var paises_api = ['Estados Unidos', 'Reino Unido', 'Alemania', 'Francia', 'Japón', 'Canadá', 'Italia', 'Bulgaria'];
-            var resultadosExternos = (data.products || []).map(function(p) { return { titulo: p.title, categoria: p.category.charAt(0).toUpperCase() + p.category.slice(1), descripcion: p.description, precio: Math.round(p.price * 3.7), modalidad: modalidades[Math.floor(Math.random() * modalidades.length)], pais: paises_api[Math.floor(Math.random() * paises_api.length)], ciudad: 'Internacional', distancia_km: (Math.random() * 1000 + 500).toFixed(1), imagen_url: p.thumbnail, icono: null, _puntaje: 50, _es_expandido: true, _es_externo: true }; });
-            return { resultados: resultadosLocales.concat(resultadosExternos), total: this.catalogo.length + resultadosExternos.length, coincidencias: resultadosLocales.length + resultadosExternos.length, query: query, es_expandido: resultadosLocales.length === 0, es_hibrido: true };
-        } catch (e) { return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false }; }
+
+        if (resultadosLocales.length >= 3) {
+            return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null };
+        }
+
+        // Pocos o ningún producto local: buscamos en internet/YouTube real (no más datos inventados)
+        var externo = await this.buscarEnInternetYVideo(query);
+        return {
+            resultados: resultadosLocales,
+            total: this.catalogo.length,
+            coincidencias: resultadosLocales.length,
+            query: query,
+            es_expandido: resultadosLocales.length === 0,
+            es_hibrido: true,
+            resultados_web: externo.resultados_web,
+            resultados_videos: externo.resultados_videos,
+            respuesta_ia: externo.respuesta_ia
+        };
     }
 };
-
