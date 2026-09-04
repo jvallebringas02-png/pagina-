@@ -5,7 +5,7 @@ var BuscadorMotor = {
     normalizar: function(t) { return t ? t.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim() : ''; },
     tokenizar: function(texto) { var n = this.normalizar(texto); if (!n) return []; return n.split(' ').filter(function(t) { return t.length > 2 && !this.STOPWORDS.has(t); }.bind(this)).map(function(t) { return this.JERGA[t] || t; }.bind(this)); },
     construirIndice: function(articulos) { this.catalogo = articulos; },
-    calcularPuntaje: function(art, tokens) { var p = 0; var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || ''); tokens.forEach(function(token) { if (t.includes(token)) p += 10; else if (c.includes(token)) p += 5; else if (d.includes(token)) p += 2; }); return p; },
+    calcularPuntaje: function(art, tokens) { var p = 0; var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || ''); tokens.forEach(function(token) { var variantes = [token]; if (token.length > 4 && token.endsWith('s')) variantes.push(token.slice(0, -1)); var coincide = function(campo) { return variantes.some(function(v) { return campo.includes(v); }); }; if (coincide(t)) p += 10; else if (coincide(c)) p += 5; else if (coincide(d)) p += 2; }); return p; },
 
     // Busca en internet (Serper) y YouTube directamente a través de chat-ia (modo "busqueda_directa").
     // No depende de que la IA "decida" buscar: si el buscador llega hasta aquí es porque ya
