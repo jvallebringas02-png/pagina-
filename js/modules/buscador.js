@@ -15,7 +15,7 @@ var BuscadorMotor = {
         try {
             var res = await fetch(CONFIG.GROQ_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
                 body: JSON.stringify({ busqueda_directa: true, query: query })
             });
             var data = await res.json();
