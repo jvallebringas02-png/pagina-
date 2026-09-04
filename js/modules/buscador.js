@@ -7,28 +7,27 @@ var BuscadorMotor = {
     construirIndice: function(articulos) { this.catalogo = articulos; },
     calcularPuntaje: function(art, tokens) { var p = 0; var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || ''); tokens.forEach(function(token) { if (t.includes(token)) p += 10; else if (c.includes(token)) p += 5; else if (d.includes(token)) p += 2; }); return p; },
 
-    // Busca en internet (Serper) y YouTube a través de chat-ia, SOLO cuando no hay suficientes productos locales.
-    // Reemplaza al respaldo anterior que usaba dummyjson.com (datos de prueba ficticios).
+    // Busca en internet (Serper) y YouTube directamente a través de chat-ia (modo "busqueda_directa").
+    // No depende de que la IA "decida" buscar: si el buscador llega hasta aquí es porque ya
+    // hacen falta resultados externos. Reemplaza al respaldo anterior que usaba dummyjson.com
+    // (catálogo de pruebas ficticio con datos inventados al azar).
     buscarEnInternetYVideo: async function(query) {
         try {
             var res = await fetch(CONFIG.GROQ_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [
-                        { role: 'system', content: 'El usuario está buscando algo en un marketplace. Si no es un producto que puedas vender, usa tus herramientas de búsqueda web y/o video para ayudarlo, y responde en 1-2 oraciones muy breves.' },
-                        { role: 'user', content: query }
-                    ]
-                })
+                body: JSON.stringify({ busqueda_directa: true, query: query })
             });
             var data = await res.json();
+            if (data.sin_cuota_web || data.sin_cuota_videos) {
+                console.warn('remarket-db: se agotó la cuota gratuita de búsqueda externa (Serper/YouTube). Revisa Supabase > chat-ia > Logs.');
+            }
             return {
                 resultados_web: data.resultados_web || null,
-                resultados_videos: data.resultados_videos || null,
-                respuesta_ia: (data.choices && data.choices[0]) ? data.choices[0].message.content : null
+                resultados_videos: data.resultados_videos || null
             };
         } catch (e) {
-            return { resultados_web: null, resultados_videos: null, respuesta_ia: null };
+            return { resultados_web: null, resultados_videos: null };
         }
     },
 
@@ -41,7 +40,6 @@ var BuscadorMotor = {
             return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null };
         }
 
-        // Pocos o ningún producto local: buscamos en internet/YouTube real (no más datos inventados)
         var externo = await this.buscarEnInternetYVideo(query);
         return {
             resultados: resultadosLocales,
@@ -51,8 +49,7 @@ var BuscadorMotor = {
             es_expandido: resultadosLocales.length === 0,
             es_hibrido: true,
             resultados_web: externo.resultados_web,
-            resultados_videos: externo.resultados_videos,
-            respuesta_ia: externo.respuesta_ia
+            resultados_videos: externo.resultados_videos
         };
     }
 };
