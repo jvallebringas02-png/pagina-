@@ -128,6 +128,14 @@ const UI_TRANSLATIONS = {
         menu_inicio: "Начало", menu_perfil: "Моят профил", menu_publicaciones: "Моите обяви", menu_mensajes: "Съобщения", menu_favoritos: "Любими", menu_config: "Настройки",
         panel_alcance: "Вашият обхват", panel_intereses: "Вашите интереси", btn_publicar: "Публикувай",
         quick_publicar: "Как да публикувам?", quick_vender: "Как да продам?", quick_seguridad: "Сигурност", quick_reportar: "Докладвай", btn_limpiar: "Изчисти разговора" },
+    fr: { account_btn: "Mon Compte", content_title: "🌱 Catalogue d'Économie Circulaire", content_subtitle: "Découvrez des articles disponibles pour échange dans votre région", featured_title: "Articles en Vedette", search_placeholder: "Que cherchez-vous aujourd'hui ? Ex : chemise, ordinateur, voiture...", login_tab: "Connexion", register_tab: "S'inscrire", assistant_header: "🤖 Assistant IA", footer_desc: "Connecter commerces et voisins intelligemment.",
+        menu_inicio: "Accueil", menu_perfil: "Mon Profil", menu_publicaciones: "Mes Annonces", menu_mensajes: "Messages", menu_favoritos: "Favoris", menu_config: "Paramètres",
+        panel_alcance: "Votre Portée", panel_intereses: "Vos Intérêts", btn_publicar: "Publier",
+        quick_publicar: "Comment publier ?", quick_vender: "Comment vendre ?", quick_seguridad: "Sécurité", quick_reportar: "Signaler", btn_limpiar: "Effacer la Conversation" },
+    pt: { account_btn: "Minha Conta", content_title: "🌱 Catálogo de Economia Circular", content_subtitle: "Descubra artigos disponíveis para troca na sua região", featured_title: "Artigos em Destaque", search_placeholder: "O que você está procurando hoje? Ex: camisa, laptop, carros...", login_tab: "Entrar", register_tab: "Cadastrar-se", assistant_header: "🤖 Assistente IA", footer_desc: "Conectando comércios e vizinhos de forma inteligente.",
+        menu_inicio: "Início", menu_perfil: "Meu Perfil", menu_publicaciones: "Minhas Publicações", menu_mensajes: "Mensagens", menu_favoritos: "Favoritos", menu_config: "Configurações",
+        panel_alcance: "Seu Alcance", panel_intereses: "Seus Interesses", btn_publicar: "Publicar",
+        quick_publicar: "Como publico?", quick_vender: "Como vendo?", quick_seguridad: "Segurança", quick_reportar: "Denunciar", btn_limpiar: "Limpar Conversa" },
 };
 
 function aplicarTraduccionUI(lang) {
