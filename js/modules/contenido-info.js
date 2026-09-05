@@ -81,7 +81,12 @@ var ContenidoInfo = {
         var articulos = await this.cargarArticulos();
         var traducidos = await Promise.all(articulos.map(function(a) { return ContenidoInfo.traducirSiHaceFalta(a, idioma); }));
 
-        contenedor.innerHTML = '<div class="ai-context-banner" style="margin-bottom:16px;">🌱 <strong>Sobre remarket-db</strong></div>' +
-            traducidos.map(function(a) { return ContenidoInfo.renderizarTarjeta(a); }).join('');
+        // El contenedor es una cuadrícula de 3 columnas (pensada para tarjetas de producto).
+        // Este wrapper ocupa las 3 columnas completas para que el artículo se vea de ancho completo,
+        // en vez de quedar apretado en una sola columna angosta.
+        contenedor.innerHTML = '<div style="grid-column: 1 / -1;">' +
+            '<div class="ai-context-banner" style="margin-bottom:16px;">🌱 <strong>Sobre remarket-db</strong></div>' +
+            traducidos.map(function(a) { return ContenidoInfo.renderizarTarjeta(a); }).join('') +
+            '</div>';
     }
 };
