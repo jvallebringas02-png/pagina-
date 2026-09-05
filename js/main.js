@@ -19,7 +19,21 @@ document.addEventListener("DOMContentLoaded", async function() {
     var productosTotales = Database.articulos.concat(productosSupabase).concat(productosAPI);
     
     BuscadorMotor.construirIndice(productosTotales);
-    UIController.renderizarArticulos(productosTotales);
+
+    // Si no hay sesión iniciada (ni local ni de Supabase), el muro muestra los
+    // artículos informativos de la plataforma en vez del catálogo de productos.
+    var haySesionLocal = !!cargarSesionUsuario();
+    var haySesionSupabase = false;
+    try {
+        var { data: { session: sesionInicial } } = await supabase.auth.getSession();
+        haySesionSupabase = !!(sesionInicial && sesionInicial.user);
+    } catch (e) { /* si falla, asumimos que no hay sesión */ }
+
+    if (haySesionLocal || haySesionSupabase) {
+        UIController.renderizarArticulos(productosTotales);
+    } else {
+        await ContenidoInfo.mostrarEnMuro(idioma);
+    }
     
     document.getElementById('assistantForm').addEventListener('submit', EventController.manejarEnvioMensaje);
     document.getElementById('searchForm').addEventListener('submit', EventController.manejarBusquedaPrincipal);
