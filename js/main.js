@@ -34,6 +34,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     } else {
         await ContenidoInfo.mostrarEnMuro(idioma);
     }
+    Institucional.cargarPatrocinadores();
+    Institucional.cargarPublicidad();
     
     document.getElementById('assistantForm').addEventListener('submit', EventController.manejarEnvioMensaje);
     document.getElementById('searchForm').addEventListener('submit', EventController.manejarBusquedaPrincipal);
