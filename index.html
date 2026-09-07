@@ -132,10 +132,13 @@ tailwind.config = {
 
 <aside class="sidebar-right">
 <div class="banner-db" id="bannerText">🚀 IA Autónoma: Generando contexto, cumplimiento legal y ético de economía circular.</div>
+<div id="publicidadSlot"></div>
 <div class="sponsors-box" id="sponsorsBox">
 <div class="sponsors-title" id="sponsorsTitle"> Patrocinadores</div>
+<div id="patrocinadoresLista">
 <div class="sponsor-card"><div class="sponsor-name">Municipalidad de Trujillo</div><button class="btn-sponsor">Visitar</button></div>
 <div class="sponsor-card"><div class="sponsor-name">Cámara de Comercio</div><button class="btn-sponsor">Visitar</button></div>
+</div>
 </div>
 </aside>
 </div>
@@ -207,9 +210,9 @@ tailwind.config = {
 <footer>
 <div class="footer-grid">
 <div class="footer-col"><h2 style="color: #F59E0B;">remarket-db</h2><p id="footerDesc">Conectando comercios y vecinos de forma inteligente.</p></div>
-<div class="footer-col"><h4>Empresa</h4><ul><li><a href="#">Quiénes Somos</a></li></ul></div>
+<div class="footer-col"><h4>Empresa</h4><ul><li><a href="#" onclick="Institucional.mostrarQuienesSomos(); return false;">Quiénes Somos</a></li><li><a href="#" onclick="Institucional.mostrarContactoAdmin(); return false;">Comunícate con el Administrador</a></li></ul></div>
 <div class="footer-col"><h4>Gestión</h4><ul><li><a href="#">Panel Administrador</a></li></ul></div>
-<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#">Libro de Reclamaciones</a></li></ul></div>
+<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#" onclick="Institucional.mostrarLibroReclamaciones(); return false;">Libro de Reclamaciones</a></li></ul></div>
 </div>
 </footer>
 
@@ -690,6 +693,7 @@ Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="
 <script src="js/modules/ai-service.js"></script>
 <script src="js/modules/ui-controller.js"></script>
 <script src="js/modules/contenido-info.js"></script>
+<script src="js/modules/institucional.js"></script>
 <script src="js/modules/event-controller.js"></script>
 <script src="js/main.js"></script>
 </body>
