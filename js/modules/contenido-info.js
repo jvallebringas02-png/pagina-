@@ -78,6 +78,13 @@ var ContenidoInfo = {
         var contenedor = document.getElementById('articulosContainer');
         if (!contenedor) return;
 
+        // Cambia el título/subtítulo de arriba de "Catálogo..." a un mensaje de bienvenida
+        var t = UI_TRANSLATIONS[idioma] || UI_TRANSLATIONS['es'];
+        var elTitulo = document.getElementById('contentTitle');
+        var elSubtitulo = document.getElementById('contentSubtitle');
+        if (elTitulo && t.bienvenida_title) elTitulo.textContent = t.bienvenida_title;
+        if (elSubtitulo && t.bienvenida_subtitle) elSubtitulo.textContent = t.bienvenida_subtitle;
+
         var articulos = await this.cargarArticulos();
         var traducidos = await Promise.all(articulos.map(function(a) { return ContenidoInfo.traducirSiHaceFalta(a, idioma); }));
 
