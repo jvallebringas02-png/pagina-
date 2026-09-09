@@ -142,6 +142,11 @@ const UI_TRANSLATIONS = {
         quick_publicar: "¿Kamsa apayasi?", quick_vender: "¿Kamsa aljta?", quick_seguridad: "Jark'aqäwi", quick_reportar: "Yatiyaña", btn_limpiar: "Aruskipäwi Q'umachaña", bienvenida_title: "👋 Suma Jutawi remarket-db-ru", bienvenida_subtitle: "Qalltañataki plataforma uñt'ama" },
 };
 
+// Título de la sección informativa del muro ("Sobre remarket-db"). Aparte de UI_TRANSLATIONS
+// porque ese contenido lo pinta contenido-info.js, no aplicarTraduccionUI.
+var SOBRE_TITULO_TRADUCIDO = { es: 'Sobre remarket-db', en: 'About remarket-db', pt: 'Sobre o remarket-db', fr: 'À propos de remarket-db', de: 'Über remarket-db', it: 'Info su remarket-db', ru: 'О remarket-db', zh: '关于 remarket-db', ja: 'remarket-dbについて', ko: 'remarket-db 소개', ar: 'حول remarket-db', hi: 'remarket-db के बारे में', nl: 'Over remarket-db', tr: 'remarket-db Hakkında', bg: 'За remarket-db', qu: 'remarket-db Rikuchisqa', ay: 'remarket-db Toqita' };
+function obtenerSobreTitulo(lang) { return SOBRE_TITULO_TRADUCIDO[lang] || SOBRE_TITULO_TRADUCIDO['es']; }
+
 function aplicarTraduccionUI(lang) {
     const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS['es'];
     const accountBtn = document.getElementById('accountBtn');
@@ -193,6 +198,12 @@ function changeLanguage(lang, nombre, elementoClic) {
     AIService.limpiarHistorial();
 
     aplicarTraduccionUI(lang);
+    // Si el muro está mostrando el contenido informativo (usuario sin sesión, sin búsqueda
+    // activa), hay que volver a pintarlo -- si no, se queda en el idioma con el que cargó
+    // la página la primera vez, aunque el resto de la interfaz ya haya cambiado.
+    if (!usuarioActual && typeof ContenidoInfo !== 'undefined' && document.getElementById('articulosContainer')) {
+        ContenidoInfo.mostrarEnMuro(lang);
+    }
 }
 
 document.addEventListener('click', function(event) {
@@ -277,6 +288,9 @@ function aplicarIdiomaSilencioso(lang) {
     if (selectedEl) selectedEl.textContent = nombre;
     document.querySelectorAll('.language-dropdown-item').forEach(function(i) { i.classList.remove('active'); });
     aplicarTraduccionUI(lang);
+    if (!usuarioActual && typeof ContenidoInfo !== 'undefined' && document.getElementById('articulosContainer')) {
+        ContenidoInfo.mostrarEnMuro(lang);
+    }
 }
 
 // ============================================
