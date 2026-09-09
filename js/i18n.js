@@ -72,7 +72,7 @@ const UI_TRANSLATIONS = {
         menu_inicio: "Inicio", menu_perfil: "Mi Perfil", menu_publicaciones: "Mis Publicaciones", menu_mensajes: "Mensajes", menu_favoritos: "Favoritos", menu_config: "Configuración",
         panel_alcance: "Tu Alcance", panel_intereses: "Tus Intereses", btn_publicar: "Publicar",
         quick_publicar: "¿Cómo publico?", quick_vender: "¿Cómo vendo?", quick_seguridad: "Seguridad", quick_reportar: "Reportar", btn_limpiar: "Limpiar Conversación", bienvenida_title: "👋 Bienvenido a remarket-db", bienvenida_subtitle: "Conoce la plataforma antes de empezar" },
-    en: { account_btn: "My Account", content_title: " Circular Economy Catalog", content_subtitle: "Discover items available for exchange in your area", featured_title: "Featured Items", search_placeholder: "What are you looking for today? Ex: shirt, laptop, cars...", login_tab: "Sign In", register_tab: "Sign Up", assistant_header: "🤖 AI Assistant", footer_desc: "Connecting businesses and neighbors smartly.",
+    en: { account_btn: "My Account", content_title: "🌱 Circular Economy Catalog", content_subtitle: "Discover items available for exchange in your area", featured_title: "Featured Items", search_placeholder: "What are you looking for today? Ex: shirt, laptop, cars...", login_tab: "Sign In", register_tab: "Sign Up", assistant_header: "🤖 AI Assistant", footer_desc: "Connecting businesses and neighbors smartly.",
         menu_inicio: "Home", menu_perfil: "My Profile", menu_publicaciones: "My Listings", menu_blog: "My Blog", menu_mensajes: "Messages", menu_favoritos: "Favorites", menu_config: "Settings",
         panel_alcance: "Your Reach", panel_intereses: "Your Interests", btn_publicar: "Post",
         quick_publicar: "How do I post?", quick_vender: "How do I sell?", quick_seguridad: "Safety", quick_reportar: "Report", btn_limpiar: "Clear Conversation", bienvenida_title: "👋 Welcome to remarket-db", bienvenida_subtitle: "Get to know the platform before you start" },
@@ -128,6 +128,18 @@ const UI_TRANSLATIONS = {
         menu_inicio: "Начало", menu_perfil: "Моят профил", menu_publicaciones: "Моите обяви", menu_mensajes: "Съобщения", menu_favoritos: "Любими", menu_config: "Настройки",
         panel_alcance: "Вашият обхват", panel_intereses: "Вашите интереси", btn_publicar: "Публикувай",
         quick_publicar: "Как да публикувам?", quick_vender: "Как да продам?", quick_seguridad: "Сигурност", quick_reportar: "Докладвай", btn_limpiar: "Изчисти разговора", bienvenida_title: "👋 Добре дошли в remarket-db", bienvenida_subtitle: "Опознайте платформата, преди да започнете" },
+    // NOTA: traducción de buena fe (quechua sureño / Cusco-Collao). Se recomienda que un hablante
+    // nativo la revise antes de usarla en producción, ya que el quechua no tiene una única ortografía estándar.
+    qu: { account_btn: "Cuentay", content_title: "🌱 Muyuq Kawsay Qhatu", content_subtitle: "Llaqtaykipi kutichisqa kaqkunata tarikuy", featured_title: "Akllasqa Kaqkuna", search_placeholder: "¿Imatataq maskanki kunan? Ejemplo: p'acha, laptop, karro...", login_tab: "Yaykuy", register_tab: "Qillqakuy", assistant_header: "🤖 IA Yanapaq", footer_desc: "Qhatukunata, wasimasikunatawan yachayniyuq tinkichisqa.",
+        menu_inicio: "Qallariy", menu_perfil: "Perfilniy", menu_publicaciones: "Qillqasqaykuna", menu_mensajes: "Willakuykuna", menu_favoritos: "Munasqaykuna", menu_config: "Allichaykuna",
+        panel_alcance: "Chayasqayki", panel_intereses: "Munasqaykikuna", btn_publicar: "Qillqay",
+        quick_publicar: "¿Imaynatataq qillqani?", quick_vender: "¿Imaynatataq rantikuni?", quick_seguridad: "Waqaychay", quick_reportar: "Willay", btn_limpiar: "Rimanakuyta Pichay", bienvenida_title: "👋 Allin hamusqa remarket-db-man", bienvenida_subtitle: "Qallariyta ñawpaqta plataformata riqsiy" },
+    // NOTA: traducción de buena fe (aymara). Se recomienda que un hablante nativo la revise
+    // antes de usarla en producción, por la misma razón que el quechua.
+    ay: { account_btn: "Kuentaja", content_title: "🌱 Muyt'ata Katalogo", content_subtitle: "Marka manqhankiri turkañataki utjki ukanaka jikxataña", featured_title: "Ajlliski Amtanaka", search_placeholder: "¿Kunsa jichhürux thaqhta? Sasin: isi, laptop, wasa...", login_tab: "Mantaña", register_tab: "Qillqantaña", assistant_header: "🤖 IA Yanapiri", footer_desc: "Alanaka ukat jakpast'irinaka yatiñampi apxatasiñataki.",
+        menu_inicio: "Qalltawi", menu_perfil: "Perfilja", menu_publicaciones: "Qillqatanaka", menu_mensajes: "Aruskipäwinaka", menu_favoritos: "Munat Amtanaka", menu_config: "Wakichäwinaka",
+        panel_alcance: "Puriwipa", panel_intereses: "Munañanaka", btn_publicar: "Uñstayaña",
+        quick_publicar: "¿Kamsa apayasi?", quick_vender: "¿Kamsa aljta?", quick_seguridad: "Jark'aqäwi", quick_reportar: "Yatiyaña", btn_limpiar: "Aruskipäwi Q'umachaña", bienvenida_title: "👋 Suma Jutawi remarket-db-ru", bienvenida_subtitle: "Qalltañataki plataforma uñt'ama" },
 };
 
 function aplicarTraduccionUI(lang) {
@@ -186,6 +198,86 @@ function changeLanguage(lang, nombre, elementoClic) {
 document.addEventListener('click', function(event) {
     if (!event.target.closest('.language-selector-wrapper')) { document.getElementById('languageDropdown').classList.remove('show'); }
 });
+
+// ============================================
+// DETECCIÓN AUTOMÁTICA DE IDIOMA POR ESCRITURA
+// ============================================
+// Cambia la interfaz sola cuando el usuario escribe en otro idioma en el buscador o el chat,
+// SIN que tenga que pedirlo con una frase como "switch to english".
+// Quechua y aymara quedan fuera a propósito: no hay base confiable de palabras comunes para
+// detectarlos con este método simple, así que para esos dos el cambio sigue siendo manual
+// (selector 🌐, o pedírselo directamente al chat).
+var IDIOMAS_AUTODETECTABLES = ['es', 'en', 'pt', 'fr', 'de', 'it', 'nl', 'tr', 'ru', 'bg', 'zh', 'ja', 'ko', 'ar', 'hi'];
+
+// Palabras muy comunes y distintivas por idioma (artículos, pronombres, saludos), sin tildes.
+var PALABRAS_COMUNES_IDIOMA = {
+    es: ['el', 'la', 'los', 'las', 'que', 'es', 'como', 'para', 'quiero', 'hola', 'gracias', 'donde', 'necesito', 'puedo'],
+    en: ['the', 'is', 'are', 'you', 'and', 'what', 'how', 'my', 'want', 'hello', 'thanks', 'where', 'need', 'can'],
+    pt: ['o', 'a', 'os', 'as', 'voce', 'para', 'com', 'isso', 'nao', 'como', 'meu', 'minha', 'quero', 'ola', 'obrigado'],
+    fr: ['le', 'la', 'les', 'vous', 'est', 'avec', 'pour', 'comment', 'je', 'moi', 'bonjour', 'merci', 'veux'],
+    de: ['der', 'die', 'das', 'und', 'ist', 'sie', 'ich', 'wie', 'fur', 'mochte', 'danke', 'hallo'],
+    it: ['il', 'gli', 'sono', 'tu', 'come', 'per', 'che', 'vorrei', 'ciao', 'grazie'],
+    nl: ['het', 'een', 'jij', 'met', 'hoe', 'wil', 'hallo', 'dank'],
+    tr: ['bir', 'bu', 've', 'ile', 'nasil', 'ben', 'sen', 'istiyorum', 'merhaba', 'tesekkur']
+};
+
+// Detecta el idioma "real" del mensaje del usuario. Devuelve un código de IDIOMAS_AUTODETECTABLES
+// o null si el mensaje es demasiado corto/ambiguo para decidir (en ese caso NO se cambia nada).
+function detectarIdiomaEscritoEnMensaje(mensaje) {
+    if (!mensaje) return null;
+    var texto = mensaje.trim();
+    // Mensajes cortos o ambiguos (ok, sí, 5, un emoji) no alcanzan para decidir con confianza.
+    // Se cuentan letras de CUALQUIER alfabeto (\p{L}), no solo el latino -- si no, un mensaje
+    // en chino, árabe, coreano, etc. siempre "mediría" longitud 0 y nunca se detectaría.
+    if (texto.replace(/[^\p{L}]/gu, '').length < 8) return null;
+
+    // 1) Alfabetos/escrituras propias: mucho más confiables que listas de palabras.
+    if (/[\u4E00-\u9FFF]/.test(texto) && !/[\u3040-\u30FF]/.test(texto)) return 'zh'; // chino (sin hiragana/katakana)
+    if (/[\u3040-\u30FF]/.test(texto)) return 'ja'; // japonés (hiragana/katakana)
+    if (/[\uAC00-\uD7A3]/.test(texto)) return 'ko'; // coreano
+    if (/[\u0600-\u06FF]/.test(texto)) return 'ar'; // árabe
+    if (/[\u0900-\u097F]/.test(texto)) return 'hi'; // hindi
+    if (/[\u0400-\u04FF]/.test(texto)) {
+        // Cirílico: ruso y búlgaro comparten alfabeto. "что" es marcador típico de ruso,
+        // "какво"/"ли" de búlgaro. Si no hay marcador claro, no se arriesga el cambio.
+        var bajo = texto.toLowerCase();
+        if (bajo.indexOf('какво') !== -1 || bajo.indexOf(' ли ') !== -1) return 'bg';
+        if (bajo.indexOf('что') !== -1 || bajo.indexOf('привет') !== -1) return 'ru';
+        return null;
+    }
+
+    // 2) Alfabeto latino: se cuentan coincidencias de palabras comunes por idioma.
+    // La puntuación (comas, signos de interrogación, etc.) se convierte en espacio para que
+    // palabras como "Bonjour," o "¿Hola?" sí se reconozcan como la palabra suelta que son.
+    var normalizado = ' ' + texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\s]/gu, ' ') + ' ';
+    var mejorIdioma = null, mejorPuntaje = 0, segundoPuntaje = 0;
+    ['es', 'en', 'pt', 'fr', 'de', 'it', 'nl', 'tr'].forEach(function(codigo) {
+        var puntaje = 0;
+        PALABRAS_COMUNES_IDIOMA[codigo].forEach(function(palabra) {
+            if (normalizado.indexOf(' ' + palabra + ' ') !== -1) puntaje++;
+        });
+        if (puntaje > mejorPuntaje) { segundoPuntaje = mejorPuntaje; mejorPuntaje = puntaje; mejorIdioma = codigo; }
+        else if (puntaje > segundoPuntaje) { segundoPuntaje = puntaje; }
+    });
+    // Se exige al menos 2 coincidencias y una ventaja clara sobre el segundo idioma más probable,
+    // para no cambiar el idioma por una sola palabra que coincide por casualidad entre dos idiomas.
+    if (mejorIdioma && mejorPuntaje >= 2 && mejorPuntaje > segundoPuntaje) return mejorIdioma;
+    return null;
+}
+
+// Igual que changeLanguage(), pero sin limpiar el historial del chat ni pintar un saludo nuevo:
+// se usa cuando el cambio de idioma es "detectado" en silencio a partir de lo que el usuario
+// escribió, no porque lo haya pedido explícitamente.
+function aplicarIdiomaSilencioso(lang) {
+    if (lang === idiomaDetectado) return; // ya está en ese idioma, no hacer nada
+    idiomaDetectado = lang;
+    try { localStorage.setItem('idioma_preferido', lang); } catch (e) { console.warn('No se pudo guardar idioma_preferido:', e); }
+    var nombre = NOMBRES_IDIOMA_DISPLAY[lang] || lang.toUpperCase();
+    var selectedEl = document.getElementById('selectedLanguage');
+    if (selectedEl) selectedEl.textContent = nombre;
+    document.querySelectorAll('.language-dropdown-item').forEach(function(i) { i.classList.remove('active'); });
+    aplicarTraduccionUI(lang);
+}
 
 // ============================================
 // FUNCIONES IA
