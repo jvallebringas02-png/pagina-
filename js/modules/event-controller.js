@@ -34,6 +34,10 @@ var EventController = {
             var temaWeb = webMatch ? webMatch[1].trim() : queryOriginal;
             var web = await BuscadorMotor.buscarSoloWeb(temaWeb);
             UIController.mostrarResultadosWeb(temaWeb, web);
+        } else if (accion === 'PUBLICAR') {
+            var tituloMatch = respuestaIA.match(/TITULO:\s*([^\|\]]+)/i);
+            var tituloSugerido = tituloMatch ? tituloMatch[1].trim() : queryOriginal;
+            PanelUsuario.iniciarPublicacionDesdeAsistente(tituloSugerido);
         } else if (accion === 'BUSCAR_PERSONA') {
             var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
             var nombre = nombreMatch ? nombreMatch[1].trim() : queryOriginal;
