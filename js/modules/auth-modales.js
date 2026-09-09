@@ -73,20 +73,9 @@ async function registerUser() {
     btn.textContent = '⏳ Creando cuenta...';
     btn.disabled = true;
     try {
-        var { count, error: countError } = await supabase
-            .from('usuarios')
-            .select('*', { count: 'exact', head: true })
-            .eq('correo_electronico', email);
-        if (countError) throw countError;
-        if (count > 0) {
-            await logAccess('registro_fallido', email, 'Correo ya registrado');
-            showAuthAlert('Este correo ya está registrado. ¿Quieres iniciar sesión?', 'info');
-            setTimeout(function() {
-                var opcion = confirm('El correo ' + email + ' ya tiene una cuenta.\n\n¿Deseas ir al inicio de sesión?');
-                if (opcion) { switchAuthTab('login'); document.getElementById('loginEmail').value = email; document.getElementById('loginPassword').focus(); }
-            }, 1500);
-            return;
-        }
+        // Nota de seguridad: ya no se consulta antes si el correo existe (evita enumeración
+        // de correos registrados). Supabase Auth ya informa de forma segura si el correo
+        // ya está en uso al intentar el signUp; ese caso se maneja en el catch de abajo.
         var { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email: email, password: password });
         if (signUpError) throw signUpError;
 
@@ -149,8 +138,8 @@ function updateUIForUser(usuario) {
         var inicial = ((usuario.nombres || 'U').charAt(0) + (usuario.apellidos || '').charAt(0)).toUpperCase() || 'U';
         var nombreMostrar = usuario.nombres || usuario.correo_electronico || 'Usuario';
         var fotoPerfil = usuario.foto_perfil || '';
-        var avatarHtml = fotoPerfil ? `<img src="${fotoPerfil}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #fff;">` : `<span class="user-avatar">${inicial}</span>`;
-        btn.innerHTML = '<div class="user-info">' + avatarHtml + '<span class="user-email">' + nombreMostrar + '</span></div>';
+        var avatarHtml = fotoPerfil ? `<img src="${PanelUsuario.escHtml(fotoPerfil)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #fff;">` : `<span class="user-avatar">${inicial}</span>`;
+        btn.innerHTML = '<div class="user-info">' + avatarHtml + '<span class="user-email">' + PanelUsuario.escHtml(nombreMostrar) + '</span></div>';
         btn.onclick = function(e) { e.stopPropagation(); PanelUsuario.toggleMenuPerfil(); };
         if (bellWrapper) bellWrapper.classList.add('activo');
         if (floatBtn) floatBtn.classList.add('activo');
