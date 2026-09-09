@@ -19,6 +19,11 @@ var EventController = {
         } else if (accion === 'RECIENTES') {
             // "Lo más reciente" = mostrar el catálogo normal, sin filtro alguno
             UIController.cerrarResultados();
+        } else if (accion === 'VIDEO') {
+            var videoMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var temaVideo = videoMatch ? videoMatch[1].trim() : queryOriginal;
+            var videos = await BuscadorMotor.buscarSoloVideo(temaVideo);
+            UIController.mostrarResultadosVideo(temaVideo, videos);
         } else if (accion === 'BUSCAR_PERSONA') {
             var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
             var nombre = nombreMatch ? nombreMatch[1].trim() : queryOriginal;
