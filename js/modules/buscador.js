@@ -84,6 +84,15 @@ var BuscadorMotor = {
         return externo.resultados_videos || [];
     },
 
+    // "Novedades": los productos ya vienen ordenados del más nuevo al más viejo desde Supabase
+    // (order by created_at desc en database.js), así que basta con tomar los primeros.
+    obtenerRecientes: function(limite) {
+        limite = limite || 12;
+        return this.catalogo.slice(0, limite).map(function(art) {
+            return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _es_expandido: false, _es_externo: false };
+        });
+    },
+
     ejecutarBusquedaHibrida: async function(query) {
         var tokens = this.tokenizar(query);
         var presupuesto = this.extraerPresupuesto(query);
