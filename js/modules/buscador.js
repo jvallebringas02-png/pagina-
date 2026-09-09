@@ -38,6 +38,20 @@ var BuscadorMotor = {
         return externo.resultados_videos || [];
     },
 
+    // Solo resultados web, para cuando el usuario pide explícitamente "buscar en internet"
+    buscarSoloWeb: async function(query) {
+        var externo = await this.buscarEnInternetYVideo(query === 'general' ? 'economía circular' : query);
+        return externo.resultados_web || [];
+    },
+
+    // Música: reutiliza la búsqueda de video, agregando "música" a la consulta
+    // para que YouTube devuelva canciones/videos musicales en vez de tutoriales u otros videos
+    buscarSoloMusica: async function(query) {
+        var consulta = (query === 'general' ? 'música' : query + ' música');
+        var externo = await this.buscarEnInternetYVideo(consulta);
+        return externo.resultados_videos || [];
+    },
+
     ejecutarBusquedaHibrida: async function(query) {
         var tokens = this.tokenizar(query);
         var resultadosLocales = this.catalogo.map(function(art) { return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: this.calcularPuntaje(art, tokens), _es_expandido: false, _es_externo: false }; }.bind(this)).filter(function(art) { return art._puntaje > 0; });
