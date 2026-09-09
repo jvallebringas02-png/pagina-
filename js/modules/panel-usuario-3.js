@@ -1,4 +1,16 @@
 Object.assign(PanelUsuario, {
+    // Abre el modal de Publicar ya con el título sugerido por el Asistente (y marca "servicio"
+    // si detecta esa palabra), para cuando el usuario dice "doy servicio de transporte" en vez de buscar.
+    iniciarPublicacionDesdeAsistente: function(tituloSugerido) {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        this.abrirModalPublicar();
+        var esServicio = /servicio/i.test(tituloSugerido);
+        document.getElementById('pubTipo').value = esServicio ? 'servicio' : 'producto';
+        this.onTipoPublicacionChange();
+        document.getElementById('pubTitulo').value = tituloSugerido;
+        var contadorTitulo = document.getElementById('pubTituloContador');
+        if (contadorTitulo) contadorTitulo.textContent = tituloSugerido.length + '/100';
+    },
     // === PUBLICAR === [FASE 3 - Sistema de Publicaciones (Solo Fotos)]
     _fotosSeleccionadas: [],
     _textoOCRAcumulado: '',
