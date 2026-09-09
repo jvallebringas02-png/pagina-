@@ -24,6 +24,16 @@ var EventController = {
             var temaVideo = videoMatch ? videoMatch[1].trim() : queryOriginal;
             var videos = await BuscadorMotor.buscarSoloVideo(temaVideo);
             UIController.mostrarResultadosVideo(temaVideo, videos);
+        } else if (accion === 'MUSICA') {
+            var musicaMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var temaMusica = musicaMatch ? musicaMatch[1].trim() : queryOriginal;
+            var canciones = await BuscadorMotor.buscarSoloMusica(temaMusica);
+            UIController.mostrarResultadosVideo(temaMusica, canciones, { icono: '🎵', titulo: 'Música', vacio: 'No encontramos música sobre eso. Intenta con otras palabras.' });
+        } else if (accion === 'INTERNET') {
+            var webMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var temaWeb = webMatch ? webMatch[1].trim() : queryOriginal;
+            var web = await BuscadorMotor.buscarSoloWeb(temaWeb);
+            UIController.mostrarResultadosWeb(temaWeb, web);
         } else if (accion === 'BUSCAR_PERSONA') {
             var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
             var nombre = nombreMatch ? nombreMatch[1].trim() : queryOriginal;
