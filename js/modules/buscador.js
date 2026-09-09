@@ -5,7 +5,39 @@ var BuscadorMotor = {
     normalizar: function(t) { return t ? t.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim() : ''; },
     tokenizar: function(texto) { var n = this.normalizar(texto); if (!n) return []; return n.split(' ').filter(function(t) { return t.length > 2 && !this.STOPWORDS.has(t); }.bind(this)).map(function(t) { return this.JERGA[t] || t; }.bind(this)); },
     construirIndice: function(articulos) { this.catalogo = articulos; },
-    calcularPuntaje: function(art, tokens) { var p = 0; var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || ''); tokens.forEach(function(token) { var variantes = [token]; if (token.length > 4 && token.endsWith('s')) variantes.push(token.slice(0, -1)); var coincide = function(campo) { return variantes.some(function(v) { return campo.includes(v); }); }; if (coincide(t)) p += 10; else if (coincide(c)) p += 5; else if (coincide(d)) p += 2; }); return p; },
+    calcularPuntaje: function(art, tokens) {
+        var p = 0;
+        var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || '');
+        // Nuevo: país y ciudad también entran a la coincidencia de texto, igual que título/categoría/descripción.
+        // Antes existían como datos del producto pero nunca se comparaban contra lo que el usuario escribía.
+        var pa = this.normalizar(art.pais || ''), ci = this.normalizar(art.ciudad || '');
+        tokens.forEach(function(token) {
+            var variantes = [token];
+            if (token.length > 4 && token.endsWith('s')) variantes.push(token.slice(0, -1));
+            var coincide = function(campo) { return variantes.some(function(v) { return campo.includes(v); }); };
+            if (coincide(t)) p += 10;
+            else if (coincide(c)) p += 5;
+            else if (coincide(d)) p += 2;
+            // Independientes del if/else de arriba: un producto puede coincidir por texto Y por ubicación a la vez.
+            if (coincide(pa)) p += 8;
+            if (coincide(ci)) p += 8;
+        });
+        return p;
+    },
+
+    // Bono de cercanía: solo se aplica como desempate entre productos que YA coincidieron por texto
+    // (se suma después, no reemplaza el puntaje de texto). Baja de forma lineal hasta 0 a los 300km.
+    bonusCercania: function(art) {
+        if (typeof art.distancia_km !== 'number' || isNaN(art.distancia_km)) return 0;
+        return Math.max(0, 3 - (art.distancia_km / 100));
+    },
+
+    // Detecta un presupuesto explícito en la consulta ("menos de 100", "hasta 50 soles", "máximo 200").
+    // Si no encuentra ninguno, retorna null y no se filtra por precio.
+    extraerPresupuesto: function(query) {
+        var m = this.normalizar(query).match(/(?:menos de|hasta|maximo|por debajo de|bajo)\s*(\d+)/);
+        return m ? parseFloat(m[1]) : null;
+    },
 
     // Busca en internet (Serper) y YouTube directamente a través de chat-ia (modo "busqueda_directa").
     // No depende de que la IA "decida" buscar: si el buscador llega hasta aquí es porque ya
@@ -54,7 +86,20 @@ var BuscadorMotor = {
 
     ejecutarBusquedaHibrida: async function(query) {
         var tokens = this.tokenizar(query);
-        var resultadosLocales = this.catalogo.map(function(art) { return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: this.calcularPuntaje(art, tokens), _es_expandido: false, _es_externo: false }; }.bind(this)).filter(function(art) { return art._puntaje > 0; });
+        var presupuesto = this.extraerPresupuesto(query);
+        var self = this;
+        var resultadosLocales = this.catalogo.map(function(art) {
+            var puntajeTexto = self.calcularPuntaje(art, tokens);
+            // La cercanía solo suma si el producto ya coincidió por texto/ubicación; nunca hace que
+            // algo irrelevante aparezca solo por estar cerca.
+            var puntaje = puntajeTexto > 0 ? puntajeTexto + self.bonusCercania(art) : puntajeTexto;
+            return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
+        }).filter(function(art) {
+            if (art._puntaje <= 0) return false;
+            // Filtro de presupuesto: si el usuario pidió un tope de precio, respeta ese tope de forma estricta.
+            if (presupuesto !== null && typeof art.precio === 'number' && art.precio > presupuesto) return false;
+            return true;
+        });
         resultadosLocales.sort(function(a, b) { return b._puntaje - a._puntaje; });
 
         if (resultadosLocales.length >= 3) {
