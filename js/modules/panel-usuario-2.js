@@ -734,7 +734,7 @@ Object.assign(PanelUsuario, {
                     }
                 }
                 var inicial = nombre.charAt(0).toUpperCase();
-                var fotoHtml = foto ? `<img src="${foto}" alt="${nombre}">` : inicial;
+                var fotoHtml = foto ? `<img src="${this.escHtml(foto)}" alt="${this.escHtml(nombre)}">` : inicial;
                 var esMio = usuarioActual && c.usuario_id === usuarioActual.id;
                 
                 html += `
