@@ -35,7 +35,20 @@ var ContenidoInfo = {
     },
 
     traducirSiHaceFalta: async function(articulo, idioma) {
-        if (idioma === 'es' || !articulo.id) return articulo; // respaldo fijo (sin id) se queda tal cual
+        if (idioma === 'es') return articulo;
+
+        // Respaldo fijo (sin id en la base de datos): no hay fila donde guardar una traducción,
+        // así que se traduce al vuelo con el mismo traductor genérico que ya usan los mensajes de chat.
+        if (!articulo.id) {
+            if (typeof PanelUsuario !== 'undefined' && PanelUsuario.traducirTextoIA) {
+                try {
+                    var tituloT = await PanelUsuario.traducirTextoIA(articulo.titulo, idioma);
+                    var contenidoT = await PanelUsuario.traducirTextoIA(articulo.contenido, idioma);
+                    if (tituloT && contenidoT) return { titulo: tituloT, contenido: contenidoT, video_url: articulo.video_url };
+                } catch (e) { console.warn('remarket-db: no se pudo traducir el respaldo fijo, se muestra en español.', e); }
+            }
+            return articulo;
+        }
 
         // Ya viene traducido y guardado de una vez anterior
         if (articulo.traducciones && articulo.traducciones[idioma]) {
@@ -92,7 +105,7 @@ var ContenidoInfo = {
         // Este wrapper ocupa las 3 columnas completas para que el artículo se vea de ancho completo,
         // en vez de quedar apretado en una sola columna angosta.
         contenedor.innerHTML = '<div style="grid-column: 1 / -1;">' +
-            '<div class="ai-context-banner" style="margin-bottom:16px;">🌱 <strong>Sobre remarket-db</strong></div>' +
+            '<div class="ai-context-banner" style="margin-bottom:16px;">🌱 <strong>' + (typeof obtenerSobreTitulo === 'function' ? obtenerSobreTitulo(idioma) : 'Sobre remarket-db') + '</strong></div>' +
             traducidos.map(function(a) { return ContenidoInfo.renderizarTarjeta(a); }).join('') +
             '</div>';
     }
