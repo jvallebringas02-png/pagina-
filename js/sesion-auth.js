@@ -134,6 +134,7 @@ async function procesarSesionSupabaseAuth(authUser) {
         toggleAuthModal(false);
         showAssistantProactive('¡Bienvenido ' + (usuarioFinal.nombres || (authUser.email ? authUser.email.split('@')[0] : 'Usuario')) + '! 🎉 Tu sesión está activa. ¿En qué puedo ayudarte hoy?');
         irAlFeed();
+        ejecutarAccionPendienteLogin();
     } catch (e) {
         console.warn('No se pudo procesar la sesión de autenticación:', e);
     }
