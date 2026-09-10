@@ -5,12 +5,19 @@ function toggleVistaUsuario(loggedIn) {
 
 // Guarda qué quería hacer el usuario justo antes de que le pidiéramos iniciar sesión (ej:
 // contactar a un vendedor, publicar algo), para retomarlo automáticamente después del login
-// en vez de dejarlo "colgado" una vez que ya inició sesión.
-var accionPendienteLogin = null;
+// en vez de dejarlo "colgado" una vez que ya inició sesión. Se guarda en localStorage (no en
+// una simple variable) porque el login con Google recarga la página por completo -- una
+// variable normal se perdería justo antes de poder usarla.
+function guardarAccionPendienteLogin(accion) {
+    try { localStorage.setItem('remarket_accion_pendiente_login', JSON.stringify(accion)); } catch (e) {}
+}
 function ejecutarAccionPendienteLogin() {
-    if (!accionPendienteLogin) return;
-    var accion = accionPendienteLogin;
-    accionPendienteLogin = null;
+    var accion = null;
+    try {
+        var raw = localStorage.getItem('remarket_accion_pendiente_login');
+        if (raw) { accion = JSON.parse(raw); localStorage.removeItem('remarket_accion_pendiente_login'); }
+    } catch (e) {}
+    if (!accion) return;
     if (accion.tipo === 'contactar' && accion.usuarioId && typeof PanelUsuario !== 'undefined') {
         PanelUsuario.iniciarConversacionDirecta(accion.usuarioId);
     } else if (accion.tipo === 'publicar' && accion.tituloSugerido && typeof PanelUsuario !== 'undefined') {
