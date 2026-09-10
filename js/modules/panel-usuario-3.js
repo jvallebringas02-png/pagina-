@@ -1639,6 +1639,7 @@ Object.assign(PanelUsuario, {
 
     iniciarConversacionDirecta: async function(otroId) {
         if (!usuarioActual) { guardarAccionPendienteLogin({ tipo: 'contactar', usuarioId: otroId }); toggleAuthModal(true); return; }
+        if (otroId === usuarioActual.id) { this.mostrarToast('Esta es tu propia publicación 🙂'); return; }
         try {
             var { data: existente } = await supabase.from('conversaciones').select('id').is('producto_id', null).or('and(comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + otroId + '),and(comprador_id.eq.' + otroId + ',vendedor_id.eq.' + usuarioActual.id + ')').maybeSingle();
             var convId = existente ? existente.id : null;
