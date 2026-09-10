@@ -8,9 +8,6 @@ var BuscadorMotor = {
     calcularPuntaje: function(art, tokens) {
         var p = 0;
         var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || '');
-        // Nuevo: país y ciudad también entran a la coincidencia de texto, igual que título/categoría/descripción.
-        // Antes existían como datos del producto pero nunca se comparaban contra lo que el usuario escribía.
-        var pa = this.normalizar(art.pais || ''), ci = this.normalizar(art.ciudad || '');
         tokens.forEach(function(token) {
             var variantes = [token];
             if (token.length > 4 && token.endsWith('s')) variantes.push(token.slice(0, -1));
@@ -18,11 +15,32 @@ var BuscadorMotor = {
             if (coincide(t)) p += 10;
             else if (coincide(c)) p += 5;
             else if (coincide(d)) p += 2;
-            // Independientes del if/else de arriba: un producto puede coincidir por texto Y por ubicación a la vez.
-            if (coincide(pa)) p += 8;
-            if (coincide(ci)) p += 8;
         });
         return p;
+    },
+
+    // Detecta un país o ciudad mencionado en la consulta, comparando contra los que REALMENTE
+    // existen en el catálogo (no una lista fija en el código) -- así funciona sin importar qué
+    // países o ciudades tengan tus productos. Devuelve el valor tal cual está guardado en la
+    // base de datos (para poder comparar después con === sin líos de tildes/mayúsculas), o
+    // null si la consulta no menciona ninguno.
+    extraerLugar: function(query) {
+        var textoNorm = ' ' + this.normalizar(query) + ' ';
+        var candidatos = {};
+        this.catalogo.forEach(function(art) {
+            if (art.pais) candidatos[art.pais] = true;
+            if (art.ciudad) candidatos[art.ciudad] = true;
+        });
+        var self = this, encontrado = null, masLargo = 0;
+        Object.keys(candidatos).forEach(function(lugar) {
+            var lugarNorm = self.normalizar(lugar);
+            // length > masLargo: si el nombre de una ciudad está contenido en el de un país
+            // (raro, pero posible), se prefiere la coincidencia más específica (más larga).
+            if (lugarNorm.length > 2 && textoNorm.indexOf(' ' + lugarNorm + ' ') !== -1 && lugarNorm.length > masLargo) {
+                encontrado = lugar; masLargo = lugarNorm.length;
+            }
+        });
+        return encontrado;
     },
 
     // Bono de cercanía: solo se aplica como desempate entre productos que YA coincidieron por texto
@@ -105,25 +123,48 @@ var BuscadorMotor = {
     },
 
     ejecutarBusquedaHibrida: async function(query) {
-        var tokens = this.tokenizar(query);
-        var presupuesto = this.extraerPresupuesto(query);
         var self = this;
-        var resultadosLocales = this.catalogo.map(function(art) {
-            var puntajeTexto = self.calcularPuntaje(art, tokens);
-            // La cercanía solo suma si el producto ya coincidió por texto/ubicación; nunca hace que
-            // algo irrelevante aparezca solo por estar cerca.
-            var puntaje = puntajeTexto > 0 ? puntajeTexto + self.bonusCercania(art) : puntajeTexto;
+        var lugar = this.extraerLugar(query);
+        // El nombre del lugar se saca de la frase para el puntaje de texto -- son dos criterios
+        // distintos (qué buscas / dónde), no se debe mezclar "peru" como si fuera parte del producto.
+        var queryProducto = lugar ? query.replace(new RegExp(lugar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ') : query;
+        var tokens = this.tokenizar(queryProducto);
+        var presupuesto = this.extraerPresupuesto(query);
+
+        var mapear = function(art, puntaje) {
             return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
-        }).filter(function(art) {
-            if (art._puntaje <= 0) return false;
-            // Filtro de presupuesto: si el usuario pidió un tope de precio, respeta ese tope de forma estricta.
-            if (presupuesto !== null && typeof art.precio === 'number' && art.precio > presupuesto) return false;
+        };
+        var coincideLugar = function(art) { return !lugar || art.pais === lugar || art.ciudad === lugar; };
+
+        var conPuntaje = this.catalogo.map(function(art) {
+            // Si solo pidió un lugar sin producto (ej: "muéstrame lo de Perú"), todo cuenta por
+            // igual (puntaje 1) y el filtro real lo hace coincideLugar más abajo.
+            var puntajeTexto = tokens.length ? self.calcularPuntaje(art, tokens) : 1;
+            var puntaje = puntajeTexto > 0 ? puntajeTexto + self.bonusCercania(art) : puntajeTexto;
+            return { art: art, puntaje: puntaje };
+        }).filter(function(x) {
+            if (x.puntaje <= 0) return false;
+            if (presupuesto !== null && typeof x.art.precio === 'number' && x.art.precio > presupuesto) return false;
             return true;
         });
+
+        // Criterio real: si pidió un lugar, es obligatorio (AND) -- ya no son puntos extra que
+        // un producto de otra categoría podía ganar solo por coincidir en país.
+        var resultadosLocales = conPuntaje.filter(function(x) { return coincideLugar(x.art); }).map(function(x) { return mapear(x.art, x.puntaje); });
         resultadosLocales.sort(function(a, b) { return b._puntaje - a._puntaje; });
 
-        if (resultadosLocales.length >= 3) {
-            return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null };
+        // Si pidió un lugar específico y ahí no hay nada, pero SÍ hay del producto en otras
+        // zonas, se lo decimos con transparencia en vez de saltar directo a internet.
+        if (lugar && resultadosLocales.length === 0 && conPuntaje.length > 0) {
+            var otrasZonas = conPuntaje.map(function(x) { return mapear(x.art, x.puntaje); });
+            otrasZonas.sort(function(a, b) { return b._puntaje - a._puntaje; });
+            return { resultados: otrasZonas, total: this.catalogo.length, coincidencias: otrasZonas.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_sin_resultados: lugar };
+        }
+
+        // Si el lugar sí filtró algo, esos resultados se muestran tal cual, aunque sean pocos --
+        // no tiene sentido mezclarlos con internet solo por ser menos de 3.
+        if (resultadosLocales.length >= 3 || (lugar && resultadosLocales.length > 0)) {
+            return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_aplicado: lugar };
         }
 
         var externo = await this.buscarEnInternetYVideo(query);
@@ -135,7 +176,8 @@ var BuscadorMotor = {
             es_expandido: resultadosLocales.length === 0,
             es_hibrido: true,
             resultados_web: externo.resultados_web,
-            resultados_videos: externo.resultados_videos
+            resultados_videos: externo.resultados_videos,
+            lugar_aplicado: lugar
         };
     }
 };
