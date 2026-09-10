@@ -2,7 +2,7 @@ Object.assign(PanelUsuario, {
     // Abre el modal de Publicar ya con el título sugerido por el Asistente (y marca "servicio"
     // si detecta esa palabra), para cuando el usuario dice "doy servicio de transporte" en vez de buscar.
     iniciarPublicacionDesdeAsistente: function(tituloSugerido) {
-        if (!usuarioActual) { accionPendienteLogin = { tipo: 'publicar', tituloSugerido: tituloSugerido }; toggleAuthModal(true); return; }
+        if (!usuarioActual) { guardarAccionPendienteLogin({ tipo: 'publicar', tituloSugerido: tituloSugerido }); toggleAuthModal(true); return; }
         this.abrirModalPublicar();
         var esServicio = /servicio/i.test(tituloSugerido);
         document.getElementById('pubTipo').value = esServicio ? 'servicio' : 'producto';
@@ -1638,7 +1638,7 @@ Object.assign(PanelUsuario, {
     },
 
     iniciarConversacionDirecta: async function(otroId) {
-        if (!usuarioActual) { accionPendienteLogin = { tipo: 'contactar', usuarioId: otroId }; toggleAuthModal(true); return; }
+        if (!usuarioActual) { guardarAccionPendienteLogin({ tipo: 'contactar', usuarioId: otroId }); toggleAuthModal(true); return; }
         try {
             var { data: existente } = await supabase.from('conversaciones').select('id').is('producto_id', null).or('and(comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + otroId + '),and(comprador_id.eq.' + otroId + ',vendedor_id.eq.' + usuarioActual.id + ')').maybeSingle();
             var convId = existente ? existente.id : null;
