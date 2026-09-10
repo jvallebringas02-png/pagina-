@@ -84,6 +84,17 @@ var BuscadorMotor = {
         return externo.resultados_videos || [];
     },
 
+    // Lista de categorías realmente presentes en el catálogo, con cuántos productos tiene cada una.
+    obtenerCategoriasDisponibles: function() {
+        var conteo = {};
+        this.catalogo.forEach(function(art) {
+            var cat = (art.categoria || '').trim();
+            if (!cat) return;
+            conteo[cat] = (conteo[cat] || 0) + 1;
+        });
+        return Object.keys(conteo).sort(function(a, b) { return conteo[b] - conteo[a]; }).map(function(cat) { return { nombre: cat, cantidad: conteo[cat] }; });
+    },
+
     // "Novedades": los productos ya vienen ordenados del más nuevo al más viejo desde Supabase
     // (order by created_at desc en database.js), así que basta con tomar los primeros.
     obtenerRecientes: function(limite) {
