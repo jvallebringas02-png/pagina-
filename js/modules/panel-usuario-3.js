@@ -1604,7 +1604,7 @@ Object.assign(PanelUsuario, {
                 var convId = existente ? existente.id : null;
                 if (!convId) {
                     var { data: nuevaConv, error: errConv } = await supabase.from('conversaciones')
-                        .insert({ producto_id: null, comprador_id: usuarioActual.id, vendedor_id: otroId, estado: 'activa' })
+                        .insert({ producto_id: null, comprador_id: usuarioActual.id, vendedor_id: otroId, estado: 'activo' })
                         .select().single();
                     if (errConv) throw errConv;
                     convId = nuevaConv.id;
@@ -1644,7 +1644,7 @@ Object.assign(PanelUsuario, {
             var { data: existente } = await supabase.from('conversaciones').select('id').is('producto_id', null).or('and(comprador_id.eq.' + usuarioActual.id + ',vendedor_id.eq.' + otroId + '),and(comprador_id.eq.' + otroId + ',vendedor_id.eq.' + usuarioActual.id + ')').maybeSingle();
             var convId = existente ? existente.id : null;
             if (!convId) {
-                var { data: nuevaConv, error } = await supabase.from('conversaciones').insert({ producto_id: null, comprador_id: usuarioActual.id, vendedor_id: otroId, estado: 'activa' }).select().single();
+                var { data: nuevaConv, error } = await supabase.from('conversaciones').insert({ producto_id: null, comprador_id: usuarioActual.id, vendedor_id: otroId, estado: 'activo' }).select().single();
                 if (error) throw error;
                 convId = nuevaConv.id;
             }
