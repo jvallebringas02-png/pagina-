@@ -51,7 +51,7 @@ var MAPA_IDIOMAS_DETECCION = {
 function detectarCambioIdiomaEnMensaje(mensaje) {
     var sinTildes = function(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
     var texto = ' ' + sinTildes(mensaje) + ' ';
-    var disparadores = ['cambia', 'cambiar', 'cambiame', 'pon el idioma', 'poner el idioma', 'switch to', 'change language', 'change the language', 'set language', 'habla en', 'hablame en', 'responde en', 'responder en', 'idioma a', 'language to'];
+    var disparadores = ['cambia', 'cambiar', 'cambiame', 'pon el idioma', 'poner el idioma', 'switch to', 'change language', 'change the language', 'set language', 'habla en', 'hablar en', 'hablame en', 'hablarme en', 'puedes hablar en', 'podrias hablar en', 'me hablas en', 'responde en', 'responder en', 'respondeme en', 'idioma a', 'language to'];
     var tieneDisparador = disparadores.some(function(d) { return texto.indexOf(d) !== -1; });
     if (!tieneDisparador) return null;
     for (var palabra in MAPA_IDIOMAS_DETECCION) {
