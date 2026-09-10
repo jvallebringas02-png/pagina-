@@ -1651,6 +1651,7 @@ Object.assign(PanelUsuario, {
             abrirChatFlotante();
             this.cargarConversaciones(convId, 'flotante');
         } catch (e) {
+            console.error('remarket-db: error al iniciar conversación con', otroId, e);
             this.mostrarToast('Error al iniciar la conversación');
         }
     },
