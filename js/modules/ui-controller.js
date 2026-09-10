@@ -64,6 +64,29 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
+    mostrarListaCategorias: function(categorias) {
+        this.elementos.searchBreadcrumb.style.display = 'flex';
+        this.elementos.searchQuery.textContent = 'Categorías';
+        this.elementos.resultCount.textContent = categorias.length + (categorias.length === 1 ? ' categoría' : ' categorías');
+        this.elementos.catalogContainer.style.display = 'none';
+        this.elementos.searchResultsContainer.style.display = 'block';
+        this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
+        var html = '<div class="ai-context-banner hibrido">📂 <strong>Categorías disponibles</strong></div>';
+        if (!categorias.length) {
+            html += '<div style="text-align:center;padding:40px;"><p>Todavía no hay categorías con productos publicados.</p></div>';
+        } else {
+            var self = this;
+            html += '<div style="display:flex;flex-wrap:wrap;gap:10px;padding:16px 0;">' + categorias.map(function(c) {
+                var nombreSeguro = self.escHtml(c.nombre);
+                return '<button class="badge badge-modalidad" style="cursor:pointer;font-size:14px;padding:10px 16px;" onclick="UIController.buscarPorCategoriaClic(\'' + nombreSeguro.replace(/'/g, "\\'") + '\')">' + nombreSeguro + ' (' + c.cantidad + ')</button>';
+            }).join('') + '</div>';
+        }
+        this.elementos.searchResultsContent.innerHTML = html;
+    },
+    buscarPorCategoriaClic: async function(nombreCategoria) {
+        var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(nombreCategoria);
+        this.mostrarResultadosBusqueda(resultado);
+    },
     mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) {
         this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
         this.elementos.searchBreadcrumb.style.display = 'flex';
