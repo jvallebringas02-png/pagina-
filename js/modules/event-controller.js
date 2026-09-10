@@ -11,14 +11,17 @@ var EventController = {
             var producto = prodMatch ? prodMatch[1].trim() : queryOriginal;
             var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto);
             UIController.mostrarResultadosBusqueda(resultado);
+        } else if (accion === 'LISTAR_CATEGORIAS') {
+            var categorias = BuscadorMotor.obtenerCategoriasDisponibles();
+            UIController.mostrarListaCategorias(categorias);
         } else if (accion === 'CATEGORIA') {
             var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
             var categoria = catMatch ? catMatch[1].trim() : queryOriginal;
             var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria);
             UIController.mostrarResultadosBusqueda(resultadoCat);
         } else if (accion === 'RECIENTES') {
-            // "Lo más reciente" = mostrar el catálogo normal, sin filtro alguno
-            UIController.cerrarResultados();
+            var recientes = BuscadorMotor.obtenerRecientes(12);
+            UIController.mostrarResultadosBusqueda({ resultados: recientes, total: BuscadorMotor.catalogo.length, coincidencias: recientes.length, query: 'Novedades', es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null });
         } else if (accion === 'VIDEO') {
             var videoMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
             var temaVideo = videoMatch ? videoMatch[1].trim() : queryOriginal;
