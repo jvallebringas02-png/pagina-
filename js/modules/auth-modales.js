@@ -3,6 +3,20 @@ function toggleVistaUsuario(loggedIn) {
     else PanelUsuario.ocultar();
 }
 
+// Guarda qué quería hacer el usuario justo antes de que le pidiéramos iniciar sesión (ej:
+// contactar a un vendedor, publicar algo), para retomarlo automáticamente después del login
+// en vez de dejarlo "colgado" una vez que ya inició sesión.
+var accionPendienteLogin = null;
+function ejecutarAccionPendienteLogin() {
+    if (!accionPendienteLogin) return;
+    var accion = accionPendienteLogin;
+    accionPendienteLogin = null;
+    if (accion.tipo === 'contactar' && accion.usuarioId && typeof PanelUsuario !== 'undefined') {
+        PanelUsuario.iniciarConversacionDirecta(accion.usuarioId);
+    } else if (accion.tipo === 'publicar' && accion.tituloSugerido && typeof PanelUsuario !== 'undefined') {
+        PanelUsuario.iniciarPublicacionDesdeAsistente(accion.tituloSugerido);
+    }
+}
 function toggleAuthModal(show) { document.getElementById('authModal').style.display = show ? 'flex' : 'none'; hideAuthAlert(); }
 
 function switchAuthTab(tab) {
