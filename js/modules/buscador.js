@@ -5,13 +5,31 @@ var BuscadorMotor = {
     normalizar: function(t) { return t ? t.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim() : ''; },
     tokenizar: function(texto) { var n = this.normalizar(texto); if (!n) return []; return n.split(' ').filter(function(t) { return t.length > 2 && !this.STOPWORDS.has(t); }.bind(this)).map(function(t) { return this.JERGA[t] || t; }.bind(this)); },
     construirIndice: function(articulos) { this.catalogo = articulos; },
+    // Sinónimos completos de un token: antes solo se traducía la palabra de búsqueda a UNA forma
+    // fija (ej: "zapatos" -> "zapatilla"), y como el producto seguía diciendo "zapatos" en su
+    // título, nunca coincidían. Ahora se arma el grupo completo de sinónimos y se compara contra
+    // todos, así "zapatos" encuentra productos que digan "zapatos", "zapatilla" o "tenis".
+    obtenerGrupoSinonimos: function(token) {
+        var grupo = new Set([token]);
+        var canonico = this.JERGA[token];
+        if (canonico) grupo.add(canonico);
+        var self = this;
+        Object.keys(this.JERGA).forEach(function(clave) {
+            if (self.JERGA[clave] === token || (canonico && self.JERGA[clave] === canonico)) grupo.add(clave);
+        });
+        if (canonico) grupo.add(canonico);
+        return Array.from(grupo);
+    },
+
     calcularPuntaje: function(art, tokens) {
         var p = 0;
         var t = this.normalizar(art.titulo || ''), c = this.normalizar(art.categoria || ''), d = this.normalizar(art.descripcion || '');
+        var self = this;
         tokens.forEach(function(token) {
-            var variantes = [token];
-            if (token.length > 4 && token.endsWith('s')) variantes.push(token.slice(0, -1));
-            var coincide = function(campo) { return variantes.some(function(v) { return campo.includes(v); }); };
+            var variantes = self.obtenerGrupoSinonimos(token);
+            var conPlural = [];
+            variantes.forEach(function(v) { conPlural.push(v); if (v.length > 4 && v.endsWith('s')) conPlural.push(v.slice(0, -1)); });
+            var coincide = function(campo) { return conPlural.some(function(v) { return campo.includes(v); }); };
             if (coincide(t)) p += 10;
             else if (coincide(c)) p += 5;
             else if (coincide(d)) p += 2;
@@ -118,7 +136,7 @@ var BuscadorMotor = {
     obtenerRecientes: function(limite) {
         limite = limite || 12;
         return this.catalogo.slice(0, limite).map(function(art) {
-            return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _es_expandido: false, _es_externo: false };
+            return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _es_expandido: false, _es_externo: false };
         });
     },
 
@@ -132,7 +150,7 @@ var BuscadorMotor = {
         var presupuesto = this.extraerPresupuesto(query);
 
         var mapear = function(art, puntaje) {
-            return { titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
+            return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
         };
         var coincideLugar = function(art) { return !lugar || art.pais === lugar || art.ciudad === lugar; };
 
