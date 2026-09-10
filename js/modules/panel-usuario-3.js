@@ -898,7 +898,7 @@ Object.assign(PanelUsuario, {
                 '<div class="chat-input-row">' +
                 '<input type="file" id="' + ctx.fotoInput + '" accept="image/*" style="display:none;" onchange="PanelUsuario.enviarFotoChat(\'' + convId + '\', \'' + otroId + '\', this.files[0], \'' + modo + '\')">' +
                 '<button type="button" title="Enviar foto" onclick="document.getElementById(\'' + ctx.fotoInput + '\').click()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 8px;">📷</button>' +
-                '<input type="text" id="' + ctx.input + '" class="form-input" placeholder="Escribe un mensaje..." oninput="PanelUsuario.avisarEscribiendo(\'' + modo + '\'); PanelUsuario.actualizarBotonEnvio(\'' + modo + '\');" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\',\'' + modo + '\')}">' +
+                '<input type="text" id="' + ctx.input + '" class="form-input" placeholder="Escribe un mensaje..." autocomplete="off" name="mensaje-chat-' + modo + '" oninput="PanelUsuario.avisarEscribiendo(\'' + modo + '\'); PanelUsuario.actualizarBotonEnvio(\'' + modo + '\');" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\',\'' + modo + '\')}">' +
                 '<button class="btn-auth btn-auth-primary btn-envio-chat" id="' + ctx.input + '_btnEnvio" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarLikeORaTexto(\'' + convId + '\', \'' + otroId + '\', \'' + modo + '\')"><span class="icono-envio">👍</span></button></div>';
 
             var msgsBox = document.getElementById(ctx.messages);
