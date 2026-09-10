@@ -1652,7 +1652,8 @@ Object.assign(PanelUsuario, {
             this.cargarConversaciones(convId, 'flotante');
         } catch (e) {
             console.error('remarket-db: error al iniciar conversación con', otroId, e);
-            this.mostrarToast('Error al iniciar la conversación');
+            var detalle = (e && (e.message || e.error_description || e.details)) || 'motivo desconocido';
+            this.mostrarToast('Error al iniciar la conversación: ' + detalle);
         }
     },
 
