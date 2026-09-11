@@ -1258,16 +1258,31 @@ Object.assign(PanelUsuario, {
 
             var resultados = (data || []).filter(function(u) { return bloqueados.indexOf(u.id) === -1; });
 
+            // Puntaje de relevancia (igual criterio que BuscadorMotor.calcularPuntaje en el buscador
+            // principal de productos): se usa el mismo normalizador de texto para ignorar tildes y
+            // mayúsculas, y se ordena de mayor a menor puntaje en vez de solo filtrar sí/no.
             if (termino) {
-                var terminoSinEspacios = termino.replace(/\s+/g, '');
-                resultados = resultados.filter(function(u) {
-                    var nombreCompleto = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim().toLowerCase();
-                    if (!nombreCompleto) return false;
-                    if (nombreCompleto.indexOf(termino) !== -1) return true; // coincidencia normal por texto
-                    // Coincidencia por iniciales: "jp" o "j p" -> "Juan Perez"
-                    var iniciales = nombreCompleto.split(/\s+/).filter(Boolean).map(function(p) { return p.charAt(0); }).join('');
-                    return iniciales.indexOf(terminoSinEspacios) !== -1;
-                });
+                var terminoNorm = BuscadorMotor.normalizar(termino);
+                var terminoSinEspacios = terminoNorm.replace(/\s+/g, '');
+                resultados = resultados.map(function(u) {
+                    var nombresNorm = BuscadorMotor.normalizar(u.nombres || '');
+                    var apellidosNorm = BuscadorMotor.normalizar(u.apellidos || '');
+                    var nombreCompletoNorm = (nombresNorm + ' ' + apellidosNorm).trim();
+                    var puntaje = 0;
+                    if (nombreCompletoNorm) {
+                        if (nombreCompletoNorm === terminoNorm) puntaje = 10; // nombre completo exacto
+                        else if (nombresNorm.indexOf(terminoNorm) === 0 || apellidosNorm.indexOf(terminoNorm) === 0) puntaje = 7; // empieza con el término
+                        else if (nombreCompletoNorm.indexOf(terminoNorm) !== -1) puntaje = 5; // coincidencia normal por texto
+                        else {
+                            // Coincidencia por iniciales: "jp" o "j p" -> "Juan Perez"
+                            var iniciales = nombreCompletoNorm.split(/\s+/).filter(Boolean).map(function(p) { return p.charAt(0); }).join('');
+                            if (iniciales.indexOf(terminoSinEspacios) !== -1) puntaje = 2;
+                        }
+                    }
+                    u._puntaje = puntaje;
+                    return u;
+                }).filter(function(u) { return u._puntaje > 0; });
+                resultados.sort(function(a, b) { return b._puntaje - a._puntaje; });
             }
 
             return resultados.slice(0, 12).map(function(u) {
