@@ -24,7 +24,141 @@ function ejecutarAccionPendienteLogin() {
         PanelUsuario.iniciarPublicacionDesdeAsistente(accion.tituloSugerido);
     }
 }
-function toggleAuthModal(show) { document.getElementById('authModal').style.display = show ? 'flex' : 'none'; hideAuthAlert(); }
+// El modal de login se VACÍA de verdad cuando no se usa (no solo se oculta con CSS), y se
+// vuelve a rellenar justo antes de mostrarlo. Así, mientras la persona está logueada o
+// chateando, el campo de contraseña no existe en la página -- por eso el navegador ya no lo
+// asocia con otros campos de texto (como el mensaje del chat) y deja de ofrecer autocompletar
+// una contraseña ahí.
+var AUTH_MODAL_HTML = `
+<div class="modal-content" style="max-width: 480px; padding: 30px;">
+<button class="modal-close-btn" onclick="toggleAuthModal(false)">&times;</button>
+<h2 style="text-align: center; margin-bottom: 5px; color: var(--purpura-ia);">Bienvenido a remarket-db</h2>
+<p style="text-align: center; color: var(--texto-secundario); margin-bottom: 25px; font-size: 14px;">Tu portal de economía circular inteligente</p>
+<div id="authAlert" class="alert"></div>
+
+<div class="auth-tabs">
+    <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">Iniciar Sesión</button>
+    <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">Registrarse</button>
+</div>
+
+<div id="loginForm" class="auth-form active">
+<button class="btn-auth btn-google" onclick="loginWithSocial('google')">
+<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M18.1713 8.36791H17.5001V8.33325H10.0001V11.6666H14.7096C14.0225 13.6072 12.1771 15 10.0001 15C7.23867 15 5.00012 12.7614 5.00012 10C5.00012 7.23858 7.23867 5 10.0001 5C11.2746 5 12.4346 5.47858 13.3171 6.26291L15.6829 3.89708C14.1854 2.49958 12.1926 1.66658 10.0001 1.66658C5.39762 1.66658 1.66675 5.39741 1.66675 9.99991C1.66675 14.6024 5.39762 18.3332 10.0001 18.3332C14.6026 18.3332 18.3334 14.6024 18.3334 9.99991C18.3334 9.44158 18.2784 8.89575 18.1713 8.36791Z" fill="#EA4335"/></svg>
+Continuar con Google
+</button>
+<div class="divider"><span>o usa tu correo</span></div>
+<div class="form-group">
+<label>Correo Electrónico</label>
+<input type="email" id="loginEmail" placeholder="tu@email.com">
+</div>
+<div class="form-group">
+<label>Contraseña</label>
+<input type="password" id="loginPassword" placeholder="••••••••">
+</div>
+<button class="btn-auth btn-auth-primary" onclick="loginWithEmail()">Iniciar Sesión</button>
+<div class="magic-link-option">
+<a onclick="showMagicLinkForm()">¿Olvidaste tu contraseña? Entra sin ella</a>
+</div>
+</div>
+
+<div id="registerForm" class="auth-form">
+<div class="form-group">
+<label>Nombre Completo *</label>
+<input type="text" id="registerName" placeholder="Juan Pérez" required>
+</div>
+<div class="form-group">
+<label>Correo Electrónico *</label>
+<input type="email" id="registerEmail" placeholder="tu@email.com" required>
+</div>
+<div class="form-group">
+<label>Contraseña (mínimo 8 caracteres) *</label>
+<input type="password" id="registerPassword" placeholder="••••••••" required minlength="8">
+<div class="password-strength"><div class="password-strength-bar" id="passwordStrengthBar"></div></div>
+<div class="password-hint" id="passwordHint">Usa mayúsculas, números y símbolos para mayor seguridad</div>
+</div>
+<div class="form-group">
+<label>Fecha de Nacimiento *</label>
+<input type="date" id="registerDob" required>
+<div class="age-error" id="ageError">⚠️ Debes ser mayor de 18 años para registrarte.</div>
+</div>
+<div class="form-group">
+<label>País *</label>
+<select id="registerCountry" required>
+<option value="">Selecciona tu país</option>
+<option value="PE">🇵🇪 Perú</option>
+<option value="MX">🇲🇽 México</option>
+<option value="CO">🇨🇴 Colombia</option>
+<option value="AR">🇦🇷 Argentina</option>
+<option value="CL">🇨🇱 Chile</option>
+<option value="EC">🇪🇨 Ecuador</option>
+<option value="BO">🇧🇴 Bolivia</option>
+<option value="VE">🇻🇪 Venezuela</option>
+<option value="ES">🇪🇸 España</option>
+<option value="US">🇺🇸 Estados Unidos</option>
+<option value="BR">🇧🇷 Brasil</option>
+<option value="BG">🇧🇬 Bulgaria</option>
+<option value="OT">🌍 Otro país</option>
+</select>
+</div>
+<div class="form-group">
+<label>Celular (opcional)</label>
+<div class="phone-wrapper">
+<select id="phoneCode" class="country-select">
+<option value="+51">🇵🇪 +51</option>
+<option value="+52">🇲🇽 +52</option>
+<option value="+57">🇨🇴 +57</option>
+<option value="+54">🇦🇷 +54</option>
+<option value="+56">🇨🇱 +56</option>
+<option value="+593">🇪🇨 +593</option>
+<option value="+591">🇧🇴 +591</option>
+<option value="+58">🇻🇪 +58</option>
+<option value="+34">🇪🇸 +34</option>
+<option value="+1">🇺🇸 +1</option>
+<option value="+55">🇧🇷 +55</option>
+<option value="+359">🇧🇬 +359</option>
+</select>
+<input type="tel" id="registerPhone" placeholder="999 888 777">
+</div>
+</div>
+<div class="checkbox-group">
+<input type="checkbox" id="registerTerms" required>
+<label for="registerTerms">
+Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="alert('Términos y Condiciones: pendiente de implementación'); return false;">Declaración Jurada y Términos de Uso</a>. Autorizo el tratamiento de mis datos conforme a la Ley de Protección de Datos Personales.
+</label>
+</div>
+<button class="btn-auth btn-auth-primary" onclick="registerUser()">Crear Cuenta</button>
+<div class="magic-link-option">
+<a onclick="showMagicLinkForm()">📧 Registrarme con Link Mágico (sin contraseña)</a>
+</div>
+</div>
+
+<div id="magicLinkForm" class="auth-form">
+<div class="form-group">
+<label>Correo Electrónico</label>
+<input type="email" id="magicEmail" placeholder="tu@email.com">
+</div>
+<button class="btn-auth btn-auth-primary" onclick="sendMagicLink()">Enviar Link Mágico</button>
+<div class="magic-link-option">
+<a onclick="switchAuthTab('login')">← Volver al inicio de sesión</a>
+</div>
+</div>
+</div>
+`;
+function toggleAuthModal(show) {
+    var modal = document.getElementById('authModal');
+    if (show) {
+        // Se crea recién ahora, la primera vez que hace falta -- el campo de contraseña no
+        // existe en la página hasta este momento, ni siquiera oculto, así el navegador no lo
+        // detecta antes de que alguien realmente abra el login.
+        if (!modal.innerHTML.trim()) { modal.innerHTML = AUTH_MODAL_HTML; }
+        modal.style.display = 'flex';
+        hideAuthAlert();
+    } else {
+        hideAuthAlert();
+        modal.style.display = 'none';
+        modal.innerHTML = '';
+    }
+}
 
 function switchAuthTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -38,7 +172,7 @@ function showMagicLinkForm() { document.querySelectorAll('.auth-form').forEach(f
 
 function showAuthAlert(message, type) { var alert = document.getElementById('authAlert'); alert.textContent = message; alert.className = 'alert alert-' + type + ' show'; setTimeout(() => { alert.classList.remove('show'); }, 5000); }
 
-function hideAuthAlert() { document.getElementById('authAlert').classList.remove('show'); }
+function hideAuthAlert() { var el = document.getElementById('authAlert'); if (el) el.classList.remove('show'); }
 
 async function logAccess(accion, email, detalle) {
     try {
