@@ -1696,6 +1696,22 @@ Object.assign(PanelUsuario, {
             container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>No pude conectarme con el Asistente en este momento. Intenta de nuevo en unos segundos.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
             return;
         }
+        var manejada = await this.procesarAccionEnFeed(respuestaIA, query);
+        if (!manejada) {
+            // Respuesta conversacional (o pregunta fuera de tema): se muestra en el Asistente IA lateral
+            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(respuestaIA, 'assistant');
+            this.cargarFeed();
+        }
+    },
+
+    // Interpreta la etiqueta [ACCION: ...] de una respuesta de la IA y actualiza el feed del panel
+    // en consecuencia. Recibe la respuesta YA generada (no llama de nuevo a la IA), para que tanto
+    // el buscador de arriba (ejecutarBusquedaConIA) como el chat lateral del asistente -- que antes
+    // pintaba los resultados en una parte de la página principal oculta mientras estás en el panel,
+    // por eso la IA "contestaba bien" pero el feed no cambiaba -- compartan el mismo resultado final.
+    // Devuelve true si reconoció y manejó la acción, false si era una respuesta conversacional
+    // (para que cada quien decida qué hacer en ese caso: el buscador reinicia el feed, el chat no).
+    procesarAccionEnFeed: async function(respuestaIA, query) {
         var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i);
         var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : '';
 
@@ -1734,10 +1750,9 @@ Object.assign(PanelUsuario, {
         } else if (accion === 'RECIENTES') {
             this.cargarFeed();
         } else {
-            // Respuesta conversacional (o pregunta fuera de tema): se muestra en el Asistente IA lateral
-            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(respuestaIA, 'assistant');
-            this.cargarFeed();
+            return false; // conversacional: el que llamó decide qué hacer
         }
+        return true;
     },
 
     // Pinta en el feed del panel el resultado de BuscadorMotor.ejecutarBusquedaHibrida, usando
