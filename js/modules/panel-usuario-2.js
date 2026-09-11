@@ -375,7 +375,9 @@ Object.assign(PanelUsuario, {
             
             var imgContainer = document.getElementById('compartirPreviewImagen');
             if (imagen) {
-                imgContainer.innerHTML = `<img src="${imagen}" alt="${titulo}">`;
+                // Se escapan título e imagen antes de insertarlos: si un producto tuviera
+                // un título malicioso tipo "><img onerror=...>", no debe poder ejecutarse.
+                imgContainer.innerHTML = `<img src="${this.escHtml(imagen)}" alt="${this.escHtml(titulo)}">`;
             } else {
                 imgContainer.innerHTML = '📷';
             }

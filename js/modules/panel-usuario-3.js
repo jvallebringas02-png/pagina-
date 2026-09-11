@@ -1683,7 +1683,10 @@ Object.assign(PanelUsuario, {
     },
 
     // Buscador del header dentro del panel: le manda el texto completo a la IA,
-    // que decide la intención (producto, persona, recientes, categoría, o fuera de tema)
+    // que decide la intención (producto, persona, recientes, categoría, o fuera de tema).
+    // A partir de aquí usa el MISMO BuscadorMotor que la página principal (sinónimos, ciudad,
+    // presupuesto, orden por relevancia) -- antes tenía su propia búsqueda aparte, más simple
+    // (solo "contiene la palabra", sin sinónimos ni orden), y por eso se comportaba distinto.
     ejecutarBusquedaConIA: async function(query) {
         var container = document.getElementById('userFeedContainer');
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 El Asistente IA está pensando...</p></div>';
@@ -1699,11 +1702,30 @@ Object.assign(PanelUsuario, {
         if (accion === 'BUSCAR') {
             var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
             var producto = prodMatch ? prodMatch[1].trim() : query;
-            await this.buscarProductosReales(producto, 'titulo_desc');
+            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto);
+            await this.renderResultadoBusquedaEnFeed(resultado);
         } else if (accion === 'CATEGORIA') {
             var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
             var categoria = catMatch ? catMatch[1].trim() : query;
-            await this.buscarProductosReales(categoria, 'categoria');
+            var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria);
+            await this.renderResultadoBusquedaEnFeed(resultadoCat);
+        } else if (accion === 'LISTAR_CATEGORIAS') {
+            this.renderCategoriasEnFeed(BuscadorMotor.obtenerCategoriasDisponibles());
+        } else if (accion === 'VIDEO') {
+            var videoMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var temaVideo = videoMatch ? videoMatch[1].trim() : query;
+            var videos = await BuscadorMotor.buscarSoloVideo(temaVideo);
+            this.renderExternoEnFeed(videos, '🎬 Videos de YouTube', 'No encontramos videos sobre eso. Intenta con otras palabras.');
+        } else if (accion === 'MUSICA') {
+            var musicaMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var temaMusica = musicaMatch ? musicaMatch[1].trim() : query;
+            var canciones = await BuscadorMotor.buscarSoloMusica(temaMusica);
+            this.renderExternoEnFeed(canciones, '🎵 Música', 'No encontramos música sobre eso. Intenta con otras palabras.');
+        } else if (accion === 'INTERNET') {
+            var webMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
+            var temaWeb = webMatch ? webMatch[1].trim() : query;
+            var web = await BuscadorMotor.buscarSoloWeb(temaWeb);
+            this.renderExternoEnFeed(web, '🌐 Resultados de internet', 'No encontramos nada en internet sobre eso.');
         } else if (accion === 'BUSCAR_PERSONA') {
             var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
             var nombre = nombreMatch ? nombreMatch[1].trim() : query;
@@ -1718,26 +1740,77 @@ Object.assign(PanelUsuario, {
         }
     },
 
-    buscarProductosReales: async function(termino, modo) {
+    // Pinta en el feed del panel el resultado de BuscadorMotor.ejecutarBusquedaHibrida, usando
+    // la tarjeta completa del panel (renderPost: likes, comentarios, carrusel de fotos) en vez
+    // de la tarjeta simple de la página principal -- mismos resultados, distinto diseño.
+    // Los productos "de relleno" (los de la API de demostración, sin usuario_id real) se saltan
+    // aquí porque no tienen un vendedor real con quien contactar ni likes/comentarios propios.
+    renderResultadoBusquedaEnFeed: async function(resultado) {
         var container = document.getElementById('userFeedContainer');
-        try {
-            var q = supabase.from('productos').select('*').eq('estado', 'aprobado');
-            q = (modo === 'categoria') ? q.ilike('categoria', '%' + termino + '%') : q.or('titulo.ilike.%' + termino + '%,descripcion.ilike.%' + termino + '%');
-            var { data: productos } = await q.order('created_at', { ascending: false }).limit(30);
-            if (!productos || !productos.length) {
-                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🔎</div><p>No encontré publicaciones para "' + this.escHtml(termino) + '".</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
-                return;
-            }
-            var self = this;
-            var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🔎 Resultados para "' + this.escHtml(termino) + '" · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
-            for (var i = 0; i < productos.length; i++) {
-                var autor = await self.obtenerAutor(productos[i].usuario_id);
-                html += self.renderPost(productos[i], autor, false);
-            }
-            container.innerHTML = html;
-        } catch (e) {
-            container.innerHTML = '<div class="feed-empty"><p>Error al buscar. Intenta de nuevo.</p></div>';
+        var productosReales = (resultado.resultados || []).filter(function(p) { return !!p.usuario_id; });
+
+        if (!productosReales.length && !(resultado.resultados_web && resultado.resultados_web.length) && !(resultado.resultados_videos && resultado.resultados_videos.length)) {
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🔎</div><p>' +
+                (resultado.lugar_sin_resultados ? 'No encontré publicaciones en ' + this.escHtml(resultado.lugar_sin_resultados) + ' para "' + this.escHtml(resultado.query) + '".' : 'No encontré publicaciones para "' + this.escHtml(resultado.query) + '". Intenta con sinónimos.') +
+                '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+            return;
         }
+
+        var banner = resultado.lugar_sin_resultados
+            ? '📍 No encontramos esto en <strong>' + this.escHtml(resultado.lugar_sin_resultados) + '</strong>, pero sí en estas otras zonas:'
+            : resultado.lugar_aplicado
+                ? '📍 Filtrado por: <strong>' + this.escHtml(resultado.lugar_aplicado) + '</strong>'
+                : '🔎 Resultados para "' + this.escHtml(resultado.query) + '"';
+        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">' + banner + ' · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
+
+        if (productosReales.length) {
+            var idsLote = productosReales.map(function(p) { return p.id; }).filter(Boolean);
+            var misLikes = await this.obtenerMisLikes(idsLote);
+            var self = this;
+            for (var i = 0; i < productosReales.length; i++) {
+                var autor = await self.obtenerAutor(productosReales[i].usuario_id);
+                var yaLike = misLikes.indexOf(productosReales[i].id) !== -1;
+                html += self.renderPost(productosReales[i], autor, yaLike);
+            }
+        }
+        container.innerHTML = html;
+
+        if (resultado.resultados_web && resultado.resultados_web.length) this.renderExternoEnFeed(resultado.resultados_web, '🌐 Resultados de internet', '', true);
+        if (resultado.resultados_videos && resultado.resultados_videos.length) this.renderExternoEnFeed(resultado.resultados_videos, '🎬 Videos de YouTube', '', true);
+    },
+
+    renderCategoriasEnFeed: function(categorias) {
+        var container = document.getElementById('userFeedContainer');
+        if (!categorias.length) {
+            container.innerHTML = '<div class="feed-empty"><p>Todavía no hay categorías con productos publicados.</p></div>';
+            return;
+        }
+        var self = this;
+        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">📂 Categorías disponibles</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 4px;">' + categorias.map(function(c) {
+            var nombreSeguro = self.escHtml(c.nombre);
+            return '<button class="badge badge-modalidad" style="cursor:pointer;font-size:14px;padding:10px 16px;" onclick="PanelUsuario.ejecutarBusquedaConIA(\'' + nombreSeguro.replace(/'/g, "\\'") + '\')">' + nombreSeguro + ' (' + c.cantidad + ')</button>';
+        }).join('') + '</div>';
+        container.innerHTML = html;
+    },
+
+    // Videos/música/internet no tienen "autor" propio del panel -- se muestran como tarjetas
+    // externas simples (mismo dato que ya usa la página principal), no con renderPost.
+    // agregar=true los añade al final del contenedor en vez de reemplazarlo (para sumarlos
+    // después de los productos, como hace la página principal).
+    renderExternoEnFeed: function(items, titulo, vacio, agregar) {
+        var container = document.getElementById('userFeedContainer');
+        var self = this;
+        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);margin-top:' + (agregar ? '16px' : '0') + ';">' + titulo + '</div>';
+        if (!items.length) {
+            html += vacio ? '<div class="feed-empty"><p>' + this.escHtml(vacio) + '</p></div>' : '';
+        } else {
+            html += '<div style="background:#fff;border-radius:12px;overflow:hidden;">' + items.map(function(it) {
+                var miniatura = it.miniatura ? '<img src="' + self.escHtml(it.miniatura) + '" style="width:100%;aspect-ratio:16/9;object-fit:cover;">' : '';
+                return '<div style="padding:12px;border-bottom:1px solid var(--borde);cursor:pointer;" onclick="window.open(\'' + self.escHtml(it.link) + '\', \'_blank\')">' + miniatura + '<div style="font-weight:600;margin-top:6px;">' + self.escHtml(it.titulo) + '</div><div style="font-size:13px;color:var(--texto-secundario);">' + self.escHtml(it.resumen || it.canal || '') + '</div></div>';
+            }).join('') + '</div>';
+        }
+        if (agregar) container.innerHTML += html; else container.innerHTML = html;
     },
 
     renderResultadosPersonasEnFeed: function(usuarios, nombreBuscado) {
