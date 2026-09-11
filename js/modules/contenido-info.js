@@ -78,11 +78,11 @@ var ContenidoInfo = {
 
     renderizarTarjeta: function(articulo) {
         var videoHTML = articulo.video_url
-            ? '<div style="margin-top:14px;"><iframe width="100%" height="220" src="' + articulo.video_url.replace('watch?v=', 'embed/') + '" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe></div>'
+            ? '<div style="margin-top:14px;"><iframe width="100%" height="220" src="' + escHtml(articulo.video_url.replace('watch?v=', 'embed/')) + '" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe></div>'
             : '';
         return '<div class="result-item" style="display:block;padding:20px;">' +
-            '<div class="result-title" style="font-size:18px;margin-bottom:8px;">' + articulo.titulo + '</div>' +
-            '<div class="result-desc">' + articulo.contenido + '</div>' +
+            '<div class="result-title" style="font-size:18px;margin-bottom:8px;">' + escHtml(articulo.titulo) + '</div>' +
+            '<div class="result-desc">' + escHtml(articulo.contenido) + '</div>' +
             videoHTML +
             '</div>';
     },

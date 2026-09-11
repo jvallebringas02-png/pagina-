@@ -150,7 +150,7 @@ Object.assign(PanelUsuario, {
             var data = await response.json();
             this._videoVerificado = { plataforma: plataforma, url: url, titulo: data.title || 'Video', miniatura: data.thumbnail_url || '' };
             previewEl.innerHTML = '<div style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--borde);border-radius:8px;">' +
-                (this._videoVerificado.miniatura ? '<img src="' + this._videoVerificado.miniatura + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
+                (this._videoVerificado.miniatura ? '<img src="' + this.escHtml(this._videoVerificado.miniatura) + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
                 '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">✅ ' + this.escHtml(this._videoVerificado.titulo) + '</div>' +
                 '<div style="font-size:11px;color:var(--texto-secundario);">' + (plataforma === 'youtube' ? 'YouTube' : 'TikTok') + ' verificado</div></div></div>';
         } catch (e) {
@@ -495,14 +495,14 @@ Object.assign(PanelUsuario, {
         if (todasLasUrls.length > 1) {
             imagenHtml = '<div class="feed-post-carousel">' +
                 '<div class="feed-post-carousel-track" id="carruselTrack-vp" onscroll="PanelUsuario.actualizarDotsCarrusel(this)">' +
-                todasLasUrls.map(function(u) { return '<img class="feed-post-image" src="' + u + '">'; }).join('') +
+                todasLasUrls.map(function(u) { return '<img class="feed-post-image" src="' + this.escHtml(u) + '">'; }.bind(this)).join('') +
                 '</div>' +
                 '<button type="button" class="feed-post-carousel-arrow prev" onclick="PanelUsuario.moverCarrusel(\'vp\', -1)">‹</button>' +
                 '<button type="button" class="feed-post-carousel-arrow next" onclick="PanelUsuario.moverCarrusel(\'vp\', 1)">›</button>' +
                 '<div class="feed-post-carousel-dots">' + todasLasUrls.map(function(u, i) { return '<span class="dot' + (i === 0 ? ' active' : '') + '"></span>'; }).join('') + '</div>' +
                 '</div>';
         } else if (todasLasUrls.length === 1) {
-            imagenHtml = '<img src="' + todasLasUrls[0] + '" class="feed-post-image">';
+            imagenHtml = '<img src="' + this.escHtml(todasLasUrls[0]) + '" class="feed-post-image">';
         } else {
             imagenHtml = '<div style="padding:40px;text-align:center;color:var(--texto-terciario);">📷 Sin fotos</div>';
         }
@@ -510,7 +510,7 @@ Object.assign(PanelUsuario, {
         if (this._videoVerificado) {
             var v = this._videoVerificado;
             videoHtml = '<a href="' + v.url + '" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--borde);border-radius:8px;margin-top:8px;text-decoration:none;color:inherit;">' +
-                (v.miniatura ? '<img src="' + v.miniatura + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
+                (v.miniatura ? '<img src="' + this.escHtml(v.miniatura) + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;">' : '▶️') +
                 '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶️ ' + this.escHtml(v.titulo) + '</div>' +
                 '<div style="font-size:11px;color:var(--texto-secundario);">' + (v.plataforma === 'youtube' ? 'YouTube' : v.plataforma === 'tiktok' ? 'TikTok' : 'Instagram') + '</div></div></a>';
         }
@@ -795,7 +795,7 @@ Object.assign(PanelUsuario, {
                 var { data: ultimosMsjs } = await supabase.from('mensajes').select('*').eq('conversacion_id', c.id).order('created_at', { ascending: false }).limit(1);
                 var ultimo = ultimosMsjs && ultimosMsjs[0];
                 var { count: noLeidos } = await supabase.from('mensajes').select('id', { count: 'exact', head: true }).eq('conversacion_id', c.id).eq('leido', false).neq('emisor_id', usuarioActual.id);
-                var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" alt="${nombreOtro}">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
+                var avatarHtml = this.avatarHtml(fotoOtro, nombreOtro, {});
                 listaHtml += '<div class="conv-item" id="' + prefijoItem + c.id + '" onclick="PanelUsuario.abrirConversacion(\'' + c.id + '\', \'' + modo + '\')">' +
                     '<div class="conv-avatar">' + avatarHtml + '</div>' +
                     '<div class="conv-info"><div class="conv-name">' + this.escHtml(nombreOtro) + (noLeidos ? ' <span class="conv-badge">' + noLeidos + '</span>' : '') + '</div>' +
@@ -876,7 +876,7 @@ Object.assign(PanelUsuario, {
                 return PanelUsuario._renderBurbuja(m, traduccionActivaMsgs, { agrupado: agrupado, mostrarAvatar: mostrarAvatar, fotoOtro: fotoOtro, nombreOtro: nombreOtro });
             }).join('');
 
-            var avatarHtml = fotoOtro ? `<img src="${fotoOtro}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">` : (nombreOtro.charAt(0).toUpperCase() || 'U');
+            var avatarHtml = this.avatarHtml(fotoOtro, nombreOtro, { tam: 44 });
             var enLinea = otro && otro.ultima_conexion && (Date.now() - new Date(otro.ultima_conexion).getTime() < 120000);
             var dotOnlineHtml = enLinea ? '<span class="dot-online"></span>' : '';
             var estadoConexionHtml = enLinea ? '<span style="color:#31A24C;">En línea</span>' : '<span id="estadoConexionOtro">Última vez: ' + this.tiempoRelativo(otro ? otro.ultima_conexion : null) + '</span>';
@@ -989,7 +989,7 @@ Object.assign(PanelUsuario, {
         var avatarHtml = '';
         if (!esMio) {
             if (opts.mostrarAvatar) {
-                avatarHtml = opts.fotoOtro ? '<img src="' + opts.fotoOtro + '" class="msg-avatar">' : '<div class="msg-avatar">' + (opts.nombreOtro ? opts.nombreOtro.charAt(0).toUpperCase() : 'U') + '</div>';
+                avatarHtml = this.avatarHtml(opts.fotoOtro, opts.nombreOtro, { tam: 32, claseFallback: 'msg-avatar' });
             } else {
                 avatarHtml = '<div class="msg-avatar-spacer"></div>';
             }
@@ -999,7 +999,7 @@ Object.assign(PanelUsuario, {
         }
         var contenidoHtml;
         if (m.imagen_url) {
-            contenidoHtml = '<div class="chat-bubble" style="padding:4px;"><img src="' + m.imagen_url + '" style="max-width:200px;border-radius:8px;display:block;cursor:pointer;" onclick="window.open(\'' + m.imagen_url + '\',\'_blank\')"></div>';
+            contenidoHtml = '<div class="chat-bubble" style="padding:4px;"><img src="' + this.escHtml(m.imagen_url) + '" data-full-img="' + this.escHtml(m.imagen_url) + '" style="max-width:200px;border-radius:8px;display:block;cursor:pointer;" onclick="window.open(this.dataset.fullImg,\'_blank\')"></div>';
         } else if (m.texto_original === '👍' || m.texto_original === '👍 Me gusta') {
             contenidoHtml = '<div class="chat-bubble" style="background:transparent;font-size:40px;padding:0;">👍</div>';
         } else {
@@ -1333,7 +1333,7 @@ Object.assign(PanelUsuario, {
             var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
             var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:36px;height:36px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+            var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 36, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
             return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
                 fotoHtml + '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div></div></div>';
         }).join('');
@@ -1375,8 +1375,7 @@ Object.assign(PanelUsuario, {
             var email = u.correo_electronico || '';
             var foto = u.foto_perfil || '';
             var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-            var fotoHtml = foto ? `<img src="${foto}" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">` :
-                                 `<div class="user-picker-avatar">${inicial}</div>`;
+            var fotoHtml = self.avatarHtml(foto, nombre, { tam: 40, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
             return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
                 ${fotoHtml}
                 <div style="flex:1;">
@@ -1437,7 +1436,7 @@ Object.assign(PanelUsuario, {
                         var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                         var inicial = nombre.charAt(0).toUpperCase() || 'U';
                         var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
-                        var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:40px;height:40px;object-fit:cover;">' : '<div class="user-picker-avatar">' + inicial + '</div>';
+                        var fotoHtml = self2.avatarHtml(u.foto_perfil, nombre, { tam: 40, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
                         return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
                             fotoHtml +
                             '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
@@ -1839,7 +1838,7 @@ Object.assign(PanelUsuario, {
         html += '<div style="background:#fff;border-radius:12px;padding:8px;">' + usuarios.map(function(u) {
             var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">' : '<div class="feed-post-avatar">' + inicial + '</div>';
+            var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 44, claseFallback: 'feed-post-avatar' });
             return '<div style="display:flex;align-items:center;gap:10px;padding:10px;cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + fotoHtml + '<div style="font-weight:600;">' + self.escHtml(nombre) + '</div></div>';
         }).join('') + '</div>';
         container.innerHTML = html;

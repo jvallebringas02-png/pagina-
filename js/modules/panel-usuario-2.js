@@ -59,20 +59,21 @@ Object.assign(PanelUsuario, {
 
             var portadaHtml = esMiPerfil
                 ? `<div class="perfil-portada" onclick="document.getElementById('inputPortada').click()">
-                        ${fotoPortada ? `<img src="${fotoPortada}" alt="Portada">` : ''}
+                        ${fotoPortada ? `<img src="${this.escHtml(fotoPortada)}" alt="Portada">` : ''}
                         <div class="perfil-portada-hover">🖼️ Haz clic para cambiar portada</div>
                         <div class="perfil-portada-btn"><i class="fas fa-camera"></i> Editar portada</div>
                         <input type="file" id="inputPortada" accept="image/*" style="display:none;" onchange="PanelUsuario.subirPortada(this.files[0])">
                    </div>`
-                : `<div class="perfil-portada">${fotoPortada ? `<img src="${fotoPortada}" alt="Portada">` : ''}</div>`;
+                : `<div class="perfil-portada">${fotoPortada ? `<img src="${this.escHtml(fotoPortada)}" alt="Portada">` : ''}</div>`;
 
             var avatarHtml = esMiPerfil
                 ? `<div class="perfil-avatar-wrapper">
-                        <div class="perfil-avatar">${fotoPerfil ? `<img src="${fotoPerfil}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${inicial}</div>`}</div>
+                        <div class="perfil-avatar">${fotoPerfil ? `<img src="${this.escHtml(fotoPerfil)}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${this.escHtml(inicial)}</div>`}</div>
                         <div class="perfil-avatar-btn" onclick="event.stopPropagation();document.getElementById('inputFotoPerfil').click()"><i class="fas fa-camera"></i></div>
                         <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;" onchange="PanelUsuario.subirFotoPerfil(this.files[0])">
                    </div>`
-                : `<div class="perfil-avatar-wrapper"><div class="perfil-avatar">${fotoPerfil ? `<img src="${fotoPerfil}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${inicial}</div>`}</div></div>`;
+                : `<div class="perfil-avatar-wrapper"><div class="perfil-avatar">${fotoPerfil ? `<img src="${this.escHtml(fotoPerfil)}" alt="Foto de perfil">` : `<div class="perfil-avatar-text">${this.escHtml(inicial)}</div>`}</div></div>`;
+
 
             var botonesHtml = esMiPerfil
                 ? `<button class="perfil-btn perfil-btn-secondary" onclick="PanelUsuario.editarPerfil()"><i class="fas fa-edit"></i> Editar perfil</button>`
@@ -426,7 +427,7 @@ Object.assign(PanelUsuario, {
                     var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                     var inicial = nombre.charAt(0).toUpperCase() || 'U';
                     var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '">' : inicial;
+                    var fotoHtml = PanelUsuario.avatarHtml(u.foto_perfil, nombre, { tam: 32 });
                     return '<div class="compartir-contacto-circulo" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
                         '<div class="compartir-contacto-avatar-wrap"><div class="compartir-contacto-avatar">' + fotoHtml + '</div><span class="compartir-contacto-check">✓</span></div>' +
                         '<div class="compartir-contacto-nombre">' + self.escHtml(nombre.split(' ')[0]) + '</div></div>';
@@ -440,7 +441,7 @@ Object.assign(PanelUsuario, {
                     var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                     var inicial = nombre.charAt(0).toUpperCase() || 'U';
                     var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
-                    var fotoHtml = u.foto_perfil ? '<img src="' + u.foto_perfil + '" class="user-picker-avatar" style="border-radius:50%;width:44px;height:44px;object-fit:cover;">' : '<div class="user-picker-avatar" style="width:44px;height:44px;">' + inicial + '</div>';
+                    var fotoHtml = PanelUsuario.avatarHtml(u.foto_perfil, nombre, { tam: 44, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
                     return '<div class="user-picker-item" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
                         '<div class="user-picker-avatar-wrap">' + fotoHtml + '<span class="check-seleccionado">✓</span></div>' +
                         '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div>' +
@@ -787,7 +788,7 @@ Object.assign(PanelUsuario, {
                 var nombreCompleto = ((usuarioActual.nombres || '') + ' ' + (usuarioActual.apellidos || '')).trim() || 'Usuario';
                 var inicial = nombreCompleto.charAt(0).toUpperCase();
                 var foto = usuarioActual.foto_perfil || '';
-                var fotoHtml = foto ? `<img src="${foto}" alt="${nombreCompleto}">` : inicial;
+                var fotoHtml = this.avatarHtml(foto, nombreCompleto, { tam: 36 });
                 
                 var htmlComentario = `
                     <div class="comment-item" id="comment-${comentario.id}" style="animation: aparecerComentario 0.3s ease;">

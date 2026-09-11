@@ -42,9 +42,9 @@ var Institucional = {
                 .limit(1);
             if (error || !data || data.length === 0) { contenedor.innerHTML = ''; return; }
             var ad = data[0];
-            contenedor.innerHTML = '<a href="' + (ad.enlace || '#') + '" target="_blank" style="display:block;background:white;border-radius:12px;padding:14px;margin-bottom:16px;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,0.08);">' +
-                (ad.imagen_url ? '<img src="' + ad.imagen_url + '" alt="' + ad.titulo + '" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '') +
-                '<strong style="display:block;">' + ad.titulo + '</strong><p style="margin:4px 0 0;font-size:13px;color:#6B7280;">' + (ad.contenido || '') + '</p>' +
+            contenedor.innerHTML = '<a href="' + escHtml(ad.enlace || '#') + '" target="_blank" style="display:block;background:white;border-radius:12px;padding:14px;margin-bottom:16px;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,0.08);">' +
+                (ad.imagen_url ? '<img src="' + escHtml(ad.imagen_url) + '" alt="' + escHtml(ad.titulo) + '" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '') +
+                '<strong style="display:block;">' + escHtml(ad.titulo) + '</strong><p style="margin:4px 0 0;font-size:13px;color:#6B7280;">' + escHtml(ad.contenido || '') + '</p>' +
                 '</a>';
         } catch (e) { contenedor.innerHTML = ''; }
     },

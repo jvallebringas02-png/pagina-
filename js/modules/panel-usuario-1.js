@@ -88,6 +88,26 @@ var PanelUsuario = {
         if (!str) return '';
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     },
+    // Genera el HTML de un avatar (foto o inicial) de forma centralizada, siempre escapado.
+    // Reemplaza los ${foto}/${nombre} sueltos que se repetían en cada archivo -- así el escape
+    // no depende de que cada función se acuerde de aplicarlo por su cuenta.
+    // opts: { tam: número en px (default 40), clase: clase CSS del <img>, estiloExtra: CSS extra para el <img>,
+    //         onclick: string JS para el atributo onclick, claseFallback: clase CSS del div de inicial,
+    //         estiloFallbackExtra: CSS extra para el div de inicial (ej. font-size) }
+    avatarHtml: function(foto, nombre, opts) {
+        opts = opts || {};
+        var tam = opts.tam || 40;
+        var inicial = (nombre || 'U').trim().charAt(0).toUpperCase() || 'U';
+        var claseAttr = opts.clase ? ' class="' + this.escHtml(opts.clase) + '"' : '';
+        var onclickAttr = opts.onclick ? ' onclick="' + opts.onclick + '"' : '';
+        if (foto) {
+            var estiloImg = 'width:' + tam + 'px;height:' + tam + 'px;border-radius:50%;object-fit:cover;' + (opts.estiloExtra || '');
+            return '<img src="' + this.escHtml(foto) + '" alt="' + this.escHtml(nombre || 'Foto de perfil') + '" style="' + estiloImg + '"' + claseAttr + onclickAttr + '>';
+        }
+        var claseFallback = opts.claseFallback ? ' class="' + this.escHtml(opts.claseFallback) + '"' : '';
+        var estiloFallback = 'width:' + tam + 'px;height:' + tam + 'px;' + (opts.claseFallback ? '' : 'border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--gris-claro,#e5e7eb);') + (opts.estiloFallbackExtra || opts.estiloExtra || '');
+        return '<div' + claseFallback + ' style="' + estiloFallback + '"' + onclickAttr + '>' + this.escHtml(inicial) + '</div>';
+    },
     mostrarToast: function(msg) {
         var t = document.createElement('div');
         t.textContent = msg;
@@ -573,9 +593,7 @@ var PanelUsuario = {
         resultadosEl.innerHTML += usuarios.map(function(u) {
             var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var fotoHtml = u.foto_perfil
-                ? '<img src="' + u.foto_perfil + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">'
-                : '<div class="user-picker-avatar" style="width:48px;height:48px;font-size:18px;">' + inicial + '</div>';
+            var fotoHtml = this.avatarHtml(u.foto_perfil, nombre, { tam: 48, claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:18px;' });
             var subtitulo = esSugerenciaIA
                 ? '<div style="font-size:12px;color:var(--texto-secundario);">✨ Sugerido por el asistente</div>'
                 : (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '');
@@ -637,9 +655,7 @@ var PanelUsuario = {
             if (error || !u) throw error || new Error('Usuario no encontrado');
             var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var fotoHtml = u.foto_perfil
-                ? '<img src="' + u.foto_perfil + '" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto 12px;">'
-                : '<div class="user-picker-avatar" style="width:84px;height:84px;font-size:30px;margin:0 auto 12px;">' + inicial + '</div>';
+            var fotoHtml = this.avatarHtml(u.foto_perfil, nombre, { tam: 84, estiloExtra: 'margin:0 auto 12px;', claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:30px;margin:0 auto 12px;' });
             var localidadTexto = '';
             if (u.localidad_id) {
                 var { data: loc } = await supabase.from('localidades').select('nombre, region').eq('id', u.localidad_id).maybeSingle();
