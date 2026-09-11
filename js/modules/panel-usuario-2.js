@@ -747,7 +747,7 @@ Object.assign(PanelUsuario, {
                             </div>
                             <div class="comment-text">${this.escHtml(c.texto)}</div>
                             <div class="comment-actions">
-                                <button onclick="PanelUsuario.likeComentario('${c.id}')"><i class="far fa-thumbs-up"></i> Me gusta</button>
+                                <button id="commentLikeBtn-${c.id}" onclick="PanelUsuario.likeComentario('${c.id}')"><i class="far fa-thumbs-up"></i> Me gusta <span id="commentLikesCount-${c.id}">${c.likes_count || 0}</span></button>
                                 ${esMio ? `<button class="delete-btn" onclick="PanelUsuario.eliminarComentario('${c.id}')"><i class="fas fa-trash"></i> Eliminar</button>` : ''}
                             </div>
                         </div>
@@ -797,7 +797,7 @@ Object.assign(PanelUsuario, {
                             </div>
                             <div class="comment-text">${this.escHtml(texto)}</div>
                             <div class="comment-actions">
-                                <button onclick="PanelUsuario.likeComentario('${comentario.id}')"><i class="far fa-thumbs-up"></i> Me gusta</button>
+                                <button id="commentLikeBtn-${comentario.id}" onclick="PanelUsuario.likeComentario('${comentario.id}')"><i class="far fa-thumbs-up"></i> Me gusta <span id="commentLikesCount-${comentario.id}">0</span></button>
                                 <button class="delete-btn" onclick="PanelUsuario.eliminarComentario('${comentario.id}')"><i class="fas fa-trash"></i> Eliminar</button>
                             </div>
                         </div>
@@ -828,8 +828,29 @@ Object.assign(PanelUsuario, {
 
     likeComentario: async function(comentarioId) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
-        // Aquí implementarías la tabla 'comentarios_likes' en Supabase
-        this.mostrarToast('❤️ Me gusta en comentario (próximamente)');
+        var btn = document.getElementById('commentLikeBtn-' + comentarioId);
+        var countEl = document.getElementById('commentLikesCount-' + comentarioId);
+        if (btn) btn.disabled = true;
+        try {
+            var { data: existente } = await supabase.from('comentarios_likes').select('id').eq('usuario_id', usuarioActual.id).eq('comentario_id', comentarioId).maybeSingle();
+            var count = parseInt((countEl && countEl.textContent) || '0', 10);
+            if (existente) {
+                await supabase.from('comentarios_likes').delete().eq('id', existente.id);
+                count = Math.max(0, count - 1);
+                if (btn) btn.classList.remove('active-like');
+            } else {
+                await supabase.from('comentarios_likes').insert({ usuario_id: usuarioActual.id, comentario_id: comentarioId });
+                count = count + 1;
+                if (btn) btn.classList.add('active-like');
+            }
+            if (countEl) countEl.textContent = count;
+            supabase.from('comentarios').update({ likes_count: count }).eq('id', comentarioId).then(function(){}, function(){});
+        } catch (e) {
+            console.warn('remarket-db: error al dar like a comentario', comentarioId, e);
+            this.mostrarToast('No se pudo dar me gusta: ' + (e.message || 'intenta de nuevo'));
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     },
 
     eliminarComentario: async function(comentarioId) {
