@@ -34,7 +34,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     var haySesionSupabase = !!(sesionSupabaseInicial && sesionSupabaseInicial.user);
 
     if (haySesionLocal || haySesionSupabase) {
-        UIController.renderizarArticulos(productosTotales);
+        // Ya sabemos que hay sesión: NO se pinta el catálogo de invitado aquí, porque se alcanzaría
+        // a ver un instante (con productos de prueba incluidos) antes de que el panel de usuario lo
+        // reemplace unas líneas más abajo (irAlFeed -> toggleVistaUsuario(true)) -- eso era el
+        // "parpadeo" de productos de prueba que se veía justo al iniciar sesión.
+        var catalogoEl = document.getElementById('catalogContainer');
+        if (catalogoEl) catalogoEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--texto-secundario);">Cargando tu cuenta...</div>';
     } else {
         await ContenidoInfo.mostrarEnMuro(idioma);
     }
