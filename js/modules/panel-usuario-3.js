@@ -1696,9 +1696,10 @@ Object.assign(PanelUsuario, {
             return;
         }
         var manejada = await this.procesarAccionEnFeed(respuestaIA, query);
+        // Igual que en la página principal: la respuesta de texto de la IA siempre se muestra en
+        // el chat del Asistente, sin importar si además actualizó el feed con resultados o no.
+        if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(respuestaIA, 'assistant');
         if (!manejada) {
-            // Respuesta conversacional (o pregunta fuera de tema): se muestra en el Asistente IA lateral
-            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(respuestaIA, 'assistant');
             this.cargarFeed();
         }
     },
