@@ -70,6 +70,26 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
+    mostrarMatrizLocalidad: function(matriz) {
+        this.elementos.searchBreadcrumb.style.display = 'flex';
+        this.elementos.searchQuery.textContent = 'Tu zona';
+        this.elementos.resultCount.textContent = matriz.categorias.length + (matriz.categorias.length === 1 ? ' categoría' : ' categorías');
+        this.elementos.catalogContainer.style.display = 'none';
+        this.elementos.searchResultsContainer.style.display = 'block';
+        this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
+        var textoNivel = matriz.nivel === 'ciudad' ? 'en tu ciudad' : 'en tu país (no había nada en tu ciudad todavía)';
+        var html = '<div class="ai-context-banner">📍 <strong>Esto es lo que hay ' + textoNivel + (matriz.lugar ? ' (' + escHtml(matriz.lugar) + ')' : '') + ':</strong></div>';
+        if (!matriz.categorias.length) {
+            html += '<div style="text-align:center;padding:40px;"><p>Todavía no hay publicaciones en tu zona. ¿Quieres ser el primero en publicar?</p></div>';
+        } else {
+            var self = this;
+            html += matriz.categorias.map(function(bloque) {
+                var tarjetas = bloque.productos.map(function(art) { return self.renderizarItemResultado(art); }).join('');
+                return '<div style="margin-bottom:24px;"><h3 style="margin:0 0 8px 4px;font-size:16px;">' + escHtml(bloque.nombre) + '</h3>' + tarjetas + '</div>';
+            }).join('');
+        }
+        this.elementos.searchResultsContent.innerHTML = html;
+    },
     mostrarListaCategorias: function(categorias) {
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Categorías';

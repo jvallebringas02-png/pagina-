@@ -1720,6 +1720,8 @@ Object.assign(PanelUsuario, {
             var producto = prodMatch ? prodMatch[1].trim() : query;
             var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto);
             await this.renderResultadoBusquedaEnFeed(resultado);
+        } else if (accion === 'EXPLORAR_LOCALIDAD') {
+            await this.renderMatrizLocalidadEnFeed(BuscadorMotor.obtenerMatrizPorLocalidad());
         } else if (accion === 'CATEGORIA') {
             var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
             var categoria = catMatch ? catMatch[1].trim() : query;
@@ -1757,6 +1759,38 @@ Object.assign(PanelUsuario, {
             return false; // conversacional: el que llamó decide qué hacer
         }
         return true;
+    },
+
+    // Pinta la matriz de "explorar mi localidad" dentro del feed, un bloque por categoría, usando
+    // la misma tarjeta completa (renderPost) que el resto del feed. Solo se muestran productos
+    // reales (con usuario_id) -- los de relleno no tienen vendedor ni likes/comentarios propios.
+    renderMatrizLocalidadEnFeed: async function(matriz) {
+        var container = document.getElementById('userFeedContainer');
+        var self = this;
+        var bloquesConReales = matriz.categorias.map(function(b) {
+            return { nombre: b.nombre, productos: b.productos.filter(function(p) { return !!p.usuario_id; }) };
+        }).filter(function(b) { return b.productos.length; });
+
+        if (!bloquesConReales.length) {
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">📍</div><p>Todavía no hay publicaciones en tu zona. ¿Quieres ser el primero?</p><button class="btn-publicar" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar</button></div>';
+            return;
+        }
+
+        var textoNivel = matriz.nivel === 'ciudad' ? 'en tu ciudad' : 'en tu país (todavía no hay nada en tu ciudad)';
+        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">📍 Esto es lo que hay ' + textoNivel + (matriz.lugar ? ' (' + this.escHtml(matriz.lugar) + ')' : '') + ' · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
+
+        for (var b = 0; b < bloquesConReales.length; b++) {
+            var bloque = bloquesConReales[b];
+            html += '<h3 style="margin:16px 4px 8px;font-size:16px;">' + this.escHtml(bloque.nombre) + '</h3>';
+            var idsLote = bloque.productos.map(function(p) { return p.id; }).filter(Boolean);
+            var misLikes = await this.obtenerMisLikes(idsLote);
+            for (var i = 0; i < bloque.productos.length; i++) {
+                var autor = await self.obtenerAutor(bloque.productos[i].usuario_id);
+                var yaLike = misLikes.indexOf(bloque.productos[i].id) !== -1;
+                html += self.renderPost(bloque.productos[i], autor, yaLike);
+            }
+        }
+        container.innerHTML = html;
     },
 
     // Pinta en el feed del panel el resultado de BuscadorMotor.ejecutarBusquedaHibrida, usando

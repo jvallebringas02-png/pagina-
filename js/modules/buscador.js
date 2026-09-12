@@ -121,6 +121,30 @@ var BuscadorMotor = {
     },
 
     // Lista de categorías realmente presentes en el catálogo, con cuántos productos tiene cada una.
+    // Matriz para "explorar mi localidad": agrupa el catálogo por categoría, filtrando primero
+    // por tu ciudad; si no hay nada ahí, expande a tu país completo (avisando del cambio de nivel).
+    obtenerMatrizPorLocalidad: function() {
+        var ciudad = (typeof UbicacionUsuario !== 'undefined') ? UbicacionUsuario.ciudad : null;
+        var pais = (typeof UbicacionUsuario !== 'undefined') ? UbicacionUsuario.pais : null;
+        var base = ciudad ? this.catalogo.filter(function(a) { return a.ciudad === ciudad; }) : [];
+        var nivel = 'ciudad', lugar = ciudad;
+        if (!base.length && pais) {
+            base = this.catalogo.filter(function(a) { return a.pais === pais; });
+            nivel = 'pais';
+            lugar = pais;
+        }
+        var porCategoria = {};
+        base.forEach(function(art) {
+            var cat = (art.categoria || 'Otros').trim();
+            if (!porCategoria[cat]) porCategoria[cat] = [];
+            porCategoria[cat].push(art);
+        });
+        var categorias = Object.keys(porCategoria)
+            .sort(function(a, b) { return porCategoria[b].length - porCategoria[a].length; })
+            .map(function(cat) { return { nombre: cat, productos: porCategoria[cat].slice(0, 6) }; });
+        return { categorias: categorias, nivel: nivel, lugar: lugar };
+    },
+
     obtenerCategoriasDisponibles: function() {
         var conteo = {};
         this.catalogo.forEach(function(art) {
