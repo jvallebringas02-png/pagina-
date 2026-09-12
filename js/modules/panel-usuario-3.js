@@ -532,8 +532,8 @@ Object.assign(PanelUsuario, {
                     '<div class="preview-compartir-avatar">' + this.escHtml(nombreCompleto.charAt(0).toUpperCase()) + '</div>' +
                     '<div><div class="preview-compartir-nombre">' + this.escHtml(nombreCompleto) + '</div><div class="preview-compartir-fecha">Ahora</div></div>' +
                 '</div>' +
-                '<div id="vpImagen" class="preview-compartir-imagen">' + imagenHtml + '</div>' +
                 videoHtml +
+                '<div id="vpImagen" class="preview-compartir-imagen">' + imagenHtml + '</div>' +
                 '<div class="preview-compartir-body">' +
                     '<div class="preview-compartir-titulo">' + this.escHtml(titulo) + '</div>' +
                     '<div id="vpDescripcion" class="preview-compartir-desc">' + this.escHtml(descripcionFinal) + '</div>' +

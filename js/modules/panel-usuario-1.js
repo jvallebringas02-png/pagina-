@@ -176,8 +176,8 @@ var PanelUsuario = {
             '<div class="feed-post-meta"><div class="feed-post-name" style="cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + autorUid + '\')">' + this.escHtml(nombre) + '</div>' +
             '<div class="feed-post-time">' + this.tiempoRelativo(item.created_at || item.fecha_creacion) + '</div>' +
             (ciudad ? '<div class="feed-post-location">📍 ' + this.escHtml(ciudad) + '</div>' : '') + '</div>' + menuAutorHtml + '</div>' +
-            imgHtml +
             videoHtmlFeed +
+            imgHtml +
             '<div class="feed-post-body"><div class="feed-post-title">' + this.escHtml(item.titulo || item.nombre || 'Sin título') + '</div>' +
             '<div class="feed-post-desc">' + this.escHtml((item.descripcion || item.detalle || '').substring(0, 200)) + '</div>' +
             '<div class="feed-post-price">' + precioHtml + '</div></div>' +
