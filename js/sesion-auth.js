@@ -73,6 +73,17 @@ function guardarSesionUsuario(usuario) {
     try { sessionStorage.setItem('remarket_usuario', JSON.stringify(usuario)); } catch (e) { console.warn('No se pudo guardar sesión:', e); }
 }
 
+// La ciudad que el usuario guardó a mano en Configuración debe tener prioridad sobre la que
+// se detecta automáticamente por IP -- si no, cada vez que recarga la página, detectarPorIP()
+// vuelve a pisar lo que había guardado, y parece que "no se guardó" aunque sí quedó en la BD.
+function aplicarLocalidadGuardada(usuario) {
+    if (usuario && usuario.ciudad && typeof UbicacionUsuario !== 'undefined') {
+        UbicacionUsuario.ciudad = usuario.ciudad;
+        if (usuario.pais) UbicacionUsuario.pais = usuario.pais;
+        UbicacionUsuario.actualizarUI();
+    }
+}
+
 function cargarSesionUsuario() {
     try {
         var guardado = sessionStorage.getItem('remarket_usuario');
@@ -80,6 +91,7 @@ function cargarSesionUsuario() {
             var usuario = JSON.parse(guardado);
             guardarSesionUsuario(usuario);
             updateUIForUser(usuario);
+            aplicarLocalidadGuardada(usuario);
             return usuario;
         }
     } catch (e) { console.warn('No se pudo restaurar sesión:', e); }
@@ -129,6 +141,7 @@ async function procesarSesionSupabaseAuth(authUser) {
         }
 
         guardarSesionUsuario(usuarioFinal);
+        aplicarLocalidadGuardada(usuarioFinal);
         await logAccess('login_exitoso', authUser.email, 'Vía procesarSesionSupabaseAuth');
         updateUIForUser(usuarioFinal);
         toggleAuthModal(false);
