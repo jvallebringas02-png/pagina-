@@ -1741,6 +1741,10 @@ Object.assign(PanelUsuario, {
             var temaWeb = webMatch ? webMatch[1].trim() : query;
             var web = await BuscadorMotor.buscarSoloWeb(temaWeb);
             this.renderExternoEnFeed(web, '🌐 Resultados de internet', 'No encontramos nada en internet sobre eso.');
+        } else if (accion === 'PUBLICAR') {
+            var tituloMatch = respuestaIA.match(/TITULO:\s*([^\|\]]+)/i);
+            var tituloSugerido = tituloMatch ? tituloMatch[1].trim() : query;
+            this.iniciarPublicacionDesdeAsistente(tituloSugerido);
         } else if (accion === 'BUSCAR_PERSONA') {
             var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
             var nombre = nombreMatch ? nombreMatch[1].trim() : query;
