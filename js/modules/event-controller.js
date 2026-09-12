@@ -5,6 +5,11 @@ var EventController = {
     procesarAccionIA: async function(respuestaIA, queryOriginal) {
         var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i);
         var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : '';
+        // Respaldo: si el mensaje claramente pide explorar la zona/categorías y la IA no lo
+        // reconoció así, se corrige aquí en vez de dejar que caiga en RECIENTES o una búsqueda rara.
+        if (typeof detectarIntencionExplorarLocalidad === 'function' && detectarIntencionExplorarLocalidad(queryOriginal)) {
+            accion = 'EXPLORAR_LOCALIDAD';
+        }
 
         if (accion === 'BUSCAR') {
             var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);

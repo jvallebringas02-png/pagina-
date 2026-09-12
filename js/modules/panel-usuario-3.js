@@ -1714,6 +1714,9 @@ Object.assign(PanelUsuario, {
     procesarAccionEnFeed: async function(respuestaIA, query) {
         var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i);
         var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : '';
+        if (typeof detectarIntencionExplorarLocalidad === 'function' && detectarIntencionExplorarLocalidad(query)) {
+            accion = 'EXPLORAR_LOCALIDAD';
+        }
 
         if (accion === 'BUSCAR') {
             var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
