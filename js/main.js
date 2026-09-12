@@ -20,14 +20,18 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     BuscadorMotor.construirIndice(productosTotales);
 
-    // Si no hay sesión iniciada (ni local ni de Supabase), el muro muestra los
-    // artículos informativos de la plataforma en vez del catálogo de productos.
+    // Antes esta pregunta ("¿hay sesión?") se hacía dos veces por separado -- una vez aquí y otra
+    // más abajo -- y si Supabase tardaba un instante en confirmar la sesión guardada, esta primera
+    // consulta decía "no hay sesión" (mostrando el muro) mientras que la segunda, ya un poco después,
+    // sí la encontraba (mostrando el panel) -- eso causaba el parpadeo del muro al iniciar sesión.
+    // Ahora se consulta una sola vez y el mismo resultado se reutiliza más abajo.
     var haySesionLocal = !!cargarSesionUsuario();
-    var haySesionSupabase = false;
+    var sesionSupabaseInicial = null;
     try {
         var { data: { session: sesionInicial } } = await supabase.auth.getSession();
-        haySesionSupabase = !!(sesionInicial && sesionInicial.user);
+        sesionSupabaseInicial = sesionInicial || null;
     } catch (e) { /* si falla, asumimos que no hay sesión */ }
+    var haySesionSupabase = !!(sesionSupabaseInicial && sesionSupabaseInicial.user);
 
     if (haySesionLocal || haySesionSupabase) {
         UIController.renderizarArticulos(productosTotales);
@@ -52,9 +56,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     var sesionLocalRestaurada = cargarSesionUsuario();
     try {
-        var { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-            await procesarSesionSupabaseAuth(session.user);
+        if (sesionSupabaseInicial && sesionSupabaseInicial.user) {
+            await procesarSesionSupabaseAuth(sesionSupabaseInicial.user);
         } else if (!sesionLocalRestaurada) {
             document.getElementById('accountBtn').onclick = function() { toggleAuthModal(true); };
         }
