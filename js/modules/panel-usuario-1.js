@@ -173,7 +173,7 @@ var PanelUsuario = {
         }
         return '<article class="feed-post" data-id="' + id + '" data-autor="' + autorUid + '">' +
             '<div class="feed-post-header">' + avatarHtml +
-            '<div class="feed-post-meta"><div class="feed-post-name" style="cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + autorUid + '\')">' + this.escHtml(nombre) + '</div>' +
+            '<div class="feed-post-meta"><div class="feed-post-name" style="cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + autorUid + '\')">' + this.escHtml(nombre) + (item.es_patrocinado ? ' <span style="background:#F59E0B;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;vertical-align:middle;">📢 PATROCINADO</span>' : '') + '</div>' +
             '<div class="feed-post-time">' + this.tiempoRelativo(item.created_at || item.fecha_creacion) + '</div>' +
             (ciudad ? '<div class="feed-post-location">📍 ' + this.escHtml(ciudad) + '</div>' : '') + '</div>' + menuAutorHtml + '</div>' +
             videoHtmlFeed +

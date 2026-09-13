@@ -155,6 +155,16 @@ var BuscadorMotor = {
         return { categorias: categorias, nivel: nivel, lugar: lugar };
     },
 
+    // Los patrocinados van primero, pero solo DENTRO del nivel geográfico que ya se filtró --
+    // nunca saltan por encima de un resultado más cercano de otro nivel, y como máximo 2 por
+    // lista, para que no se sienta como que la plataforma se llenó de anuncios.
+    ordenarConPatrocinados: function(lista) {
+        var patrocinados = lista.filter(function(x) { return x.es_patrocinado; }).sort(function(a, b) { return b._puntaje - a._puntaje; });
+        var resto = lista.filter(function(x) { return !x.es_patrocinado; });
+        var restoConExtra = resto.concat(patrocinados.slice(2)).sort(function(a, b) { return b._puntaje - a._puntaje; });
+        return patrocinados.slice(0, 2).concat(restoConExtra);
+    },
+
     obtenerCategoriasDisponibles: function() {
         var conteo = {};
         this.catalogo.forEach(function(art) {
@@ -170,7 +180,7 @@ var BuscadorMotor = {
     obtenerRecientes: function(limite) {
         limite = limite || 12;
         return this.catalogo.slice(0, limite).map(function(art) {
-            return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _es_expandido: false, _es_externo: false };
+            return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, es_patrocinado: !!art.es_patrocinado, _es_expandido: false, _es_externo: false };
         });
     },
 
@@ -184,7 +194,7 @@ var BuscadorMotor = {
         var presupuesto = this.extraerPresupuesto(query);
 
         var mapear = function(art, puntaje) {
-            return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
+            return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, es_patrocinado: !!art.es_patrocinado, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
         };
         var coincideLugar = function(art) { return !lugar || art.pais === lugar || art.ciudad === lugar; };
 
@@ -203,13 +213,13 @@ var BuscadorMotor = {
         // Criterio real: si pidió un lugar, es obligatorio (AND) -- ya no son puntos extra que
         // un producto de otra categoría podía ganar solo por coincidir en país.
         var resultadosLocales = conPuntaje.filter(function(x) { return coincideLugar(x.art); }).map(function(x) { return mapear(x.art, x.puntaje); });
-        resultadosLocales.sort(function(a, b) { return b._puntaje - a._puntaje; });
+        resultadosLocales = this.ordenarConPatrocinados(resultadosLocales);
 
         // Si pidió un lugar específico y ahí no hay nada, pero SÍ hay del producto en otras
         // zonas, se lo decimos con transparencia en vez de saltar directo a internet.
         if (lugar && resultadosLocales.length === 0 && conPuntaje.length > 0) {
             var otrasZonas = conPuntaje.map(function(x) { return mapear(x.art, x.puntaje); });
-            otrasZonas.sort(function(a, b) { return b._puntaje - a._puntaje; });
+            otrasZonas = this.ordenarConPatrocinados(otrasZonas);
             return { resultados: otrasZonas, total: this.catalogo.length, coincidencias: otrasZonas.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_sin_resultados: lugar };
         }
 
