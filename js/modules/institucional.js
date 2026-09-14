@@ -4,6 +4,47 @@
 // ============================================
 var Institucional = {
 
+    // ---------- Motor común de niveles + peso + vigencia, usado por Patrocinadores y Publicidad ----------
+    // Nivel más específico gana: ciudad -> país -> mundial (sin ubicación). Dentro del nivel
+    // ganador, cada anuncio compite por un sorteo pesado según su "peso" (peso 1 = gratis/por
+    // defecto; se sube a mano desde el Panel de Administrador cuando alguien paga por más
+    // visibilidad). Nunca un anuncio de un nivel más amplio gana sobre uno más específico.
+    filtrarVigentesYNivelGanador: function(lista) {
+        var hoy = new Date();
+        var vigentes = lista.filter(function(a) {
+            var desdeOk = !a.vigente_desde || new Date(a.vigente_desde) <= hoy;
+            var hastaOk = !a.vigente_hasta || new Date(a.vigente_hasta) >= hoy;
+            return desdeOk && hastaOk;
+        });
+        var ciudad = (typeof UbicacionUsuario !== 'undefined') ? UbicacionUsuario.ciudad : null;
+        var pais = (typeof UbicacionUsuario !== 'undefined') ? UbicacionUsuario.pais : null;
+        var porCiudad = vigentes.filter(function(a) { return a.ciudad && a.ciudad === ciudad; });
+        if (porCiudad.length) return porCiudad;
+        var porPais = vigentes.filter(function(a) { return !a.ciudad && a.pais && a.pais === pais; });
+        if (porPais.length) return porPais;
+        return vigentes.filter(function(a) { return !a.ciudad && !a.pais; });
+    },
+    // Sorteo pesado: cada anuncio aporta "boletos" a la bolsa según su peso (por defecto 1).
+    sorteoPesado: function(lista) {
+        var total = lista.reduce(function(s, a) { return s + (a.peso || 1); }, 0);
+        var r = Math.random() * total;
+        for (var i = 0; i < lista.length; i++) {
+            r -= (lista[i].peso || 1);
+            if (r <= 0) return lista[i];
+        }
+        return lista[lista.length - 1];
+    },
+    // Sorteo pesado sin repetir, para elegir varios (ej. la lista de Patrocinadores).
+    elegirVariosSinRepetir: function(lista, cuantos) {
+        var restante = lista.slice(), elegidos = [];
+        while (restante.length && elegidos.length < cuantos) {
+            var ganador = this.sorteoPesado(restante);
+            elegidos.push(ganador);
+            restante = restante.filter(function(a) { return a !== ganador; });
+        }
+        return elegidos;
+    },
+
     // ---------- Patrocinadores (dinámico, desde la base de datos) ----------
     RESPALDO_PATROCINADORES: [
         { titulo: 'Municipalidad de Trujillo', enlace: 'https://www.munitrujillo.gob.pe' },
@@ -15,38 +56,58 @@ var Institucional = {
         if (!contenedor) return;
         var lista = this.RESPALDO_PATROCINADORES;
         try {
-            var { data, error } = await supabase
+            var resultado = await supabase
                 .from('contenido_administrable')
-                .select('titulo, imagen_url, enlace')
+                .select('titulo, imagen_url, enlace, pais, ciudad, peso, vigente_desde, vigente_hasta')
                 .eq('tipo_contenido', 'patrocinador')
                 .eq('activo', true);
-            if (!error && data && data.length > 0) lista = data;
+            if (!resultado.error && resultado.data && resultado.data.length > 0) {
+                var ganadores = this.filtrarVigentesYNivelGanador(resultado.data);
+                if (ganadores.length) lista = this.elegirVariosSinRepetir(ganadores, 4);
+            }
         } catch (e) { /* se queda con el respaldo fijo */ }
 
         contenedor.innerHTML = lista.map(function(p) {
-            return '<div class="sponsor-card"><div class="sponsor-name">' + p.titulo + '</div>' +
-                '<button class="btn-sponsor" onclick="window.open(\'' + (p.enlace || '#') + '\', \'_blank\')">Visitar</button></div>';
+            return '<div class="sponsor-card"><div class="sponsor-name">' + escHtml(p.titulo) + '</div>' +
+                '<button class="btn-sponsor" onclick="window.open(\'' + escHtml(p.enlace || '#') + '\', \'_blank\')">Visitar</button></div>';
         }).join('');
     },
 
-    // ---------- Publicidad (dinámico, desde la base de datos, solo si hay algo activo) ----------
+    // ---------- Publicidad (dinámico, con rotación por tiempo mientras la persona sigue en la página) ----------
+    _publicidadCandidatos: null,
+    _publicidadInterval: null,
+
     cargarPublicidad: async function() {
         var contenedor = document.getElementById('publicidadSlot');
         if (!contenedor) return;
         try {
-            var { data, error } = await supabase
+            var resultado = await supabase
                 .from('contenido_administrable')
-                .select('titulo, contenido, imagen_url, enlace')
+                .select('titulo, contenido, imagen_url, enlace, pais, ciudad, peso, vigente_desde, vigente_hasta')
                 .eq('tipo_contenido', 'publicidad')
-                .eq('activo', true)
-                .limit(1);
-            if (error || !data || data.length === 0) { contenedor.innerHTML = ''; return; }
-            var ad = data[0];
-            contenedor.innerHTML = '<a href="' + escHtml(ad.enlace || '#') + '" target="_blank" style="display:block;background:white;border-radius:12px;padding:14px;margin-bottom:16px;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,0.08);">' +
-                (ad.imagen_url ? '<img src="' + escHtml(ad.imagen_url) + '" alt="' + escHtml(ad.titulo) + '" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '') +
-                '<strong style="display:block;">' + escHtml(ad.titulo) + '</strong><p style="margin:4px 0 0;font-size:13px;color:#6B7280;">' + escHtml(ad.contenido || '') + '</p>' +
-                '</a>';
+                .eq('activo', true);
+            if (resultado.error || !resultado.data || resultado.data.length === 0) { contenedor.innerHTML = ''; return; }
+            var ganadores = this.filtrarVigentesYNivelGanador(resultado.data);
+            if (!ganadores.length) { contenedor.innerHTML = ''; return; }
+            this._publicidadCandidatos = ganadores;
+            this.pintarUnAnuncio();
+            // Si hay más de uno compitiendo en el mismo nivel, rota cada 20s -- así, con el
+            // tiempo, los que tienen el mismo peso se reparten las apariciones de forma pareja,
+            // en vez de quedarse pegados en el que salió la primera vez.
+            if (this._publicidadInterval) clearInterval(this._publicidadInterval);
+            if (ganadores.length > 1) {
+                this._publicidadInterval = setInterval(function() { Institucional.pintarUnAnuncio(); }, 20000);
+            }
         } catch (e) { contenedor.innerHTML = ''; }
+    },
+    pintarUnAnuncio: function() {
+        var contenedor = document.getElementById('publicidadSlot');
+        if (!contenedor || !this._publicidadCandidatos || !this._publicidadCandidatos.length) return;
+        var ad = this.sorteoPesado(this._publicidadCandidatos);
+        contenedor.innerHTML = '<a href="' + escHtml(ad.enlace || '#') + '" target="_blank" rel="noopener" style="display:block;background:white;border-radius:12px;padding:14px;margin-bottom:16px;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,0.08);">' +
+            (ad.imagen_url ? '<img src="' + escHtml(ad.imagen_url) + '" alt="' + escHtml(ad.titulo) + '" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '') +
+            '<strong style="display:block;">' + escHtml(ad.titulo) + '</strong><p style="margin:4px 0 0;font-size:13px;color:#6B7280;">' + escHtml(ad.contenido || '') + '</p>' +
+            '</a>';
     },
 
     // ---------- Modal genérico reutilizable ----------
