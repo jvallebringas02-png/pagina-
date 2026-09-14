@@ -90,6 +90,17 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
+    mostrarQuienesSomosEnMuro: function(texto) {
+        this.elementos.searchBreadcrumb.style.display = 'flex';
+        this.elementos.searchQuery.textContent = 'Quiénes somos';
+        this.elementos.resultCount.textContent = '';
+        this.elementos.catalogContainer.style.display = 'none';
+        this.elementos.searchResultsContainer.style.display = 'block';
+        this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
+        this.elementos.searchResultsContent.innerHTML =
+            '<div class="ai-context-banner">🌱 <strong>Sobre remarket-db</strong></div>' +
+            '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + escHtml(texto) + '</div>';
+    },
     mostrarListaCategorias: function(categorias) {
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Categorías';
