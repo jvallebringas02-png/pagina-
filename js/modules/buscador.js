@@ -8,6 +8,13 @@ function detectarIntencionExplorarLocalidad(texto) {
     );
 }
 
+// Mismo respaldo, para "quiénes somos" / "qué es remarket-db".
+function detectarIntencionQuienesSomos(texto) {
+    var t = (texto || '').toLowerCase();
+    var tNorm = t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
+    return /\b(quienes son|quienes somos|que es remarket|que es esta pagina|que es esta plataforma|de que trata|conoce la plataforma|como funciona (la plataforma|esto|remarket))\b/.test(tNorm);
+}
+
 var BuscadorMotor = {
     catalogo: [],
     JERGA: { 'carro': 'auto', 'carros': 'auto', 'auto': 'auto', 'autos': 'auto', 'vehiculo': 'auto', 'vehiculos': 'auto', 'coche': 'auto', 'coches': 'auto', 'chompa': 'casaca', 'casaca': 'chompa', 'polo': 'camiseta', 'camisa': 'camiseta', 'camiseta': 'camisa', 'blusa': 'camisa', 'playera': 'camiseta', 'remera': 'camiseta', 'zapa': 'zapatilla', 'zapato': 'zapatilla', 'zapatos': 'zapatilla', 'tenis': 'zapatilla', 'celu': 'celular', 'cel': 'celular', 'note': 'laptop', 'lapto': 'laptop', 'compu': 'computadora', 'ordenador': 'computadora', 'tele': 'televisor', 'bici': 'bicicleta', 'carpintero': 'carpinteria', 'chumpi': 'faja', 'aguayo': 'manta', 'poncho': 'poncho', 'chullo': 'gorro', 'lliqlla': 'manta', 'papa': 'papa', 'quinua': 'quinua', 'oca': 'oca', 'alpaca': 'alpaca', 'maskani': 'busco', 'rantini': 'compro', 'rantikuni': 'vendo', 'aljt\'a': 'venta' },

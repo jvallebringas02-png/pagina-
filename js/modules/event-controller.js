@@ -10,6 +10,9 @@ var EventController = {
         if (typeof detectarIntencionExplorarLocalidad === 'function' && detectarIntencionExplorarLocalidad(queryOriginal)) {
             accion = 'EXPLORAR_LOCALIDAD';
         }
+        if (typeof detectarIntencionQuienesSomos === 'function' && detectarIntencionQuienesSomos(queryOriginal)) {
+            accion = 'QUIENES_SOMOS';
+        }
 
         if (accion === 'BUSCAR') {
             var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
@@ -19,6 +22,9 @@ var EventController = {
         } else if (accion === 'LISTAR_CATEGORIAS') {
             var categorias = BuscadorMotor.obtenerCategoriasDisponibles();
             UIController.mostrarListaCategorias(categorias);
+        } else if (accion === 'QUIENES_SOMOS') {
+            var textoQuienesSomos = await Institucional.obtenerTextoQuienesSomos();
+            UIController.mostrarQuienesSomosEnMuro(textoQuienesSomos);
         } else if (accion === 'EXPLORAR_LOCALIDAD') {
             var matriz = BuscadorMotor.obtenerMatrizPorLocalidad();
             UIController.mostrarMatrizLocalidad(matriz);

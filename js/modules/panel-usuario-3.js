@@ -1717,6 +1717,9 @@ Object.assign(PanelUsuario, {
         if (typeof detectarIntencionExplorarLocalidad === 'function' && detectarIntencionExplorarLocalidad(query)) {
             accion = 'EXPLORAR_LOCALIDAD';
         }
+        if (typeof detectarIntencionQuienesSomos === 'function' && detectarIntencionQuienesSomos(query)) {
+            accion = 'QUIENES_SOMOS';
+        }
 
         if (accion === 'BUSCAR') {
             var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
@@ -1725,6 +1728,11 @@ Object.assign(PanelUsuario, {
             await this.renderResultadoBusquedaEnFeed(resultado);
         } else if (accion === 'EXPLORAR_LOCALIDAD') {
             await this.renderMatrizLocalidadEnFeed(BuscadorMotor.obtenerMatrizPorLocalidad());
+        } else if (accion === 'QUIENES_SOMOS') {
+            var textoQuienesSomos = await Institucional.obtenerTextoQuienesSomos();
+            var contQuienesSomos = document.getElementById('userFeedContainer');
+            contQuienesSomos.innerHTML = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌱 Sobre remarket-db · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>' +
+                '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + this.escHtml(textoQuienesSomos) + '</div>';
         } else if (accion === 'CATEGORIA') {
             var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
             var categoria = catMatch ? catMatch[1].trim() : query;
@@ -1884,5 +1892,63 @@ Object.assign(PanelUsuario, {
             return '<div style="display:flex;align-items:center;gap:10px;padding:10px;cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + fotoHtml + '<div style="font-weight:600;">' + self.escHtml(nombre) + '</div></div>';
         }).join('') + '</div>';
         container.innerHTML = html;
+    },
+
+    // === PANEL DE ADMINISTRADOR: reglas del Asistente ===
+    // Cada regla es una instrucción en español simple que se agrega al PROMPT_BASE del
+    // Asistente sin tocar código. Solo visible/editable si usuarioActual.es_admin === true
+    // (columna que hay que crear a mano en Supabase -- ver instrucciones aparte). La protección
+    // real no es esta pantalla, es la política RLS de la tabla reglas_asistente en Supabase.
+    cargarPanelAdmin: async function() {
+        if (!usuarioActual || !usuarioActual.es_admin) { this.mostrarToast('Solo el administrador puede ver esta sección'); this.cargarFeed(); return; }
+        var container = document.getElementById('userFeedContainer');
+        container.innerHTML = '<div style="text-align:center;padding:40px;"><p>Cargando reglas...</p></div>';
+        var resultado = await supabase.from('reglas_asistente').select('*').order('created_at', { ascending: false });
+        if (resultado.error) { container.innerHTML = '<div class="feed-empty"><p>Error al cargar las reglas: ' + this.escHtml(resultado.error.message) + '</p></div>'; return; }
+        this.renderPanelAdmin(resultado.data || []);
+    },
+    renderPanelAdmin: function(reglas) {
+        var self = this;
+        var container = document.getElementById('userFeedContainer');
+        var html = '<div style="background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;">' +
+            '<h3 style="margin-top:0;">🛠️ Reglas del Asistente</h3>' +
+            '<p style="font-size:13px;color:var(--texto-secundario);">Escribe una instrucción en español simple. Se le agrega al Asistente para todos los usuarios, sin tocar código.</p>' +
+            '<textarea id="nuevaReglaTexto" class="form-input" rows="3" placeholder="Ej: Si preguntan por el horario de atención, di que remarket-db funciona las 24 horas."></textarea>' +
+            '<button class="btn-publicar" style="margin-top:10px;" onclick="PanelUsuario.agregarReglaAdmin()">➕ Agregar regla</button>' +
+            '</div>';
+        if (!reglas.length) {
+            html += '<div class="feed-empty"><p>Todavía no hay reglas agregadas.</p></div>';
+        } else {
+            html += reglas.map(function(r) {
+                return '<div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">' +
+                    '<div style="flex:1;"><p style="margin:0;' + (r.activa ? '' : 'text-decoration:line-through;color:var(--texto-secundario);') + '">' + self.escHtml(r.texto) + '</p></div>' +
+                    '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                    '<button class="btn-contactar" onclick="PanelUsuario.toggleReglaAdmin(\'' + r.id + '\', ' + (!r.activa) + ')">' + (r.activa ? '⏸️' : '▶️') + '</button>' +
+                    '<button class="btn-contactar" style="background:#DC2626;" onclick="PanelUsuario.borrarReglaAdmin(\'' + r.id + '\')">🗑️</button>' +
+                    '</div></div>';
+            }).join('');
+        }
+        html += '<div style="padding:10px 4px;"><a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">← Volver al inicio</a></div>';
+        container.innerHTML = html;
+    },
+    agregarReglaAdmin: async function() {
+        if (!usuarioActual || !usuarioActual.es_admin) return;
+        var campo = document.getElementById('nuevaReglaTexto');
+        var texto = campo.value.trim();
+        if (!texto) return;
+        var resultado = await supabase.from('reglas_asistente').insert({ texto: texto, activa: true, creado_por: usuarioActual.id });
+        if (resultado.error) { this.mostrarToast('Error al guardar: ' + resultado.error.message); return; }
+        this.cargarPanelAdmin();
+    },
+    toggleReglaAdmin: async function(id, nuevoEstado) {
+        if (!usuarioActual || !usuarioActual.es_admin) return;
+        await supabase.from('reglas_asistente').update({ activa: nuevoEstado }).eq('id', id);
+        this.cargarPanelAdmin();
+    },
+    borrarReglaAdmin: async function(id) {
+        if (!usuarioActual || !usuarioActual.es_admin) return;
+        if (!confirm('¿Borrar esta regla?')) return;
+        await supabase.from('reglas_asistente').delete().eq('id', id);
+        this.cargarPanelAdmin();
     },
 });

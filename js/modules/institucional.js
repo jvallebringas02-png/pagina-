@@ -133,19 +133,24 @@ var Institucional = {
     // ---------- Quiénes Somos ----------
     RESPALDO_QUIENES_SOMOS: 'remarket-db es una plataforma peruana de economía circular que conecta a vecinos y comercios para vender, donar e intercambiar productos de segunda mano. Creemos que darle una segunda vida a lo que ya tienes es una forma simple y poderosa de cuidar el planeta y fortalecer la comunidad.',
 
-    mostrarQuienesSomos: async function() {
+    obtenerTextoQuienesSomos: async function() {
         var texto = this.RESPALDO_QUIENES_SOMOS;
         try {
-            var { data, error } = await supabase
+            var resultado = await supabase
                 .from('contenido_administrable')
                 .select('contenido')
                 .eq('tipo_contenido', 'institucional')
                 .eq('titulo', 'quienes_somos')
                 .eq('activo', true)
                 .limit(1);
-            if (!error && data && data.length > 0 && data[0].contenido) texto = data[0].contenido;
+            if (!resultado.error && resultado.data && resultado.data.length > 0 && resultado.data[0].contenido) texto = resultado.data[0].contenido;
         } catch (e) { /* se queda con el respaldo fijo */ }
-        this.abrirModal('Quiénes Somos', '<p>' + texto + '</p>');
+        return texto;
+    },
+
+    mostrarQuienesSomos: async function() {
+        var texto = await this.obtenerTextoQuienesSomos();
+        this.abrirModal('Quiénes Somos', '<p>' + escHtml(texto) + '</p>');
     },
 
     // ---------- Comunícate con el Admin ----------
