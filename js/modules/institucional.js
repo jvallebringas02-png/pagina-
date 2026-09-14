@@ -150,7 +150,18 @@ var Institucional = {
 
     mostrarQuienesSomos: async function() {
         var texto = await this.obtenerTextoQuienesSomos();
-        this.abrirModal('Quiénes Somos', '<p>' + escHtml(texto) + '</p>');
+        var panelActivo = document.getElementById('userPanelView') && document.getElementById('userPanelView').classList.contains('active');
+        if (panelActivo && typeof PanelUsuario !== 'undefined') {
+            var cont = document.getElementById('userFeedContainer');
+            if (cont) {
+                cont.innerHTML = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌱 Sobre remarket-db · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>' +
+                    '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + escHtml(texto) + '</div>';
+            }
+        } else if (typeof UIController !== 'undefined' && UIController.mostrarQuienesSomosEnMuro) {
+            UIController.mostrarQuienesSomosEnMuro(texto);
+        } else {
+            this.abrirModal('Quiénes Somos', '<p>' + escHtml(texto) + '</p>');
+        }
     },
 
     // ---------- Comunícate con el Admin ----------
