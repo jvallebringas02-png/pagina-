@@ -164,6 +164,107 @@ var Institucional = {
         }
     },
 
+    // ---------- Comunícate con el Admin: guía paso a paso por el chat ----------
+    contactoEnCurso: null,
+    PASOS_CONTACTO: [
+        { campo: 'nombre', pregunta: '¿Cuál es tu nombre?' },
+        { campo: 'email', pregunta: '¿Cuál es tu correo, para poder responderte?' },
+        { campo: 'mensaje', pregunta: '¿Qué quieres decirle al administrador?' }
+    ],
+    iniciarContactoGuiado: function() {
+        this.contactoEnCurso = { paso: 0, datos: {} };
+        UIController.mostrarRespuestaIA('Claro, te ayudo a mandarle un mensaje al administrador. Te voy a preguntar 3 cositas -- si quieres cancelar en cualquier momento, escribe "cancelar".');
+        UIController.mostrarRespuestaIA(this.PASOS_CONTACTO[0].pregunta);
+    },
+    procesarRespuestaContacto: function(mensaje) {
+        if (!this.contactoEnCurso) return;
+        if (mensaje.trim().toLowerCase() === 'cancelar') {
+            this.contactoEnCurso = null;
+            UIController.mostrarRespuestaIA('Listo, cancelé el mensaje. Si cambias de opinión, solo dime "quiero contactar al administrador" de nuevo.');
+            return;
+        }
+        var paso = this.PASOS_CONTACTO[this.contactoEnCurso.paso];
+        this.contactoEnCurso.datos[paso.campo] = mensaje.trim();
+        this.contactoEnCurso.paso++;
+        if (this.contactoEnCurso.paso < this.PASOS_CONTACTO.length) {
+            UIController.mostrarRespuestaIA(this.PASOS_CONTACTO[this.contactoEnCurso.paso].pregunta);
+        } else {
+            this.enviarContactoGuiado(this.contactoEnCurso.datos);
+            this.contactoEnCurso = null;
+        }
+    },
+    enviarContactoGuiado: async function(datos) {
+        UIController.mostrarRespuestaIA('Perfecto, enviando tu mensaje...');
+        try {
+            var resultado = await supabase.from('mensajes_contacto').insert(datos);
+            if (resultado.error) throw resultado.error;
+            UIController.mostrarRespuestaIA('✅ Listo, tu mensaje fue enviado. Te responderemos a ' + datos.email + ' pronto.');
+        } catch (e) {
+            console.error('remarket-db: error al enviar el contacto guiado', e);
+            UIController.mostrarRespuestaIA('Hubo un problema al enviar tu mensaje: ' + (e.message || 'error desconocido') + '. Puedes intentar de nuevo.');
+        }
+    },
+
+    // ---------- Libro de Reclamaciones: guía paso a paso por el chat ----------
+    // No se apoya en la IA para llevar el estado (aprendimos que no siempre es confiable) --
+    // es una máquina de pasos simple en JavaScript: una pregunta a la vez, se guarda la
+    // respuesta, se pasa a la siguiente. Mientras "reclamoEnCurso" no sea null, el chat del
+    // Asistente intercepta todo lo que escribas y se lo pasa a este flujo, no a la IA.
+    reclamoEnCurso: null,
+    PASOS_RECLAMO: [
+        { campo: 'tipo', pregunta: '¿Es un reclamo o una queja? Escribe "reclamo" o "queja".', validar: function(v) { return ['reclamo', 'queja'].indexOf(v.trim().toLowerCase()) !== -1; }, transformar: function(v) { return v.trim().toLowerCase(); } },
+        { campo: 'nombre_consumidor', pregunta: '¿Cuál es tu nombre completo?' },
+        { campo: 'documento_identidad', pregunta: '¿Cuál es tu DNI o documento de identidad?' },
+        { campo: 'email', pregunta: '¿Cuál es tu correo electrónico?' },
+        { campo: 'telefono', pregunta: 'Tu teléfono (opcional) -- si prefieres no darlo, escribe "no".', opcional: true },
+        { campo: 'descripcion_bien_servicio', pregunta: '¿Qué producto o servicio está relacionado con esto?' },
+        { campo: 'monto_reclamado', pregunta: 'Monto reclamado, si aplica (opcional) -- si no aplica, escribe "no".', opcional: true },
+        { campo: 'detalle', pregunta: 'Cuéntame con detalle qué fue lo que ocurrió.' },
+        { campo: 'pedido_consumidor', pregunta: 'Por último, ¿qué solución esperas de parte de remarket-db?' }
+    ],
+    iniciarReclamoGuiado: function() {
+        this.reclamoEnCurso = { paso: 0, datos: {} };
+        UIController.mostrarRespuestaIA('Claro, vamos a registrar tu reclamo o queja en el Libro de Reclamaciones. Te voy a ir preguntando los datos uno por uno -- si en cualquier momento quieres cancelar, escribe "cancelar".');
+        UIController.mostrarRespuestaIA(this.PASOS_RECLAMO[0].pregunta);
+    },
+    procesarRespuestaReclamo: function(mensaje) {
+        if (!this.reclamoEnCurso) return;
+        if (mensaje.trim().toLowerCase() === 'cancelar') {
+            this.reclamoEnCurso = null;
+            UIController.mostrarRespuestaIA('Listo, cancelé el reclamo. Si cambias de opinión, solo dime "quiero hacer un reclamo" de nuevo.');
+            return;
+        }
+        var paso = this.PASOS_RECLAMO[this.reclamoEnCurso.paso];
+        var valor = mensaje.trim();
+        if (paso.opcional && (valor.toLowerCase() === 'no' || valor === '')) {
+            valor = null;
+        } else if (paso.validar && !paso.validar(valor)) {
+            UIController.mostrarRespuestaIA('No entendí esa respuesta. ' + paso.pregunta);
+            return;
+        }
+        if (valor !== null && paso.transformar) valor = paso.transformar(valor);
+        this.reclamoEnCurso.datos[paso.campo] = valor;
+        this.reclamoEnCurso.paso++;
+
+        if (this.reclamoEnCurso.paso < this.PASOS_RECLAMO.length) {
+            UIController.mostrarRespuestaIA(this.PASOS_RECLAMO[this.reclamoEnCurso.paso].pregunta);
+        } else {
+            this.enviarReclamoGuiado(this.reclamoEnCurso.datos);
+            this.reclamoEnCurso = null;
+        }
+    },
+    enviarReclamoGuiado: async function(datos) {
+        UIController.mostrarRespuestaIA('Perfecto, ya tengo todo. Registrando tu ' + (datos.tipo || 'reclamo') + '...');
+        try {
+            var resultado = await supabase.from('libro_reclamaciones').insert(datos);
+            if (resultado.error) throw resultado.error;
+            UIController.mostrarRespuestaIA('✅ Listo, tu ' + datos.tipo + ' quedó registrado. Nos comunicaremos contigo a ' + datos.email + ' pronto.');
+        } catch (e) {
+            console.error('remarket-db: error al registrar el reclamo guiado', e);
+            UIController.mostrarRespuestaIA('Hubo un problema al registrar tu ' + (datos.tipo || 'reclamo') + ': ' + (e.message || 'error desconocido') + '. Puedes intentar de nuevo, o usar el formulario del pie de página.');
+        }
+    },
+
     // ---------- Comunícate con el Admin ----------
     mostrarContactoAdmin: function() {
         this.abrirModal('Comunícate con el Administrador', '' +
