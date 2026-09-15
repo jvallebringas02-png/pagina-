@@ -161,6 +161,7 @@ tailwind.config = {
 <button class="user-menu-item" data-action="mensajes" onclick="PanelUsuario.menuClick('mensajes')"><span>💬</span> <span id="menuTextMensajes">Mensajes</span> <span class="menu-badge" id="mensajesBadge">0</span></button>
 <button class="user-menu-item" data-action="favoritos" onclick="PanelUsuario.menuClick('favoritos')"><span>❤️</span> <span id="menuTextFavoritos">Favoritos</span></button>
 <button class="user-menu-item" data-action="config" onclick="PanelUsuario.menuClick('config')"><span>⚙️</span> <span id="menuTextConfig">Configuración</span></button>
+<button class="user-menu-item" data-action="admin" id="adminMenuItem" style="display:none;" onclick="PanelUsuario.menuClick('admin')"><span>🛠️</span> Administrador</button>
 </nav>
 <div class="panel-card">
 <div class="panel-card-title">📍 <span id="panelTextAlcance">Tu Alcance</span></div>
@@ -213,7 +214,7 @@ tailwind.config = {
 <div class="footer-grid">
 <div class="footer-col"><h2 style="color: #F59E0B;">remarket-db</h2><p id="footerDesc">Conectando comercios y vecinos de forma inteligente.</p></div>
 <div class="footer-col"><h4>Empresa</h4><ul><li><a href="#" onclick="Institucional.mostrarQuienesSomos(); return false;">Quiénes Somos</a></li><li><a href="#" onclick="Institucional.mostrarContactoAdmin(); return false;">Comunícate con el Administrador</a></li></ul></div>
-<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#" onclick="Institucional.mostrarLibroReclamaciones(); return false;">Libro de Reclamaciones</a></li></ul></div>
+<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#" onclick="Institucional.iniciarReclamoGuiado(); return false;">Libro de Reclamaciones</a></li></ul></div>
 </div>
 </footer>
 
