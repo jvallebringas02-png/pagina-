@@ -15,6 +15,14 @@ function detectarIntencionQuienesSomos(texto) {
     return /\b(quienes son|quienes somos|que es remarket|que es esta pagina|que es esta plataforma|de que trata|conoce la plataforma|como funciona (la plataforma|esto|remarket))\b/.test(tNorm);
 }
 
+// Inicia el flujo guiado del Libro de Reclamaciones -- se intercepta ANTES de llamarla IA
+// (no depende de que el modelo lo reconozca bien, aprendiendo de los casos anteriores).
+function detectarIntencionReclamo(texto) {
+    var t = (texto || '').toLowerCase();
+    var tNorm = t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
+    return /\b(quiero (hacer|poner|presentar) un reclamo|tengo una queja|libro de reclamaciones|quiero reclamar|hacer un reclamo|poner una queja)\b/.test(tNorm);
+}
+
 var BuscadorMotor = {
     catalogo: [],
     JERGA: { 'carro': 'auto', 'carros': 'auto', 'auto': 'auto', 'autos': 'auto', 'vehiculo': 'auto', 'vehiculos': 'auto', 'coche': 'auto', 'coches': 'auto', 'chompa': 'casaca', 'casaca': 'chompa', 'polo': 'camiseta', 'camisa': 'camiseta', 'camiseta': 'camisa', 'blusa': 'camisa', 'playera': 'camiseta', 'remera': 'camiseta', 'zapa': 'zapatilla', 'zapato': 'zapatilla', 'zapatos': 'zapatilla', 'tenis': 'zapatilla', 'celu': 'celular', 'cel': 'celular', 'note': 'laptop', 'lapto': 'laptop', 'compu': 'computadora', 'ordenador': 'computadora', 'tele': 'televisor', 'bici': 'bicicleta', 'carpintero': 'carpinteria', 'chumpi': 'faja', 'aguayo': 'manta', 'poncho': 'poncho', 'chullo': 'gorro', 'lliqlla': 'manta', 'papa': 'papa', 'quinua': 'quinua', 'oca': 'oca', 'alpaca': 'alpaca', 'maskani': 'busco', 'rantini': 'compro', 'rantikuni': 'vendo', 'aljt\'a': 'venta' },
