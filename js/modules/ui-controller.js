@@ -101,6 +101,41 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             '<div class="ai-context-banner">🌱 <strong>Sobre remarket-db</strong></div>' +
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + escHtml(texto) + '</div>';
     },
+    mostrarMatrizNiveles: function(matriz) {
+        this.elementos.searchBreadcrumb.style.display = 'flex';
+        this.elementos.searchQuery.textContent = matriz.nivel === 'pais' ? ('Matriz de ' + matriz.lugar) : 'Matriz mundial';
+        this.elementos.resultCount.textContent = matriz.filas.length + (matriz.filas.length === 1 ? ' categoría' : ' categorías');
+        this.elementos.catalogContainer.style.display = 'none';
+        this.elementos.searchResultsContainer.style.display = 'block';
+        this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
+        var titulo = matriz.nivel === 'pais' ? ('Categorías por ciudad en ' + escHtml(matriz.lugar)) : 'Categorías por país (mundial)';
+        if (!matriz.filas.length || !matriz.columnas.length) {
+            this.elementos.searchResultsContent.innerHTML = '<div class="ai-context-banner">📊 <strong>' + titulo + '</strong></div><div style="text-align:center;padding:40px;"><p>Todavía no hay publicaciones para armar esta matriz.</p></div>';
+            return;
+        }
+        var html = '<div class="ai-context-banner">📊 <strong>' + titulo + '</strong></div>';
+        html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;">';
+        html += '<tr><th style="text-align:left;padding:10px;background:#F3F4F6;"></th>' + matriz.columnas.map(function(c) { return '<th style="padding:10px;background:#F3F4F6;text-align:center;">' + escHtml(c) + '</th>'; }).join('') + '</tr>';
+        html += matriz.filas.map(function(fila) {
+            return '<tr><td style="padding:10px;font-weight:600;border-top:1px solid #E5E7EB;">' + escHtml(fila) + '</td>' +
+                matriz.columnas.map(function(col) {
+                    var n = (matriz.datos[fila] && matriz.datos[fila][col]) || 0;
+                    if (!n) return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;color:#D1D5DB;">-</td>';
+                    return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;cursor:pointer;color:var(--purpura-ia);font-weight:700;" onclick="UIController.explorarCeldaMatriz(\'' + fila.replace(/'/g, "\\'") + '\',\'' + matriz.columnaTipo + '\',\'' + col.replace(/'/g, "\\'") + '\')">' + n + '</td>';
+                }).join('') + '</tr>';
+        }).join('');
+        html += '</table></div>';
+        this.elementos.searchResultsContent.innerHTML = html;
+    },
+    explorarCeldaMatriz: async function(categoria, colTipo, colValor) {
+        if (colTipo === 'pais') {
+            var matriz = BuscadorMotor.obtenerMatrizNiveles([categoria], 'pais', colValor);
+            this.mostrarMatrizNiveles(matriz);
+        } else {
+            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(categoria + ' ' + colValor);
+            this.mostrarResultadosBusqueda(resultado);
+        }
+    },
     mostrarListaCategorias: function(categorias) {
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Categorías';

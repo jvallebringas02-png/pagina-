@@ -30,6 +30,25 @@ function detectarIntencionContactoAdmin(texto) {
     return /\b(contactar al administrador|comunicarme con el administrador|hablar con el administrador|escribir al administrador|contactar administrador)\b/.test(tNorm);
 }
 
+// La hora se responde directo en JS (no se le manda a la IA) -- es un cálculo simple que el
+// navegador puede hacer perfecto por sí solo, con la zona horaria que ya detecta config.js.
+function detectarPreguntaHora(texto) {
+    var t = (texto || '').toLowerCase();
+    var tNorm = t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
+    return /\b(que hora es|dime la hora|que hora tienes|sabes que hora es|hora es en)\b/.test(tNorm);
+}
+function responderHoraLocal() {
+    try {
+        var zona = (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.zonaHoraria) || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        var ahora = new Date();
+        var horaTexto = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: zona });
+        var lugar = (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? (UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais) : zona;
+        return 'Son las ' + horaTexto + ' en ' + lugar + '.';
+    } catch (e) {
+        return 'No pude calcular la hora en este momento.';
+    }
+}
+
 var BuscadorMotor = {
     catalogo: [],
     JERGA: { 'carro': 'auto', 'carros': 'auto', 'auto': 'auto', 'autos': 'auto', 'vehiculo': 'auto', 'vehiculos': 'auto', 'coche': 'auto', 'coches': 'auto', 'chompa': 'casaca', 'casaca': 'chompa', 'polo': 'camiseta', 'camisa': 'camiseta', 'camiseta': 'camisa', 'blusa': 'camisa', 'playera': 'camiseta', 'remera': 'camiseta', 'zapa': 'zapatilla', 'zapato': 'zapatilla', 'zapatos': 'zapatilla', 'tenis': 'zapatilla', 'celu': 'celular', 'cel': 'celular', 'note': 'laptop', 'lapto': 'laptop', 'compu': 'computadora', 'ordenador': 'computadora', 'tele': 'televisor', 'bici': 'bicicleta', 'carpintero': 'carpinteria', 'chumpi': 'faja', 'aguayo': 'manta', 'poncho': 'poncho', 'chullo': 'gorro', 'lliqlla': 'manta', 'papa': 'papa', 'quinua': 'quinua', 'oca': 'oca', 'alpaca': 'alpaca', 'maskani': 'busco', 'rantini': 'compro', 'rantikuni': 'vendo', 'aljt\'a': 'venta' },
@@ -185,6 +204,56 @@ var BuscadorMotor = {
         var resto = lista.filter(function(x) { return !x.es_patrocinado; });
         var restoConExtra = resto.concat(patrocinados.slice(2)).sort(function(a, b) { return b._puntaje - a._puntaje; });
         return patrocinados.slice(0, 2).concat(restoConExtra);
+    },
+
+    // ---------- Matriz por niveles: categoría × país (mundial) o categoría × ciudad (dentro de un país) ----------
+    // Detecta la combinación de categoría + nivel de ubicación que ya viene en la frase, para
+    // saltar directo al punto correspondiente en vez de obligar a navegar nivel por nivel.
+    detectarIntencionMatriz: function(texto) {
+        var self = this;
+        var categoriasDisponibles = this.obtenerCategoriasDisponibles().map(function(c) { return c.nombre; });
+        var textoNorm = this.normalizar(texto);
+        var categoriasEncontradas = categoriasDisponibles.filter(function(cat) { return textoNorm.indexOf(self.normalizar(cat)) !== -1; });
+        var mencionaMatriz = /\b(matriz|comparar|cruzad[oa]|categorias? por pais|categorias? por ciudad)\b/.test(textoNorm);
+        var lugar = this.extraerLugar(texto);
+
+        var nivelLugar = null;
+        if (lugar) {
+            var esPais = this.catalogo.some(function(a) { return a.pais === lugar; });
+            var esCiudad = this.catalogo.some(function(a) { return a.ciudad === lugar; });
+            nivelLugar = esCiudad ? 'ciudad' : (esPais ? 'pais' : null);
+        }
+
+        if (!categoriasEncontradas.length && !mencionaMatriz) return null;
+
+        if (categoriasEncontradas.length && nivelLugar === 'ciudad') {
+            return { tipo: 'directo', categorias: categoriasEncontradas, lugar: lugar };
+        }
+        if (categoriasEncontradas.length && nivelLugar === 'pais') {
+            return { tipo: 'matriz', categorias: categoriasEncontradas, nivel: 'pais', lugar: lugar };
+        }
+        if (categoriasEncontradas.length) {
+            return { tipo: 'matriz', categorias: categoriasEncontradas, nivel: 'mundial', lugar: null };
+        }
+        return { tipo: 'matriz', categorias: null, nivel: (nivelLugar === 'pais' ? 'pais' : 'mundial'), lugar: (nivelLugar === 'pais' ? lugar : null) };
+    },
+    // Arma la tabla: filas = categorías, columnas = países (nivel mundial) o ciudades de un país
+    // (nivel país). Cada celda es la cantidad de publicaciones reales en ese cruce.
+    obtenerMatrizNiveles: function(categoriasFiltro, nivel, lugar) {
+        var base = this.catalogo.filter(function(a) { return nivel === 'pais' ? a.pais === lugar : true; });
+        var columnaKey = nivel === 'pais' ? 'ciudad' : 'pais';
+        var matriz = {};
+        base.forEach(function(art) {
+            var cat = (art.categoria || 'Otros').trim();
+            if (categoriasFiltro && categoriasFiltro.indexOf(cat) === -1) return;
+            var col = art[columnaKey];
+            if (!col) return;
+            if (!matriz[cat]) matriz[cat] = {};
+            matriz[cat][col] = (matriz[cat][col] || 0) + 1;
+        });
+        var columnasSet = {};
+        Object.keys(matriz).forEach(function(cat) { Object.keys(matriz[cat]).forEach(function(c) { columnasSet[c] = true; }); });
+        return { filas: Object.keys(matriz).sort(), columnas: Object.keys(columnasSet).sort(), datos: matriz, nivel: nivel, lugar: lugar, columnaTipo: columnaKey };
     },
 
     obtenerCategoriasDisponibles: function() {
