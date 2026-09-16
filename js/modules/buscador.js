@@ -229,45 +229,25 @@ var BuscadorMotor = {
         if (categoriasEncontradas.length && nivelLugar === 'ciudad') {
             return { tipo: 'directo', categorias: categoriasEncontradas, lugar: lugar };
         }
-        // CAMBIO: la tabla-matriz (categoría x país/ciudad) ahora exige que el usuario la haya
-        // pedido explícitamente (mencionaMatriz). Antes, con solo mencionar una categoría
-        // (ej. "ropa") y no reconocer un lugar válido en la frase, ya se armaba la matriz
-        // mundial -- eso "secuestraba" búsquedas normales como "ropa a nivel mundial", que el
-        // usuario solo quería como una búsqueda de ropa disponible en cualquier país.
-        if (categoriasEncontradas.length && nivelLugar === 'pais' && mencionaMatriz) {
+        if (categoriasEncontradas.length && nivelLugar === 'pais') {
             return { tipo: 'matriz', categorias: categoriasEncontradas, nivel: 'pais', lugar: lugar };
         }
-        if (categoriasEncontradas.length && mencionaMatriz) {
-            return { tipo: 'matriz', categorias: categoriasEncontradas, nivel: 'mundial', lugar: null };
-        }
         if (categoriasEncontradas.length) {
-            // Hay categoría pero no se pidió matriz explícitamente: se trata como una
-            // búsqueda directa de esa categoría (con el lugar, si se detectó uno válido).
-            return { tipo: 'directo', categorias: categoriasEncontradas, lugar: (nivelLugar ? lugar : null) };
+            return { tipo: 'matriz', categorias: categoriasEncontradas, nivel: 'mundial', lugar: null };
         }
         return { tipo: 'matriz', categorias: null, nivel: (nivelLugar === 'pais' ? 'pais' : 'mundial'), lugar: (nivelLugar === 'pais' ? lugar : null) };
     },
     // Arma la tabla: filas = categorías, columnas = países (nivel mundial) o ciudades de un país
     // (nivel país). Cada celda es la cantidad de publicaciones reales en ese cruce.
     obtenerMatrizNiveles: function(categoriasFiltro, nivel, lugar) {
-        // CAMBIO: se agrupa por una versión normalizada (sin tildes, en minúscula) del país/
-        // ciudad para que "Peru" y "Perú" (o distinta mayúscula) cuenten como el mismo lugar
-        // en vez de aparecer como dos columnas separadas en la tabla.
-        var normalizarNombre = function(v) {
-            return (v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-        };
         var base = this.catalogo.filter(function(a) { return nivel === 'pais' ? a.pais === lugar : true; });
         var columnaKey = nivel === 'pais' ? 'ciudad' : 'pais';
         var matriz = {};
-        var nombreCanonico = {}; // clave normalizada -> primer nombre "bonito" visto (ej. "Perú")
         base.forEach(function(art) {
             var cat = (art.categoria || 'Otros').trim();
             if (categoriasFiltro && categoriasFiltro.indexOf(cat) === -1) return;
-            var colOriginal = art[columnaKey];
-            if (!colOriginal) return;
-            var colNorm = normalizarNombre(colOriginal);
-            if (!nombreCanonico[colNorm]) nombreCanonico[colNorm] = colOriginal.trim();
-            var col = nombreCanonico[colNorm];
+            var col = art[columnaKey];
+            if (!col) return;
             if (!matriz[cat]) matriz[cat] = {};
             matriz[cat][col] = (matriz[cat][col] || 0) + 1;
         });

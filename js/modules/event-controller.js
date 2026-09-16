@@ -71,69 +71,7 @@ var EventController = {
     },
 
     manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; if (typeof Institucional !== 'undefined' && Institucional.reclamoEnCurso) { Institucional.procesarRespuestaReclamo(mensaje); return; } if (typeof Institucional !== 'undefined' && Institucional.contactoEnCurso) { Institucional.procesarRespuestaContacto(mensaje); return; } if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(mensaje)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; } if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) { var intentoMatrizChat = BuscadorMotor.detectarIntencionMatriz(mensaje); if (intentoMatrizChat) { if (intentoMatrizChat.tipo === 'matriz') { UIController._matrizPila = []; var matrizChat = BuscadorMotor.obtenerMatrizNiveles(intentoMatrizChat.categorias, intentoMatrizChat.nivel, intentoMatrizChat.lugar); UIController.mostrarMatrizNiveles(matrizChat); } else { var resultadoDirectoChat = await BuscadorMotor.ejecutarBusquedaHibrida(intentoMatrizChat.categorias[0] + ' ' + intentoMatrizChat.lugar); UIController.mostrarResultadosBusqueda(resultadoDirectoChat); } return; } } var codigoIdioma = detectarCambioIdiomaEnMensaje(mensaje); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); UIController.mostrarRespuestaIA('✅ Listo, cambié el idioma a ' + (NOMBRES_IDIOMA_DISPLAY[codigoIdioma] || codigoIdioma) + '.'); return; } if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(mensaje); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); } if (typeof detectarIntencionReclamo === 'function' && detectarIntencionReclamo(mensaje)) { Institucional.iniciarReclamoGuiado(); return; } if (typeof detectarIntencionContactoAdmin === 'function' && detectarIntencionContactoAdmin(mensaje)) { Institucional.iniciarContactoGuiado(); return; } UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var panelActivoChat = document.getElementById('userPanelView').classList.contains('active'); try { if (panelActivoChat) { await PanelUsuario.procesarAccionEnFeed(respuestaIA, mensaje); } else { await EventController.procesarAccionIA(respuestaIA, mensaje); } } catch (e) { console.error('remarket-db: error al procesar la acción del Asistente', e); UIController.mostrarRespuestaIA('(No pude mostrar el resultado en pantalla: ' + (e.message || 'error desconocido') + ')'); } },
-    manejarBusquedaPrincipal: async function(event) {
-        event.preventDefault();
-        var input = document.getElementById('dynamicSearch');
-        var query = input.value.trim();
-        if (!query) return;
-
-        var codigoIdioma = detectarCambioIdiomaEnMensaje(query);
-        if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; }
-        if (typeof detectarIdiomaEscritoEnMensaje === 'function') {
-            var idiomaEscrito = detectarIdiomaEscritoEnMensaje(query);
-            if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito);
-        }
-        if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(query)) {
-            UIController.mostrarRespuestaIA(responderHoraLocal());
-            return;
-        }
-
-        var panelActivo = document.getElementById('userPanelView').classList.contains('active');
-        if (panelActivo) {
-            try {
-                await PanelUsuario.ejecutarBusquedaConIA(query);
-            } catch (e) {
-                console.error('remarket-db: error en ejecutarBusquedaConIA', e);
-                var cont = document.getElementById('userFeedContainer');
-                if (cont) cont.innerHTML = '<div class="feed-empty"><p>Ocurrió un error al buscar: ' + (e.message || 'motivo desconocido') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
-            }
-            return;
-        }
-
-        var container = UIController.elementos.searchResultsContainer;
-        var content = UIController.elementos.searchResultsContent;
-        container.style.display = 'block';
-        UIController.elementos.catalogContainer.style.display = 'none';
-        content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>';
-
-        // CAMBIO: la IA interpreta la búsqueda PRIMERO (mismo criterio que ya usa el chat).
-        // El detector de reglas fijas (detectarIntencionMatriz) queda solo como respaldo si
-        // la IA falla -- ya no se adelanta y "secuestra" búsquedas normales como
-        // "ropa a nivel mundial", que antes caían en la matriz sin que el usuario la pidiera.
-        try {
-            var respuestaIA = await AIService.enviarMensaje(query);
-            UIController.mostrarRespuestaIA(respuestaIA);
-            await EventController.procesarAccionIA(respuestaIA, query);
-        } catch (e) {
-            console.error('remarket-db: error en manejarBusquedaPrincipal, usando respaldo de reglas fijas', e);
-            if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
-                var intentoMatriz = BuscadorMotor.detectarIntencionMatriz(query);
-                if (intentoMatriz) {
-                    if (intentoMatriz.tipo === 'matriz') {
-                        UIController._matrizPila = [];
-                        var matriz = BuscadorMotor.obtenerMatrizNiveles(intentoMatriz.categorias, intentoMatriz.nivel, intentoMatriz.lugar);
-                        UIController.mostrarMatrizNiveles(matriz);
-                        return;
-                    } else {
-                        var resultadoDirecto = await BuscadorMotor.ejecutarBusquedaHibrida(intentoMatriz.categorias[0] + ' ' + intentoMatriz.lugar);
-                        UIController.mostrarResultadosBusqueda(resultadoDirecto);
-                        return;
-                    }
-                }
-            }
-            content.innerHTML = '<div style="text-align:center;padding:40px;"><p>Ocurrió un error al buscar: ' + (e.message || 'motivo desconocido') + '</p></div>';
-        }
-    },
+    manejarBusquedaPrincipal: async function(event) { event.preventDefault(); var input = document.getElementById('dynamicSearch'); var query = input.value.trim(); if (!query) return; var codigoIdioma = detectarCambioIdiomaEnMensaje(query); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; } if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(query); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); } if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(query)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; } if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) { var intentoMatriz = BuscadorMotor.detectarIntencionMatriz(query); if (intentoMatriz) { if (intentoMatriz.tipo === 'matriz') { UIController._matrizPila = []; var matriz = BuscadorMotor.obtenerMatrizNiveles(intentoMatriz.categorias, intentoMatriz.nivel, intentoMatriz.lugar); UIController.mostrarMatrizNiveles(matriz); } else { var resultadoDirecto = await BuscadorMotor.ejecutarBusquedaHibrida(intentoMatriz.categorias[0] + ' ' + intentoMatriz.lugar); UIController.mostrarResultadosBusqueda(resultadoDirecto); } return; } } var panelActivo = document.getElementById('userPanelView').classList.contains('active'); if (panelActivo) { try { await PanelUsuario.ejecutarBusquedaConIA(query); } catch (e) { console.error('remarket-db: error en ejecutarBusquedaConIA', e); var cont = document.getElementById('userFeedContainer'); if (cont) cont.innerHTML = '<div class="feed-empty"><p>Ocurrió un error al buscar: ' + (e.message || 'motivo desconocido') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>'; } return; } var container = UIController.elementos.searchResultsContainer; var content = UIController.elementos.searchResultsContent; container.style.display = 'block'; UIController.elementos.catalogContainer.style.display = 'none'; content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>'; try { var respuestaIA = await AIService.enviarMensaje(query); UIController.mostrarRespuestaIA(respuestaIA); await EventController.procesarAccionIA(respuestaIA, query); } catch (e) { console.error('remarket-db: error en manejarBusquedaPrincipal', e); content.innerHTML = '<div style="text-align:center;padding:40px;"><p>Ocurrió un error al buscar: ' + (e.message || 'motivo desconocido') + '</p></div>'; } },
     manejarLimpiarChat: function() {
         if (confirm("¿Borrar conversación?")) {
             AIService.limpiarHistorial();
