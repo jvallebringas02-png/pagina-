@@ -30,6 +30,24 @@ function detectarIntencionContactoAdmin(texto) {
     return /\b(contactar al administrador|comunicarme con el administrador|hablar con el administrador|escribir al administrador|contactar administrador)\b/.test(tNorm);
 }
 
+// Respaldo de ORDEN: si el usuario pide explícitamente ordenar por precio y la IA no lo puso
+// en la etiqueta, esto lo detecta igual en JS -- misma idea que detectarIntencionExplorarLocalidad.
+function detectarIntencionOrden(texto) {
+    var t = (texto || '').toLowerCase();
+    var tNorm = t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
+    if (/\b(mas barato|mas economico|precio mas bajo|de menor a mayor precio|del mas barato|bajo precio primero)\b/.test(tNorm)) return 'precio_asc';
+    if (/\b(mas caro|precio mas alto|de mayor a menor precio|del mas caro|alto precio primero)\b/.test(tNorm)) return 'precio_desc';
+    return null;
+}
+
+// Respaldo de UBICACION propia: "mi ciudad", "cerca de mí", etc. -- distinto de extraerLugar(),
+// que solo reconoce nombres reales de ciudad/país escritos en el texto.
+function detectarIntencionUbicacionPropia(texto) {
+    var t = (texto || '').toLowerCase();
+    var tNorm = t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
+    return /\b(mi ciudad|mi zona|mi localidad|cerca de mi|cerca mio|donde estoy|junto a mi)\b/.test(tNorm);
+}
+
 // La hora se responde directo en JS (no se le manda a la IA) -- es un cálculo simple que el
 // navegador puede hacer perfecto por sí solo, con la zona horaria que ya detecta config.js.
 function detectarPreguntaHora(texto) {
@@ -275,12 +293,39 @@ var BuscadorMotor = {
         });
     },
 
-    ejecutarBusquedaHibrida: async function(query) {
+    // Aplica el orden final a una lista de resultados ya filtrada. Si el usuario pidió un orden
+    // explícito (precio_asc / precio_desc), se respeta tal cual -- no se fuerzan patrocinados
+    // arriba, porque el usuario mandó a decir cómo lo quiere ver. Si no pidió orden, se usa el
+    // comportamiento de siempre (relevancia + patrocinados intercalados).
+    ordenarResultados: function(lista, orden) {
+        if (orden === 'precio_asc' || orden === 'precio_desc') {
+            var signo = orden === 'precio_asc' ? 1 : -1;
+            return lista.slice().sort(function(a, b) {
+                var pa = (typeof a.precio === 'number') ? a.precio : Infinity;
+                var pb = (typeof b.precio === 'number') ? b.precio : Infinity;
+                return signo * (pa - pb);
+            });
+        }
+        return this.ordenarConPatrocinados(lista);
+    },
+
+    // opciones = { orden: 'precio_asc'|'precio_desc', ubicacionPropia: true, modalidad: 'venta'|'trueque'|'donacion' }
+    // Todas son opcionales -- si no vienen, el comportamiento es idéntico al de antes.
+    ejecutarBusquedaHibrida: async function(query, opciones) {
+        opciones = opciones || {};
         var self = this;
         var lugar = this.extraerLugar(query);
+        var lugarEsPropio = false;
+        // Si no mencionó un lugar real por nombre pero pidió su propia ubicación ("mi ciudad",
+        // "cerca de mí"), se usa la ciudad/país ya detectado -- esto es un criterio distinto a
+        // escribir el nombre de un lugar, así que no se mezcla con la lógica de extraerLugar().
+        if (!lugar && opciones.ubicacionPropia && typeof UbicacionUsuario !== 'undefined') {
+            lugar = UbicacionUsuario.ciudad || UbicacionUsuario.pais || null;
+            lugarEsPropio = !!lugar;
+        }
         // El nombre del lugar se saca de la frase para el puntaje de texto -- son dos criterios
         // distintos (qué buscas / dónde), no se debe mezclar "peru" como si fuera parte del producto.
-        var queryProducto = lugar ? query.replace(new RegExp(lugar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ') : query;
+        var queryProducto = (lugar && !lugarEsPropio) ? query.replace(new RegExp(lugar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ') : query;
         var tokens = this.tokenizar(queryProducto);
         var presupuesto = this.extraerPresupuesto(query);
 
@@ -288,6 +333,7 @@ var BuscadorMotor = {
             return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, es_patrocinado: !!art.es_patrocinado, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
         };
         var coincideLugar = function(art) { return !lugar || art.pais === lugar || art.ciudad === lugar; };
+        var coincideModalidad = function(art) { return !opciones.modalidad || art.modalidad === opciones.modalidad; };
 
         var conPuntaje = this.catalogo.map(function(art) {
             // Si solo pidió un lugar sin producto (ej: "muéstrame lo de Perú"), todo cuenta por
@@ -298,26 +344,33 @@ var BuscadorMotor = {
         }).filter(function(x) {
             if (x.puntaje <= 0) return false;
             if (presupuesto !== null && typeof x.art.precio === 'number' && x.art.precio > presupuesto) return false;
+            if (!coincideModalidad(x.art)) return false;
             return true;
         });
 
         // Criterio real: si pidió un lugar, es obligatorio (AND) -- ya no son puntos extra que
         // un producto de otra categoría podía ganar solo por coincidir en país.
         var resultadosLocales = conPuntaje.filter(function(x) { return coincideLugar(x.art); }).map(function(x) { return mapear(x.art, x.puntaje); });
-        resultadosLocales = this.ordenarConPatrocinados(resultadosLocales);
+        resultadosLocales = this.ordenarResultados(resultadosLocales, opciones.orden);
 
         // Si pidió un lugar específico y ahí no hay nada, pero SÍ hay del producto en otras
         // zonas, se lo decimos con transparencia en vez de saltar directo a internet.
         if (lugar && resultadosLocales.length === 0 && conPuntaje.length > 0) {
             var otrasZonas = conPuntaje.map(function(x) { return mapear(x.art, x.puntaje); });
-            otrasZonas = this.ordenarConPatrocinados(otrasZonas);
-            return { resultados: otrasZonas, total: this.catalogo.length, coincidencias: otrasZonas.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_sin_resultados: lugar };
+            otrasZonas = this.ordenarResultados(otrasZonas, opciones.orden);
+            return { resultados: otrasZonas, total: this.catalogo.length, coincidencias: otrasZonas.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_sin_resultados: lugar, orden_aplicado: opciones.orden || null };
         }
 
         // Si el lugar sí filtró algo, esos resultados se muestran tal cual, aunque sean pocos --
         // no tiene sentido mezclarlos con internet solo por ser menos de 3.
         if (resultadosLocales.length >= 3 || (lugar && resultadosLocales.length > 0)) {
-            return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_aplicado: lugar };
+            return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_aplicado: lugar, lugar_es_propio: lugarEsPropio, orden_aplicado: opciones.orden || null };
+        }
+
+        // Con orden u modalidad explícitos, no tiene sentido "completar" con resultados externos
+        // de internet -- esos no tienen precio ni modalidad reales para respetar lo que pidió.
+        if (opciones.orden || opciones.modalidad) {
+            return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_aplicado: lugar, lugar_es_propio: lugarEsPropio, orden_aplicado: opciones.orden || null };
         }
 
         var externo = await this.buscarEnInternetYVideo(query);

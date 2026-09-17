@@ -17,7 +17,7 @@ var EventController = {
         if (accion === 'BUSCAR') {
             var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
             var producto = prodMatch ? prodMatch[1].trim() : queryOriginal;
-            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto);
+            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto, this.leerOpcionesExtra(respuestaIA, queryOriginal));
             UIController.mostrarResultadosBusqueda(resultado);
         } else if (accion === 'LISTAR_CATEGORIAS') {
             var categorias = BuscadorMotor.obtenerCategoriasDisponibles();
@@ -31,7 +31,7 @@ var EventController = {
         } else if (accion === 'CATEGORIA') {
             var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
             var categoria = catMatch ? catMatch[1].trim() : queryOriginal;
-            var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria);
+            var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria, this.leerOpcionesExtra(respuestaIA, queryOriginal));
             UIController.mostrarResultadosBusqueda(resultadoCat);
         } else if (accion === 'RECIENTES') {
             var recientes = BuscadorMotor.obtenerRecientes(12);
@@ -68,6 +68,24 @@ var EventController = {
         } else {
             UIController.cerrarResultados();
         }
+    },
+
+    // Lee ORDEN / UBICACION / MODALIDAD de la etiqueta que puso la IA, y si alguno faltó,
+    // lo intenta detectar igual con las palabras clave del mensaje original (respaldo, misma
+    // idea que ya se usa para EXPLORAR_LOCALIDAD y QUIENES_SOMOS). Así, aunque el modelo se
+    // olvide de poner un parámetro, no se pierde si el usuario lo pidió de forma explícita.
+    leerOpcionesExtra: function(respuestaIA, queryOriginal) {
+        var opciones = {};
+        var ordenMatch = respuestaIA.match(/ORDEN:\s*(precio_asc|precio_desc)/i);
+        opciones.orden = ordenMatch ? ordenMatch[1].toLowerCase() : (typeof detectarIntencionOrden === 'function' ? detectarIntencionOrden(queryOriginal) : null);
+
+        var ubicacionMatch = /UBICACION:\s*propia/i.test(respuestaIA);
+        opciones.ubicacionPropia = ubicacionMatch || (typeof detectarIntencionUbicacionPropia === 'function' && detectarIntencionUbicacionPropia(queryOriginal));
+
+        var modalidadMatch = respuestaIA.match(/MODALIDAD:\s*(venta|trueque|donacion)/i);
+        opciones.modalidad = modalidadMatch ? modalidadMatch[1].toLowerCase() : null;
+
+        return opciones;
     },
 
     manejarEnvioMensaje: async function(event) { event.preventDefault(); var input = document.getElementById('assistantInput'); var mensaje = input.value.trim(); if (!mensaje) return; UIController.mostrarRespuestaIA(mensaje, 'user'); input.value = ''; if (typeof Institucional !== 'undefined' && Institucional.reclamoEnCurso) { Institucional.procesarRespuestaReclamo(mensaje); return; } if (typeof Institucional !== 'undefined' && Institucional.contactoEnCurso) { Institucional.procesarRespuestaContacto(mensaje); return; } if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(mensaje)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; } if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) { var intentoMatrizChat = BuscadorMotor.detectarIntencionMatriz(mensaje); if (intentoMatrizChat) { if (intentoMatrizChat.tipo === 'matriz') { UIController._matrizPila = []; var matrizChat = BuscadorMotor.obtenerMatrizNiveles(intentoMatrizChat.categorias, intentoMatrizChat.nivel, intentoMatrizChat.lugar); UIController.mostrarMatrizNiveles(matrizChat); } else { var resultadoDirectoChat = await BuscadorMotor.ejecutarBusquedaHibrida(intentoMatrizChat.categorias[0] + ' ' + intentoMatrizChat.lugar); UIController.mostrarResultadosBusqueda(resultadoDirectoChat); } return; } } var codigoIdioma = detectarCambioIdiomaEnMensaje(mensaje); if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); UIController.mostrarRespuestaIA('✅ Listo, cambié el idioma a ' + (NOMBRES_IDIOMA_DISPLAY[codigoIdioma] || codigoIdioma) + '.'); return; } if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(mensaje); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); } if (typeof detectarIntencionReclamo === 'function' && detectarIntencionReclamo(mensaje)) { Institucional.iniciarReclamoGuiado(); return; } if (typeof detectarIntencionContactoAdmin === 'function' && detectarIntencionContactoAdmin(mensaje)) { Institucional.iniciarContactoGuiado(); return; } UIController.mostrarEstadoCarga(); var respuestaIA = await AIService.enviarMensaje(mensaje); UIController.quitarEstadoCarga(); UIController.mostrarRespuestaIA(respuestaIA); var panelActivoChat = document.getElementById('userPanelView').classList.contains('active'); try { if (panelActivoChat) { await PanelUsuario.procesarAccionEnFeed(respuestaIA, mensaje); } else { await EventController.procesarAccionIA(respuestaIA, mensaje); } } catch (e) { console.error('remarket-db: error al procesar la acción del Asistente', e); UIController.mostrarRespuestaIA('(No pude mostrar el resultado en pantalla: ' + (e.message || 'error desconocido') + ')'); } },
