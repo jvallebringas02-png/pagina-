@@ -1,114 +1,142 @@
 // ==========================================
 // ARCHIVO PRINCIPAL - REMARKET-DB (main.js)
-// Conexión Universal del Chat y el Muro
+// Conexión unificada: Barra de búsqueda superior + Asistente IA
 // ==========================================
 
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("Iniciando aplicación Remarket-DB...");
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Remarket-DB inicializado correctamente.");
 
-    if (window.SupabaseClient) {
-        console.log("Supabase conectado correctamente.");
-    }
+    // 1. CONEXIÓN DE LA BARRA DE BÚSQUEDA SUPERIOR (La barra con la lupa verde)
+    const inputBuscadorSuperior = document.querySelector("input[placeholder*='Qué estás buscando'], input[type='search'], .buscador-input");
+    const botonBuscadorSuperior = document.querySelector("button img, button svg, .buscador-btn, header button");
 
-    // Buscamos de forma flexible cualquier input o botón dentro de la sección del asistente
-    const inputChat = document.querySelector(".asistente-chat input, #chat-input, input[type='text']");
-    const botonEnviar = document.querySelector(".asistente-chat button, #chat-send, button");
+    if (inputBuscadorSuperior) {
+        // Escuchar cuando escriben o presionan Enter en la barra superior
+        inputBuscadorSuperior.addEventListener("input", (e) => {
+            const textoBusqueda = e.target.value.trim();
+            ejecutarBusquedaEnMuro(textoBusqueda);
+        });
 
-    if (inputChat) {
-        // Escuchar la tecla Enter
-        inputChat.addEventListener("keydown", async (e) => {
+        inputBuscadorSuperior.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                const texto = inputChat.value.trim();
-                if (!texto) return;
-                
-                inputChat.value = "";
-                await procesarMensajeUsuario(texto);
+                const textoBusqueda = inputBuscadorSuperior.value.trim();
+                ejecutarBusquedaEnMuro(textoBusqueda);
             }
         });
     }
 
-    if (botonEnviar) {
-        botonEnviar.addEventListener("click", async () => {
-            if (!inputChat) return;
-            const texto = inputChat.value.trim();
-            if (!texto) return;
-            
-            inputChat.value = "";
-            await procesarMensajeUsuario(texto);
+    if (botonBuscadorSuperior && inputBuscadorSuperior) {
+        botonBuscadorSuperior.addEventListener("click", (e) => {
+            e.preventDefault();
+            const textoBusqueda = inputBuscadorSuperior.value.trim();
+            ejecutarBusquedaEnMuro(textoBusqueda);
         });
     }
 
-    console.log("Módulos inicializados correctamente.");
+    // 2. CONEXIÓN DEL CHAT DEL ASISTENTE IA (La cajita morada)
+    const inputChat = document.querySelector(".asistente-chat input, input[placeholder*='Escribe tu duda'], #chat-input");
+    const botonEnviarChat = document.querySelector(".asistente-chat button, button");
+
+    if (inputChat) {
+        inputChat.addEventListener("keypress", async (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                await manejarEnvioChat(inputChat);
+            }
+        });
+    }
+
+    if (botonEnviarChat && inputChat) {
+        botonEnviarChat.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await manejarEnvioChat(inputChat);
+        });
+    }
 });
 
-// Función central que procesa lo que escribes y actualiza el muro
-async function procesarMensajeUsuario(textoUsuario) {
-    // 1. Pintar lo que escribiste en el chat
-    agregarMensajeAlChat("Tú", textoUsuario);
+// ==========================================
+// FUNCIONES DE FILTRADO Y ACTUALIZACIÓN DEL MURO
+// ==========================================
 
-    try {
-        // 2. Llamar al cerebro de la IA (JSON Inteligente)
-        const respuestaIA = await window.AIService.procesarRespuestaIA(textoUsuario);
+// Función para la barra superior
+function ejecutarBusquedaEnMuro(texto) {
+    console.log("Buscando en el muro:", texto);
+    
+    // Si tienes un controlador de buscador global, lo usamos
+    if (window.BuscadorController && typeof window.BuscadorController.filtrar === 'function') {
+        window.BuscadorController.filtrar(texto);
+    } else {
+        // Búsqueda genérica de respaldo si el controlador no está cargado
+        const tarjetas = document.querySelectorAll(".producto-card, .articulo-item, .card");
+        const query = texto.toLowerCase();
 
-        if (respuestaIA.tipo === 'buscar_avanzado') {
-            console.log("Filtros aplicados al muro:", respuestaIA.filtros);
-
-            // Obtener tus productos actuales (asegúrate de que esta función exista en tu app)
-            let productos = typeof obtenerProductosCatalogo === 'function' ? obtenerProductosCatalogo() : [];
-
-            // Filtrar según lo que pidió la IA (zapatos, ubicación, ofertas, etc.)
-            let filtrados = productos.filter(p => {
-                let okQuery = true;
-                let okUbi = true;
-                let okOferta = true;
-
-                if (respuestaIA.filtros.query) {
-                    const q = respuestaIA.filtros.query.toLowerCase();
-                    const tit = p.titulo ? p.titulo.toLowerCase() : '';
-                    const cat = p.categoria ? p.categoria.toLowerCase() : '';
-                    okQuery = tit.includes(q) || cat.includes(q);
-                }
-
-                if (respuestaIA.filtros.ubicacion && respuestaIA.filtros.ubicacion.toLowerCase() !== 'mundial') {
-                    const loc = respuestaIA.filtros.ubicacion.toLowerCase();
-                    okUbi = (p.pais && p.pais.toLowerCase().includes(loc)) || 
-                            (p.ciudad && p.ciudad.toLowerCase().includes(loc));
-                }
-
-                if (respuestaIA.filtros.soloOfertas) {
-                    okOferta = p.en_oferta === true || (p.descuento && p.descuento > 0);
-                }
-
-                return okQuery && okUbi && okOferta;
-            });
-
-            // Pintar los resultados directamente en el Muro
-            if (window.BuscadorController && typeof window.BuscadorController.pintarResultados === 'function') {
-                window.BuscadorController.pintarResultados(filtrados);
+        tarjetas.forEach(tarjeta => {
+            const contenido = tarjeta.textContent.toLowerCase();
+            if (contenido.includes(query) || query === "") {
+                tarjeta.style.display = "block";
+            } else {
+                tarjeta.style.display = "none";
             }
-
-            agregarMensajeAlChat("Asistente", respuestaIA.contenidoChat);
-        } else {
-            // Respuesta normal de texto
-            agregarMensajeAlChat("Asistente", respuestaIA.contenido);
-        }
-
-    } catch (error) {
-        console.error("Error al procesar mensaje:", error);
-        agregarMensajeAlChat("Asistente", "Disculpa, ocurrió un error interno al buscar.");
+        });
     }
 }
 
-function agregarMensajeAlChat(remitente, texto) {
-    // Busca el contenedor de mensajes del chat de forma segura
-    const contenedor = document.querySelector(".asistente-chat-mensajes, #chat-mensajes, .chat-box, .asistente-ia");
-    if (contenedor) {
-        const div = document.createElement("div");
-        div.style.margin = "8px 0";
-        div.innerHTML = `<strong>${remitente}:</strong> ${texto}`;
-        contenedor.appendChild(div);
-        contenedor.scrollTop = contenedor.scrollHeight;
+// Función para procesar los mensajes del chat IA
+async function manejarEnvioChat(inputElement) {
+    if (!inputElement) return;
+    const textoUsuario = inputElement.value.trim();
+    if (!textoUsuario) return;
+
+    inputElement.value = "";
+    pintarMensajeEnInterfaz("Tú", textoUsuario);
+
+    try {
+        if (window.AIService && typeof window.AIService.procesarRespuestaIA === 'function') {
+            const respuestaIA = await window.AIService.procesarRespuestaIA(textoUsuario);
+
+            if (respuestaIA.tipo === 'buscar_avanzado') {
+                pintarMensajeEnInterfaz("Asistente", respuestaIA.contenidoChat);
+                
+                // Si la IA extrajo un término de búsqueda, lo aplicamos al muro automáticamente
+                if (respuestaIA.filtros && respuestaIA.filtros.query) {
+                    ejecutarBusquedaEnMuro(respuestaIA.filtros.query);
+                }
+            } else {
+                pintarMensajeEnInterfaz("Asistente", respuestaIA.contenido);
+            }
+        } else {
+            pintarMensajeEnInterfaz("Asistente", "El servicio de IA no está disponible.");
+        }
+    } catch (error) {
+        console.error("Error en chat IA:", error);
+        pintarMensajeEnInterfaz("Asistente", "Ups, ocurrió un error al procesar tu solicitud.");
+    }
+}
+
+// Inyectar burbujas de texto en el chat visual
+function pintarMensajeEnInterfaz(remitente, texto) {
+    const chatContainer = document.querySelector(".asistente-chat, div[style*='border-radius']");
+    
+    if (chatContainer) {
+        const msgDiv = document.createElement("div");
+        msgDiv.style.marginTop = "8px";
+        msgDiv.style.padding = "6px 10px";
+        msgDiv.style.borderRadius = "6px";
+        msgDiv.style.fontSize = "13px";
+        
+        if (remitente === "Tú") {
+            msgDiv.style.backgroundColor = "#e0f2fe";
+            msgDiv.style.color = "#0369a1";
+            msgDiv.style.textAlign = "right";
+        } else {
+            msgDiv.style.backgroundColor = "#f3f4f6";
+            msgDiv.style.color = "#1f2937";
+        }
+
+        msgDiv.innerHTML = `<strong>${remitente}:</strong> ${texto}`;
+        chatContainer.appendChild(msgDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     } else {
         console.log(`[${remitente}]: ${texto}`);
     }
