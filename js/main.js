@@ -1,147 +1,105 @@
-// ==========================================
-// ARCHIVO PRINCIPAL - REMARKET-DB (main.js)
-// Búsqueda Universal y Conexión de IA Definitiva
-// ==========================================
-
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("Remarket-DB inicializado correctamente.");
-
-    // 1. CONEXIÓN DE LA BARRA DE BÚSQUEDA SUPERIOR
-    const inputBuscadorSuperior = document.querySelector("input[placeholder*='Qué estás buscando'], input[type='search'], header input");
-    const botonBuscadorSuperior = document.querySelector("header button, .buscador-btn");
-
-    if (inputBuscadorSuperior) {
-        inputBuscadorSuperior.addEventListener("input", (e) => {
-            ejecutarBusquedaEnMuro(e.target.value.trim());
-        });
-
-        inputBuscadorSuperior.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                ejecutarBusquedaEnMuro(inputBuscadorSuperior.value.trim());
-            }
-        });
-    }
-
-    if (botonBuscadorSuperior && inputBuscadorSuperior) {
-        botonBuscadorSuperior.addEventListener("click", (e) => {
-            e.preventDefault();
-            ejecutarBusquedaEnMuro(inputBuscadorSuperior.value.trim());
-        });
-    }
-
-    // 2. CONEXIÓN DEL CHAT DEL ASISTENTE IA
-    const inputChat = document.querySelector(".asistente-chat input, input[placeholder*='Escribe tu duda'], #chat-input");
-    const botonEnviarChat = document.querySelector(".asistente-chat button, .asistente-chat button img");
-
-    if (inputChat) {
-        inputChat.addEventListener("keypress", async (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                await manejarEnvioChat(inputChat);
-            }
-        });
-    }
-
-    if (botonEnviarChat && inputChat) {
-        botonEnviarChat.addEventListener("click", async (e) => {
-            e.preventDefault();
-            await manejarEnvioChat(inputChat);
-        });
-    }
-});
-
-// ==========================================
-// MOTOR DE BÚSQUEDA Y FILTRADO VISUAL
-// ==========================================
-function ejecutarBusquedaEnMuro(texto) {
-    const query = texto.toLowerCase();
+document.addEventListener("DOMContentLoaded", async function() {
+    var idioma = obtenerIdiomaPreferido();
+    var nombresIdiomas = { 'es': 'Español', 'en': 'English', 'pt': 'Português', 'fr': 'Français', 'de': 'Deutsch', 'it': 'Italiano', 'bg': 'Български', 'qu': 'Quechua', 'ay': 'Aymara', 'zh': '中文', 'ja': '日本語', 'ko': '한국어', 'ar': 'العربية', 'hi': 'हिन्दी', 'nl': 'Nederlands', 'tr': 'Türkçe' };
+    var textoIdioma = document.getElementById('selectedLanguage');
+    if (textoIdioma) { textoIdioma.textContent = nombresIdiomas[idioma] || idioma.toUpperCase(); }
     
-    // Si tienes un controlador oficial, lo usamos
-    if (window.BuscadorController && typeof window.BuscadorController.filtrar === 'function') {
-        window.BuscadorController.filtrar(query);
-        return;
+    var saludos = { 'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?', 'en': 'Hello! I am your global circular economy assistant. What do you need today?', 'pt': 'Olá! Sou seu assistente de economia circular global.', 'fr': 'Bonjour! Je suis votre assistant mondial d\'économie circulaire.', 'bg': 'Здравейте! Аз съм вашият асистент за кръгова икономика.', 'qu': 'Allin p\'unchaw! Qamta yanapayta munani.', 'ay': 'Aspakiruski! Qamta yanapt\'añataki.' };
+    var saludoInicial = saludos[idioma] || saludos['es'];
+    var chat = document.getElementById('assistantResponse');
+    if (chat) { chat.innerHTML = '<div class="chat-message assistant">' + saludoInicial + '</div>'; }
+    
+    aplicarTraduccionUI(idioma);
+    
+    UIController.init();
+    await UbicacionUsuario.detectarPorIP();
+    
+    var productosSupabase = await cargarProductosSupabase();
+    var productosAPI = await cargarProductosAPI();
+    var productosTotales = Database.articulos.concat(productosSupabase).concat(productosAPI);
+    
+    BuscadorMotor.construirIndice(productosTotales);
+
+    // Antes esta pregunta ("¿hay sesión?") se hacía dos veces por separado -- una vez aquí y otra
+    // más abajo -- y si Supabase tardaba un instante en confirmar la sesión guardada, esta primera
+    // consulta decía "no hay sesión" (mostrando el muro) mientras que la segunda, ya un poco después,
+    // sí la encontraba (mostrando el panel) -- eso causaba el parpadeo del muro al iniciar sesión.
+    // Ahora se consulta una sola vez y el mismo resultado se reutiliza más abajo.
+    var haySesionLocal = !!cargarSesionUsuario();
+    var sesionSupabaseInicial = null;
+    try {
+        var { data: { session: sesionInicial } } = await supabase.auth.getSession();
+        sesionSupabaseInicial = sesionInicial || null;
+    } catch (e) { /* si falla, asumimos que no hay sesión */ }
+    var haySesionSupabase = !!(sesionSupabaseInicial && sesionSupabaseInicial.user);
+
+    if (haySesionLocal || haySesionSupabase) {
+        // Ya sabemos que hay sesión: NO se pinta el catálogo de invitado aquí, porque se alcanzaría
+        // a ver un instante (con productos de prueba incluidos) antes de que el panel de usuario lo
+        // reemplace unas líneas más abajo (irAlFeed -> toggleVistaUsuario(true)) -- eso era el
+        // "parpadeo" de productos de prueba que se veía justo al iniciar sesión.
+        var catalogoEl = document.getElementById('catalogContainer');
+        if (catalogoEl) catalogoEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--texto-secundario);">Cargando tu cuenta...</div>';
+    } else {
+        await ContenidoInfo.mostrarEnMuro(idioma);
     }
-
-    // Búsqueda universal inteligente: Busca en CUALQUIER caja, tarjeta o artículo del muro
-    const elementosMuro = document.querySelectorAll(
-        ".producto-card, .articulo-item, .card, div[class*='card'], div[class*='producto'], div[class*='item'], article"
-    );
-
-    if (elementosMuro.length === 0) {
-        console.warn("No se encontraron tarjetas de productos en el DOM para filtrar.");
-        return;
-    }
-
-    elementosMuro.forEach(elemento => {
-        // Evitamos filtrar la estructura general del chat o del menú
-        if (elemento.closest(".asistente-chat") || elemento.closest("header") || elemento.closest("footer")) {
-            return;
+    Institucional.cargarPatrocinadores();
+    Institucional.cargarPublicidad();
+    
+    document.getElementById('assistantForm').addEventListener('submit', EventController.manejarEnvioMensaje);
+    document.getElementById('searchForm').addEventListener('submit', EventController.manejarBusquedaPrincipal);
+    document.getElementById('clearChatBtn').addEventListener('click', EventController.manejarLimpiarChat);
+    document.getElementById('closeSearchBtn').addEventListener('click', function() { UIController.cerrarResultados(); });
+    document.getElementById('modalCloseBtn').addEventListener('click', function() { UIController.cerrarModal(); });
+    document.getElementById('qrModalCloseBtn').addEventListener('click', function() { UIController.cerrarQRModal(); });
+    window.onclick = function(e) { if (e.target === UIController.elementos.modal) UIController.cerrarModal(); if (e.target === document.getElementById('qrModal')) UIController.cerrarQRModal();
+        var dropdown = document.getElementById('userMenuDropdown');
+        var wrapper = document.getElementById('userMenuDropdownWrapper');
+        if (dropdown && dropdown.classList.contains('abierto') && wrapper && !wrapper.contains(e.target)) { PanelUsuario.cerrarMenuPerfil(); }
+        if (!e.target.closest('.autor-menu-wrapper')) { document.querySelectorAll('.autor-menu-dropdown.abierto').forEach(function(d) { d.classList.remove('abierto'); }); }
+    };
+    
+    var sesionLocalRestaurada = cargarSesionUsuario();
+    try {
+        if (sesionSupabaseInicial && sesionSupabaseInicial.user) {
+            await procesarSesionSupabaseAuth(sesionSupabaseInicial.user);
+        } else if (!sesionLocalRestaurada) {
+            document.getElementById('accountBtn').onclick = function() { toggleAuthModal(true); };
         }
+    } catch (e) {
+        console.warn('No se pudo verificar la sesión de Supabase Auth:', e);
+        if (!sesionLocalRestaurada) {
+            document.getElementById('accountBtn').onclick = function() { toggleAuthModal(true); };
+        }
+    }
 
-        const textoElemento = elemento.textContent.toLowerCase();
-        if (query === "" || textoElemento.includes(query)) {
-            elemento.style.display = ""; // Muestra el elemento
-        } else {
-            elemento.style.display = "none"; // Oculta el elemento que no coincide
+    supabase.auth.onAuthStateChange(function(event, session) {
+        if (event === 'SIGNED_IN' && session && session.user) {
+            procesarSesionSupabaseAuth(session.user);
         }
     });
-}
 
-// Procesar mensajes del Asistente IA
-async function manejarEnvioChat(inputElement) {
-    if (!inputElement) return;
-    const textoUsuario = inputElement.value.trim();
-    if (!textoUsuario) return;
-
-    inputElement.value = "";
-    pintarMensajeEnInterfaz("Tú", textoUsuario);
-
-    try {
-        if (window.AIService && typeof window.AIService.procesarRespuestaIA === 'function') {
-            const respuestaIA = await window.AIService.procesarRespuestaIA(textoUsuario);
-
-            if (respuestaIA.tipo === 'buscar_avanzado') {
-                pintarMensajeEnInterfaz("Asistente", respuestaIA.contenidoChat);
-                if (respuestaIA.filtros && respuestaIA.filtros.query) {
-                    ejecutarBusquedaEnMuro(respuestaIA.filtros.query);
-                }
-            } else {
-                pintarMensajeEnInterfaz("Asistente", respuestaIA.contenido);
-            }
-        } else {
-            pintarMensajeEnInterfaz("Asistente", "El servicio de IA no está disponible.");
-        }
-    } catch (error) {
-        console.error("Error en chat IA:", error);
-        pintarMensajeEnInterfaz("Asistente", "Ups, ocurrió un error al procesar tu solicitud.");
-    }
-}
-
-// Pintar burbujas de texto en el chat visual
-function pintarMensajeEnInterfaz(remitente, texto) {
-    const chatContainer = document.querySelector(".asistente-chat, div[style*='border-radius']");
     
-    if (chatContainer) {
-        const msgDiv = document.createElement("div");
-        msgDiv.style.marginTop = "8px";
-        msgDiv.style.padding = "6px 10px";
-        msgDiv.style.borderRadius = "6px";
-        msgDiv.style.fontSize = "13px";
-        
-        if (remitente === "Tú") {
-            msgDiv.style.backgroundColor = "#e0f2fe";
-            msgDiv.style.color = "#0369a1";
-            msgDiv.style.textAlign = "right";
-        } else {
-            msgDiv.style.backgroundColor = "#f3f4f6";
-            msgDiv.style.color = "#1f2937";
-        }
-
-        msgDiv.innerHTML = `<strong>${remitente}:</strong> ${texto}`;
-        chatContainer.appendChild(msgDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    } else {
-        console.log(`[${remitente}]: ${texto}`);
+    // Agregar modal de nuevo mensaje (solo el HTML falta en el DOM)
+    if (!document.getElementById('modalNuevoMensaje')) {
+        var modalNuevoMsj = document.createElement('div');
+        modalNuevoMsj.id = 'modalNuevoMensaje';
+        modalNuevoMsj.className = 'modal-overlay';
+        modalNuevoMsj.innerHTML = `
+            <div class="modal-content" style="max-width:420px;padding:28px;">
+                <button class="modal-close-btn" onclick="PanelUsuario.cerrarModalNuevoMensaje()">&times;</button>
+                <h3 style="text-align:center;margin-bottom:16px;color:var(--purpura-ia);">✉️ Nuevo mensaje</h3>
+                <div id="nuevoMsjAlert" class="alert"></div>
+                <label class="form-label">Buscar persona por nombre, iniciales o zona</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <button type="button" id="filtroZona-local-nuevoMsj" data-nivel="local" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','local')">📍 Local</button>
+                    <button type="button" id="filtroZona-regional-nuevoMsj" data-nivel="regional" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','regional')">🗺️ Regional</button>
+                    <button type="button" id="filtroZona-pais-nuevoMsj" data-nivel="pais" data-contexto="nuevoMsj" class="compartir-filtro-zona" onclick="PanelUsuario.setFiltroZonaPersona('nuevoMsj','pais')">🌎 País</button>
+                </div>
+                <input type="text" id="nuevoMsjBuscarPersona" class="form-input" placeholder="Escribe un nombre o iniciales (ej: J P)..." oninput="PanelUsuario.onBuscarPersonaInput(this.value, 'nuevoMsj')" autocomplete="off">
+                <div id="nuevoMsjResultadosPersona" class="user-picker-results"></div>
+            </div>
+        `;
+        document.body.appendChild(modalNuevoMsj);
     }
-}
+});
