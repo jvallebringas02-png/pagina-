@@ -1,127 +1,114 @@
 // ==========================================
 // ARCHIVO PRINCIPAL - REMARKET-DB (main.js)
+// Conexión Universal del Chat y el Muro
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Iniciando aplicación Remarket-DB...");
 
-    // 1. Inicializar Supabase y componentes globales de la interfaz
     if (window.SupabaseClient) {
         console.log("Supabase conectado correctamente.");
     }
 
-    // 2. Referencias a elementos del DOM del Asistente IA y el Muro
-    const inputChat = document.querySelector("#Asistente IA input, .asistente-chat input, input[placeholder*='Escribe'], input[placeholder*='duda']");
-    const botonEnviarChat = document.querySelector("#Asistente IA button, .asistente-chat button, button");
-    const contenedorChat = document.querySelector(".asistente-chat, #asistente-ia-container");
+    // Buscamos de forma flexible cualquier input o botón dentro de la sección del asistente
+    const inputChat = document.querySelector(".asistente-chat input, #chat-input, input[type='text']");
+    const botonEnviar = document.querySelector(".asistente-chat button, #chat-send, button");
 
-    // 3. Configurar evento de envío en el chat del asistente
     if (inputChat) {
-        inputChat.addEventListener("keypress", async (e) => {
+        // Escuchar la tecla Enter
+        inputChat.addEventListener("keydown", async (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                const textoUsuario = inputChat.value.trim();
-                if (!textoUsuario) return;
-
-                // Mostrar mensaje del usuario en el chat
-                agregarMensajeAlChat("Tú", textoUsuario);
+                const texto = inputChat.value.trim();
+                if (!texto) return;
+                
                 inputChat.value = "";
-
-                // Procesar con la IA inteligente (AIService)
-                await manejarInteraccionIA(textoUsuario);
+                await procesarMensajeUsuario(texto);
             }
+        });
+    }
+
+    if (botonEnviar) {
+        botonEnviar.addEventListener("click", async () => {
+            if (!inputChat) return;
+            const texto = inputChat.value.trim();
+            if (!texto) return;
+            
+            inputChat.value = "";
+            await procesarMensajeUsuario(texto);
         });
     }
 
     console.log("Módulos inicializados correctamente.");
 });
 
-// ==========================================
-// CONTROLADOR DE LA INTERACCIÓN CON LA IA Y EL MURO
-// ==========================================
-async function manejarInteraccionIA(textoUsuario) {
+// Función central que procesa lo que escribes y actualiza el muro
+async function procesarMensajeUsuario(textoUsuario) {
+    // 1. Pintar lo que escribiste en el chat
+    agregarMensajeAlChat("Tú", textoUsuario);
+
     try {
-        // Llamamos al servicio de IA que procesa la intención en formato JSON
+        // 2. Llamar al cerebro de la IA (JSON Inteligente)
         const respuestaIA = await window.AIService.procesarRespuestaIA(textoUsuario);
 
-        // Si la IA detecta una búsqueda avanzada (categorías, ubicación, precios, ofertas)
         if (respuestaIA.tipo === 'buscar_avanzado') {
-            console.log("Filtros extraídos por la IA:", respuestaIA.filtros);
+            console.log("Filtros aplicados al muro:", respuestaIA.filtros);
 
-            // Obtenemos los productos actuales del catálogo (asegúrate de que tu función devuelva el array de productos)
-            let productosDisponibles = typeof obtenerProductosCatalogo === 'function' ? obtenerProductosCatalogo() : [];
+            // Obtener tus productos actuales (asegúrate de que esta función exista en tu app)
+            let productos = typeof obtenerProductosCatalogo === 'function' ? obtenerProductosCatalogo() : [];
 
-            // Aplicamos los filtros en cadena de forma limpia y segura
-            let resultadosFiltrados = productosDisponibles.filter(p => {
-                let coincideQuery = true;
-                let coincideUbicacion = true;
-                let coincideOferta = true;
+            // Filtrar según lo que pidió la IA (zapatos, ubicación, ofertas, etc.)
+            let filtrados = productos.filter(p => {
+                let okQuery = true;
+                let okUbi = true;
+                let okOferta = true;
 
-                // 1. Filtro por texto o categoría (ej: zapatos, ropa)
                 if (respuestaIA.filtros.query) {
                     const q = respuestaIA.filtros.query.toLowerCase();
-                    const titulo = p.titulo ? p.titulo.toLowerCase() : '';
+                    const tit = p.titulo ? p.titulo.toLowerCase() : '';
                     const cat = p.categoria ? p.categoria.toLowerCase() : '';
-                    const desc = p.descripcion ? p.descripcion.toLowerCase() : '';
-                    coincideQuery = titulo.includes(q) || cat.includes(q) || desc.includes(q);
+                    okQuery = tit.includes(q) || cat.includes(q);
                 }
 
-                // 2. Filtro por ubicación (si no es mundial)
                 if (respuestaIA.filtros.ubicacion && respuestaIA.filtros.ubicacion.toLowerCase() !== 'mundial') {
                     const loc = respuestaIA.filtros.ubicacion.toLowerCase();
-                    const pais = p.pais ? p.pais.toLowerCase() : '';
-                    const ciudad = p.ciudad ? p.ciudad.toLowerCase() : '';
-                    coincideUbicacion = pais.includes(loc) || ciudad.includes(loc);
+                    okUbi = (p.pais && p.pais.toLowerCase().includes(loc)) || 
+                            (p.ciudad && p.ciudad.toLowerCase().includes(loc));
                 }
 
-                // 3. Filtro por ofertas o promociones
                 if (respuestaIA.filtros.soloOfertas) {
-                    coincideOferta = p.en_oferta === true || (p.descuento && p.descuento > 0);
+                    okOferta = p.en_oferta === true || (p.descuento && p.descuento > 0);
                 }
 
-                return coincideQuery && coincideUbicacion && coincideOferta;
+                return okQuery && okUbi && okOferta;
             });
 
-            // Ordenamiento por precio más bajo si el usuario lo pidió
-            if (respuestaIA.filtros.ordenarPor === 'precio_bajo') {
-                resultadosFiltrados.sort((a, b) => Number(a.precio || 0) - Number(b.precio || 0));
-            }
-
-            // ¡Pintamos los resultados directamente en el Muro usando BuscadorController!
+            // Pintar los resultados directamente en el Muro
             if (window.BuscadorController && typeof window.BuscadorController.pintarResultados === 'function') {
-                window.BuscadorController.pintarResultados(resultadosFiltrados);
-            } else {
-                console.warn("BuscadorController no encontrado, mostrando en consola:", resultadosFiltrados);
+                window.BuscadorController.pintarResultados(filtrados);
             }
 
-            // Respondemos amablemente en el chat
             agregarMensajeAlChat("Asistente", respuestaIA.contenidoChat);
-        } 
-        else if (respuestaIA.tipo === 'matriz') {
-            // Si el usuario pidió una matriz o resumen global
-            agregarMensajeAlChat("Asistente", `📊 Generando vista de matriz para: ${respuestaIA.categoria} (Alcance: ${respuestaIA.alcance})`);
-            // Aquí puedes activar tu lógica de matrices si la tienes en otro módulo
-        } 
-        else {
-            // Respuesta de texto plano o conversacional normal
+        } else {
+            // Respuesta normal de texto
             agregarMensajeAlChat("Asistente", respuestaIA.contenido);
         }
 
     } catch (error) {
-        console.error("Error al manejar la interacción con la IA:", error);
-        agregarMensajeAlChat("Asistente", "🤔 Hubo un pequeño problema al procesar tu solicitud en el muro.");
+        console.error("Error al procesar mensaje:", error);
+        agregarMensajeAlChat("Asistente", "Disculpa, ocurrió un error interno al buscar.");
     }
 }
 
-// Función auxiliar para pintar mensajes en el chat visualmente
 function agregarMensajeAlChat(remitente, texto) {
-    const cajaChat = document.querySelector(".asistente-chat-mensajes, #chat-mensajes, .chat-box");
-    if (cajaChat) {
-        const elemento = document.createElement("div");
-        elemento.className = remitente === "Tú" ? "mensaje-usuario" : "mensaje-asistente";
-        elemento.innerHTML = `<strong>${remitente}:</strong> ${texto}`;
-        cajaChat.appendChild(elemento);
-        cajaChat.scrollTop = cajaChat.scrollHeight;
+    // Busca el contenedor de mensajes del chat de forma segura
+    const contenedor = document.querySelector(".asistente-chat-mensajes, #chat-mensajes, .chat-box, .asistente-ia");
+    if (contenedor) {
+        const div = document.createElement("div");
+        div.style.margin = "8px 0";
+        div.innerHTML = `<strong>${remitente}:</strong> ${texto}`;
+        contenedor.appendChild(div);
+        contenedor.scrollTop = contenedor.scrollHeight;
     } else {
         console.log(`[${remitente}]: ${texto}`);
     }
