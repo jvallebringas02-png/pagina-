@@ -11,21 +11,17 @@ const PROMPT_BASE = `Eres el motor de búsqueda inteligente y asistente virtual 
 Analiza la petición del usuario y devuelve EXCLUSIVAMENTE un objeto en formato JSON plano (sin bloques de código markdown, solo el texto del JSON puro) con la siguiente estructura exacta:
 {
   "intencion": "buscar" | "matriz" | "saludo" | "otro",
-  "texto_busqueda": "término principal o categoría extraída (ej: zapatos, ropa, etc. o vacío si no aplica)",
-  "ubicacion": "localidad, país o 'mundial'/'global' (o null si no especifica)",
-  "solo_ofertas": true o false (si pide ofertas, promociones, descuentos),
-  "ordenar_por": "precio_bajo" | "relevancia" (si pide más barato, económico, menor precio),
-  "mensaje": "Mensaje amable para responderle al usuario en el chat del asistente"
+  "texto_busqueda": "término principal o categoría extraída",
+  "ubicacion": "localidad, país o 'mundial'/'global' (o null)",
+  "solo_ofertas": true o false,
+  "ordenar_por": "precio_bajo" | "relevancia",
+  "mensaje": "Mensaje amable para responderle al usuario"
 }`;
 
 function detectarIntencionMatriz(texto) {
     if (!texto) return false;
     const t = texto.toLowerCase().trim();
-    const palabrasClave = [
-        "matriz", "cruzado", "cruzar", "estadísticas", "estadisticas", 
-        "resumen", "a nivel mundial", "global", "por país", "por pais", 
-        "por región", "por region", "comparativa", "tabla de datos"
-    ];
+    const palabrasClave = ["matriz", "cruzado", "cruzar", "estadísticas", "estadisticas", "resumen", "a nivel mundial", "global", "comparativa"];
     return palabrasClave.some(keyword => t.includes(keyword));
 }
 
@@ -64,8 +60,7 @@ async function procesarRespuestaIA(promptUsuario) {
             const inicioJson = respuestaTexto.indexOf('{');
             const finJson = respuestaTexto.lastIndexOf('}');
             if (inicioJson !== -1 && finJson !== -1) {
-                const jsonString = respuestaTexto.substring(inicioJson, finJson + 1);
-                datosFiltro = JSON.parse(jsonString);
+                datosFiltro = JSON.parse(respuestaTexto.substring(inicioJson, finJson + 1));
             }
         } catch (e) {
             console.warn("Respuesta tratada como texto plano.");
@@ -100,10 +95,7 @@ async function procesarRespuestaIA(promptUsuario) {
 
     } catch (error) {
         console.error("Error en procesarRespuestaIA:", error);
-        return { 
-            tipo: 'texto', 
-            contenido: "🤔 Ocurrió un pequeño inconveniente al conectar con el asistente. ¿Podrías intentar de nuevo?" 
-        };
+        return { tipo: 'texto', contenido: "🤔 Ocurrió un inconveniente al conectar con el asistente." };
     }
 }
 
