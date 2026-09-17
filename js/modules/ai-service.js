@@ -7,7 +7,8 @@ const AI_CONFIG = {
     apiUrl: "https://api.groq.com/openai/v1/chat/completions"
 };
 
-const PROMPT_BASE = `Eres el motor de búsqueda inteligente y asistente virtual de Remarket-DB.
+// Cambiamos el nombre para evitar que choque con cualquier otro archivo
+const PROMPT_REMARKET_IA = `Eres el motor de búsqueda inteligente y asistente virtual de Remarket-DB.
 Analiza la petición del usuario y devuelve EXCLUSIVAMENTE un objeto en formato JSON plano (sin bloques de código markdown, solo el texto del JSON puro) con la siguiente estructura exacta:
 {
   "intencion": "buscar" | "matriz" | "saludo" | "otro",
@@ -40,7 +41,7 @@ async function procesarRespuestaIA(promptUsuario) {
             body: JSON.stringify({
                 model: "llama3-70b-8192",
                 messages: [
-                    { role: "system", content: PROMPT_BASE },
+                    { role: "system", content: PROMPT_REMARKET_IA },
                     { role: "user", content: promptUsuario }
                 ],
                 temperature: 0.2,
@@ -99,6 +100,7 @@ async function procesarRespuestaIA(promptUsuario) {
     }
 }
 
+// Exportación global asegurada
 window.AIService = {
     detectarIntencionMatriz,
     procesarRespuestaIA
