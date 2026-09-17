@@ -7,7 +7,6 @@ const AI_CONFIG = {
     apiUrl: "https://api.groq.com/openai/v1/chat/completions"
 };
 
-// Declarado UNA SOLA VEZ para evitar conflictos de duplicación
 const PROMPT_BASE = `Eres el motor de búsqueda inteligente y asistente virtual de Remarket-DB.
 Analiza la petición del usuario y devuelve EXCLUSIVAMENTE un objeto en formato JSON plano (sin bloques de código markdown, solo el texto del JSON puro) con la siguiente estructura exacta:
 {
@@ -60,7 +59,6 @@ async function procesarRespuestaIA(promptUsuario) {
         const data = await response.json();
         let respuestaTexto = data.choices[0]?.message?.content?.trim() || "";
 
-        // Extractor de JSON seguro
         let datosFiltro = null;
         try {
             const inicioJson = respuestaTexto.indexOf('{');
@@ -109,7 +107,6 @@ async function procesarRespuestaIA(promptUsuario) {
     }
 }
 
-// Exportación global unificada
 window.AIService = {
     detectarIntencionMatriz,
     procesarRespuestaIA
