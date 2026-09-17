@@ -1,27 +1,24 @@
 // ==========================================
 // ARCHIVO PRINCIPAL - REMARKET-DB (main.js)
-// Conexión unificada: Barra de búsqueda superior + Asistente IA
+// Búsqueda Universal y Conexión de IA Definitiva
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Remarket-DB inicializado correctamente.");
 
-    // 1. CONEXIÓN DE LA BARRA DE BÚSQUEDA SUPERIOR (La barra con la lupa verde)
-    const inputBuscadorSuperior = document.querySelector("input[placeholder*='Qué estás buscando'], input[type='search'], .buscador-input");
-    const botonBuscadorSuperior = document.querySelector("button img, button svg, .buscador-btn, header button");
+    // 1. CONEXIÓN DE LA BARRA DE BÚSQUEDA SUPERIOR
+    const inputBuscadorSuperior = document.querySelector("input[placeholder*='Qué estás buscando'], input[type='search'], header input");
+    const botonBuscadorSuperior = document.querySelector("header button, .buscador-btn");
 
     if (inputBuscadorSuperior) {
-        // Escuchar cuando escriben o presionan Enter en la barra superior
         inputBuscadorSuperior.addEventListener("input", (e) => {
-            const textoBusqueda = e.target.value.trim();
-            ejecutarBusquedaEnMuro(textoBusqueda);
+            ejecutarBusquedaEnMuro(e.target.value.trim());
         });
 
         inputBuscadorSuperior.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                const textoBusqueda = inputBuscadorSuperior.value.trim();
-                ejecutarBusquedaEnMuro(textoBusqueda);
+                ejecutarBusquedaEnMuro(inputBuscadorSuperior.value.trim());
             }
         });
     }
@@ -29,14 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (botonBuscadorSuperior && inputBuscadorSuperior) {
         botonBuscadorSuperior.addEventListener("click", (e) => {
             e.preventDefault();
-            const textoBusqueda = inputBuscadorSuperior.value.trim();
-            ejecutarBusquedaEnMuro(textoBusqueda);
+            ejecutarBusquedaEnMuro(inputBuscadorSuperior.value.trim());
         });
     }
 
-    // 2. CONEXIÓN DEL CHAT DEL ASISTENTE IA (La cajita morada)
+    // 2. CONEXIÓN DEL CHAT DEL ASISTENTE IA
     const inputChat = document.querySelector(".asistente-chat input, input[placeholder*='Escribe tu duda'], #chat-input");
-    const botonEnviarChat = document.querySelector(".asistente-chat button, button");
+    const botonEnviarChat = document.querySelector(".asistente-chat button, .asistente-chat button img");
 
     if (inputChat) {
         inputChat.addEventListener("keypress", async (e) => {
@@ -56,33 +52,43 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// FUNCIONES DE FILTRADO Y ACTUALIZACIÓN DEL MURO
+// MOTOR DE BÚSQUEDA Y FILTRADO VISUAL
 // ==========================================
-
-// Función para la barra superior
 function ejecutarBusquedaEnMuro(texto) {
-    console.log("Buscando en el muro:", texto);
+    const query = texto.toLowerCase();
     
-    // Si tienes un controlador de buscador global, lo usamos
+    // Si tienes un controlador oficial, lo usamos
     if (window.BuscadorController && typeof window.BuscadorController.filtrar === 'function') {
-        window.BuscadorController.filtrar(texto);
-    } else {
-        // Búsqueda genérica de respaldo si el controlador no está cargado
-        const tarjetas = document.querySelectorAll(".producto-card, .articulo-item, .card");
-        const query = texto.toLowerCase();
-
-        tarjetas.forEach(tarjeta => {
-            const contenido = tarjeta.textContent.toLowerCase();
-            if (contenido.includes(query) || query === "") {
-                tarjeta.style.display = "block";
-            } else {
-                tarjeta.style.display = "none";
-            }
-        });
+        window.BuscadorController.filtrar(query);
+        return;
     }
+
+    // Búsqueda universal inteligente: Busca en CUALQUIER caja, tarjeta o artículo del muro
+    const elementosMuro = document.querySelectorAll(
+        ".producto-card, .articulo-item, .card, div[class*='card'], div[class*='producto'], div[class*='item'], article"
+    );
+
+    if (elementosMuro.length === 0) {
+        console.warn("No se encontraron tarjetas de productos en el DOM para filtrar.");
+        return;
+    }
+
+    elementosMuro.forEach(elemento => {
+        // Evitamos filtrar la estructura general del chat o del menú
+        if (elemento.closest(".asistente-chat") || elemento.closest("header") || elemento.closest("footer")) {
+            return;
+        }
+
+        const textoElemento = elemento.textContent.toLowerCase();
+        if (query === "" || textoElemento.includes(query)) {
+            elemento.style.display = ""; // Muestra el elemento
+        } else {
+            elemento.style.display = "none"; // Oculta el elemento que no coincide
+        }
+    });
 }
 
-// Función para procesar los mensajes del chat IA
+// Procesar mensajes del Asistente IA
 async function manejarEnvioChat(inputElement) {
     if (!inputElement) return;
     const textoUsuario = inputElement.value.trim();
@@ -97,8 +103,6 @@ async function manejarEnvioChat(inputElement) {
 
             if (respuestaIA.tipo === 'buscar_avanzado') {
                 pintarMensajeEnInterfaz("Asistente", respuestaIA.contenidoChat);
-                
-                // Si la IA extrajo un término de búsqueda, lo aplicamos al muro automáticamente
                 if (respuestaIA.filtros && respuestaIA.filtros.query) {
                     ejecutarBusquedaEnMuro(respuestaIA.filtros.query);
                 }
@@ -114,7 +118,7 @@ async function manejarEnvioChat(inputElement) {
     }
 }
 
-// Inyectar burbujas de texto en el chat visual
+// Pintar burbujas de texto en el chat visual
 function pintarMensajeEnInterfaz(remitente, texto) {
     const chatContainer = document.querySelector(".asistente-chat, div[style*='border-radius']");
     
