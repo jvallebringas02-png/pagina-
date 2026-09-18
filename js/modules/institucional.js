@@ -168,13 +168,17 @@ var Institucional = {
     // Antes esto se resolvía como una conversación paso a paso dentro del chat del Asistente IA
     // (una pregunta a la vez). Se reemplazó por los formularios completos de una sola vez,
     // mostrados en el muro central (ver mostrarContactoAdmin/mostrarLibroReclamaciones más abajo),
-    // que es donde vive la atención del usuario en el resto de la página. Esta misma función se
-    // usa tanto si se hace clic en el pie de página, como si el usuario escribe "quiero reclamar"
-    // en el chat del Asistente IA (event-controller.js ya detecta esa intención y llama aquí).
-    iniciarContactoGuiado: function() {
+    // que es donde vive la atención del usuario en el resto de la página.
+    // El parámetro "desdeChat" distingue el origen: si viene del pie de página, el formulario
+    // aparece directo y el Asistente se queda callado (nunca "hablaste" con él). Si en cambio el
+    // usuario le escribió algo como "quiero reclamar" al chat, el Asistente sí responde una vez,
+    // a modo de acuse de recibo -- y después queda en silencio mientras se llena el formulario.
+    iniciarContactoGuiado: function(desdeChat) {
+        if (desdeChat) UIController.mostrarRespuestaIA('¡Listo! Ya puedes completar el formulario que apareció en pantalla.');
         this.mostrarContactoAdmin();
     },
-    iniciarReclamoGuiado: function() {
+    iniciarReclamoGuiado: function(desdeChat) {
+        if (desdeChat) UIController.mostrarRespuestaIA('¡Listo! Ya puedes completar el formulario que apareció en pantalla.');
         this.mostrarLibroReclamaciones();
     },
 
@@ -185,14 +189,19 @@ var Institucional = {
             '<input type="text" id="contactoNombre" placeholder="Tu nombre" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="email" id="contactoEmail" placeholder="Tu correo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<textarea id="contactoMensaje" placeholder="Escribe tu mensaje..." required rows="4" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
-            '<button type="submit" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Enviar mensaje</button>' +
+            '<button type="submit" id="contactoBtnEnviar" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Enviar mensaje</button>' +
             '<div id="contactoEstado" style="margin-top:10px;text-align:center;"></div>' +
             '</form>');
     },
     enviarContacto: async function(e) {
         e.preventDefault();
         var estado = document.getElementById('contactoEstado');
-        estado.textContent = 'Enviando...';
+        var boton = document.getElementById('contactoBtnEnviar');
+        // Se desactiva el botón mientras se envía, para que un doble clic por impaciencia no
+        // mande el mismo mensaje dos veces. Si falla, se reactiva para que pueda reintentar.
+        boton.disabled = true;
+        boton.textContent = 'Enviando...';
+        estado.textContent = '';
         try {
             var { error } = await supabase.from('mensajes_contacto').insert({
                 nombre: document.getElementById('contactoNombre').value,
@@ -203,6 +212,8 @@ var Institucional = {
             document.getElementById('formContactoAdmin').innerHTML = '<p style="text-align:center;color:#059669;">✅ ¡Mensaje enviado! Te responderemos a tu correo pronto.</p>';
         } catch (err) {
             estado.textContent = 'No se pudo enviar. Intenta de nuevo.';
+            boton.disabled = false;
+            boton.textContent = 'Enviar mensaje';
         }
     },
 
@@ -216,17 +227,34 @@ var Institucional = {
             '<input type="email" id="reclamoEmail" placeholder="Correo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoTelefono" placeholder="Teléfono (opcional)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoBien" placeholder="Producto o servicio relacionado" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoMonto" placeholder="Monto reclamado (opcional)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoMonto" placeholder="Monto reclamado (opcional, ej: 150.50)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<textarea id="reclamoDetalle" placeholder="Detalle de lo ocurrido" required rows="3" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
             '<textarea id="reclamoPedido" placeholder="¿Qué solución esperas?" required rows="2" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
-            '<button type="submit" style="width:100%;padding:12px;background:#DC2626;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Registrar reclamo</button>' +
+            '<button type="submit" id="reclamoBtnEnviar" style="width:100%;padding:12px;background:#DC2626;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Registrar reclamo</button>' +
             '<div id="reclamoEstado" style="margin-top:10px;text-align:center;"></div>' +
             '</form>');
     },
     enviarReclamo: async function(e) {
         e.preventDefault();
         var estado = document.getElementById('reclamoEstado');
-        estado.textContent = 'Enviando...';
+        var boton = document.getElementById('reclamoBtnEnviar');
+        var montoTexto = document.getElementById('reclamoMonto').value.trim();
+        var monto = null;
+        // El monto es opcional -- pero si lo llenaron, debe ser un número (admite coma o punto
+        // decimal), para no guardar algo como "como cien soles" en un campo pensado para montos.
+        if (montoTexto !== '') {
+            var montoNormalizado = montoTexto.replace(',', '.').replace(/[^0-9.]/g, '');
+            monto = parseFloat(montoNormalizado);
+            if (isNaN(monto)) {
+                estado.textContent = 'El monto reclamado debe ser un número (ej: 150.50). Déjalo vacío si no aplica.';
+                return;
+            }
+        }
+        // Se desactiva el botón mientras se envía, para que un doble clic por impaciencia no
+        // registre el mismo reclamo dos veces. Si falla, se reactiva para que pueda reintentar.
+        boton.disabled = true;
+        boton.textContent = 'Enviando...';
+        estado.textContent = '';
         try {
             var { error } = await supabase.from('libro_reclamaciones').insert({
                 tipo: document.getElementById('reclamoTipo').value,
@@ -235,7 +263,7 @@ var Institucional = {
                 email: document.getElementById('reclamoEmail').value,
                 telefono: document.getElementById('reclamoTelefono').value || null,
                 descripcion_bien_servicio: document.getElementById('reclamoBien').value,
-                monto_reclamado: document.getElementById('reclamoMonto').value || null,
+                monto_reclamado: monto,
                 detalle: document.getElementById('reclamoDetalle').value,
                 pedido_consumidor: document.getElementById('reclamoPedido').value
             });
@@ -243,6 +271,8 @@ var Institucional = {
             document.getElementById('formReclamo').innerHTML = '<p style="text-align:center;color:#059669;">✅ Tu reclamo fue registrado. Nos comunicaremos contigo pronto.</p>';
         } catch (err) {
             estado.textContent = 'No se pudo registrar. Intenta de nuevo.';
+            boton.disabled = false;
+            boton.textContent = 'Registrar reclamo';
         }
     }
 };
