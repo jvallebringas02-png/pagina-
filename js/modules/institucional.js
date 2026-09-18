@@ -167,18 +167,16 @@ var Institucional = {
     // ---------- Comunícate con el Admin / Libro de Reclamaciones ----------
     // Antes esto se resolvía como una conversación paso a paso dentro del chat del Asistente IA
     // (una pregunta a la vez). Se reemplazó por los formularios completos de una sola vez,
-    // mostrados en el muro central (ver mostrarContactoAdmin/mostrarLibroReclamaciones más abajo),
-    // que es donde vive la atención del usuario en el resto de la página.
-    // El parámetro "desdeChat" distingue el origen: si viene del pie de página, el formulario
-    // aparece directo y el Asistente se queda callado (nunca "hablaste" con él). Si en cambio el
-    // usuario le escribió algo como "quiero reclamar" al chat, el Asistente sí responde una vez,
-    // a modo de acuse de recibo -- y después queda en silencio mientras se llena el formulario.
-    iniciarContactoGuiado: function(desdeChat) {
-        if (desdeChat) UIController.mostrarRespuestaIA('¡Listo! Ya puedes completar el formulario que apareció en pantalla.');
+    // mostrados en el muro central (ver mostrarContactoAdmin/mostrarLibroReclamaciones más abajo).
+    // El Asistente avisa siempre con un mensaje corto cuando el formulario aparece en pantalla,
+    // sin importar si se activó desde el pie de página o escribiéndole algo al chat -- así queda
+    // consistente en los dos casos, y después se queda en silencio mientras se llena el formulario.
+    iniciarContactoGuiado: function() {
+        UIController.mostrarRespuestaIA('📩 Aquí tienes el formulario para comunicarte con el administrador.');
         this.mostrarContactoAdmin();
     },
-    iniciarReclamoGuiado: function(desdeChat) {
-        if (desdeChat) UIController.mostrarRespuestaIA('¡Listo! Ya puedes completar el formulario que apareció en pantalla.');
+    iniciarReclamoGuiado: function() {
+        UIController.mostrarRespuestaIA('📋 Aquí tienes el formulario del Libro de Reclamaciones.');
         this.mostrarLibroReclamaciones();
     },
 
