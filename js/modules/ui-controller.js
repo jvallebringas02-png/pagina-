@@ -101,6 +101,22 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             '<div class="ai-context-banner">🌱 <strong>Sobre remarket-db</strong></div>' +
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + escHtml(texto) + '</div>';
     },
+    // Muestra un formulario (Comunícate con el Administrador, Libro de Reclamaciones, etc.)
+    // en el muro central, en vez de un modal o del chat del Asistente IA -- mismo patrón visual
+    // que mostrarQuienesSomosEnMuro: banner con ícono + tarjeta blanca, para que se sienta parte
+    // de la misma página. formularioHTML ya viene armado (incluye su propio <form>).
+    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) {
+        this.elementos.searchBreadcrumb.style.display = 'flex';
+        this.elementos.searchQuery.textContent = titulo;
+        this.elementos.resultCount.textContent = '';
+        this.elementos.catalogContainer.style.display = 'none';
+        this.elementos.searchResultsContainer.style.display = 'block';
+        this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
+        this.elementos.searchResultsContent.innerHTML =
+            '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.cerrarResultados();">← Volver al inicio</a></div>' +
+            '<div class="ai-context-banner">' + icono + ' <strong>' + escHtml(titulo) + '</strong></div>' +
+            '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;max-width:520px;">' + formularioHTML + '</div>';
+    },
     _matrizPila: [],
     mostrarMatrizNiveles: function(matriz) {
         this._matrizActual = matriz;
