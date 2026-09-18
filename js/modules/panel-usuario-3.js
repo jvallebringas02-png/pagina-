@@ -390,23 +390,16 @@ Object.assign(PanelUsuario, {
         document.getElementById('pubTruequeWrap').style.display = modalidad === 'trueque' ? 'block' : 'none';
     },
 
-    MAPA_CATEGORIAS: {
-        'Tecnología': ['celular','iphone','android','laptop','computadora','tablet','audifono','tv','televisor','consola','playstation','xbox'],
-        'Hogar': ['mueble','sofa','mesa','silla','refrigeradora','cocina','lavadora','microondas','decoracion'],
-        'Ropa': ['camisa','polo','pantalon','zapato','zapatilla','casaca','vestido','chompa','ropa','correa','cartera','mochila','lentes','reloj','gorra','cinturon','bolso'],
-        'Deportes': ['bicicleta','pesas','balon','pelota','raqueta','patines','gimnasio'],
-        'Vehículos': ['auto','carro','moto','camioneta','vehiculo','placa'],
-        'Agro': ['papa','uva','semilla','fruta','verdura','cosecha','ganado','abono'],
-        'Servicios': ['reparacion','gasfitero','electricista','clases','asesoria','instalacion','mantenimiento'],
-        'Libros': ['libro','novela','texto escolar','cuaderno']
-    },
+    // MAPA_CATEGORIAS ya no vive aquí -- se centralizó en BuscadorMotor.MAPA_CATEGORIAS
+    // (buscador.js), para que "publicar" y "buscar" usen siempre la misma lista de palabras.
 
     sugerirCategoria: function() {
         var texto = ((document.getElementById('pubTitulo').value || '') + ' ' + (document.getElementById('pubDescripcion').value || '')).toLowerCase();
         if (!texto.trim()) { document.getElementById('pubCategoriaSugerida').textContent = ''; return; }
+        var mapaCategorias = (typeof BuscadorMotor !== 'undefined') ? BuscadorMotor.MAPA_CATEGORIAS : {};
         var mejorCategoria = null;
-        for (var cat in this.MAPA_CATEGORIAS) {
-            var palabras = this.MAPA_CATEGORIAS[cat];
+        for (var cat in mapaCategorias) {
+            var palabras = mapaCategorias[cat];
             for (var i = 0; i < palabras.length; i++) {
                 if (texto.indexOf(palabras[i]) !== -1) { mejorCategoria = cat; break; }
             }
@@ -1501,8 +1494,9 @@ Object.assign(PanelUsuario, {
     // Respaldo sin conexión a IA: diccionario de palabras clave (el que ya existía)
     detectarCategoriaPorDiccionario: function(texto) {
         texto = (texto || '').toLowerCase();
-        for (var cat in this.MAPA_CATEGORIAS) {
-            var palabras = this.MAPA_CATEGORIAS[cat];
+        var mapaCategorias = (typeof BuscadorMotor !== 'undefined') ? BuscadorMotor.MAPA_CATEGORIAS : {};
+        for (var cat in mapaCategorias) {
+            var palabras = mapaCategorias[cat];
             for (var i = 0; i < palabras.length; i++) {
                 if (texto.indexOf(palabras[i]) !== -1) return cat;
             }

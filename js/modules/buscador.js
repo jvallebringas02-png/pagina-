@@ -71,7 +71,50 @@ var BuscadorMotor = {
     catalogo: [],
     JERGA: { 'carro': 'auto', 'carros': 'auto', 'auto': 'auto', 'autos': 'auto', 'vehiculo': 'auto', 'vehiculos': 'auto', 'coche': 'auto', 'coches': 'auto', 'chompa': 'casaca', 'casaca': 'chompa', 'polo': 'camiseta', 'camisa': 'camiseta', 'camiseta': 'camisa', 'blusa': 'camisa', 'playera': 'camiseta', 'remera': 'camiseta', 'zapa': 'zapatilla', 'zapato': 'zapatilla', 'zapatos': 'zapatilla', 'tenis': 'zapatilla', 'celu': 'celular', 'cel': 'celular', 'note': 'laptop', 'lapto': 'laptop', 'compu': 'computadora', 'ordenador': 'computadora', 'tele': 'televisor', 'bici': 'bicicleta', 'carpintero': 'carpinteria', 'chumpi': 'faja', 'aguayo': 'manta', 'poncho': 'poncho', 'chullo': 'gorro', 'lliqlla': 'manta', 'papa': 'papa', 'quinua': 'quinua', 'oca': 'oca', 'alpaca': 'alpaca', 'maskani': 'busco', 'rantini': 'compro', 'rantikuni': 'vendo', 'aljt\'a': 'venta' },
     STOPWORDS: new Set(['de', 'la', 'el', 'en', 'y', 'a', 'los', 'del', 'se', 'las', 'por', 'un', 'para', 'con', 'no', 'una', 'su', 'al', 'es', 'que', 'si', 'sin', 'sobre', 'este', 'entre', 'cuando', 'muy', 'ya', 'todo', 'esa', 'esos', 'esto', 'eso', 'esta', 'ser', 'ha', 'cada', 'mas', 'pero', 'otro', 'le', 'o', 'estar', 'tener', 'hay', 'aqui', 'bueno', 'tan', 'cual', 'donde', 'mi', 'tu', 'yo', 'me', 'te', 'nos', 'lo', 'como', 'quien', 'porque', 'segun', 'hasta', 'desde', 'hacia']),
+    // Categoría real <- palabras de subcategoría/tipo de producto (ej: "zapato" pertenece a "Ropa").
+    // ÚNICA fuente de verdad: antes esta misma lista vivía duplicada dentro de
+    // PanelUsuario.sugerirCategoria() (panel-usuario-3.js), solo para sugerir categoría al publicar.
+    // Se centraliza aquí para que el buscador también sepa que "zapatos" es un tipo de "Ropa",
+    // y panel-usuario-3.js ahora apunta a esta misma lista en vez de tener su propia copia.
+    MAPA_CATEGORIAS: {
+        'Tecnología': ['celular','iphone','android','laptop','computadora','tablet','audifono','tv','televisor','consola','playstation','xbox'],
+        'Hogar': ['mueble','sofa','mesa','silla','refrigeradora','cocina','lavadora','microondas','decoracion'],
+        'Ropa': ['camisa','polo','pantalon','zapato','zapatilla','casaca','vestido','chompa','ropa','correa','cartera','mochila','lentes','reloj','gorra','cinturon','bolso'],
+        'Deportes': ['bicicleta','pesas','balon','pelota','raqueta','patines','gimnasio'],
+        'Vehículos': ['auto','carro','moto','camioneta','vehiculo','placa'],
+        'Agro': ['papa','uva','semilla','fruta','verdura','cosecha','ganado','abono'],
+        'Servicios': ['reparacion','gasfitero','electricista','clases','asesoria','instalacion','mantenimiento'],
+        'Libros': ['libro','novela','texto escolar','cuaderno']
+    },
     normalizar: function(t) { return t ? t.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim() : ''; },
+    // Dado un texto libre ("busco zapatos para correr"), devuelve la categoría real a la que
+    // pertenece según MAPA_CATEGORIAS (ej: "Ropa"), o null si ninguna palabra coincide. Compara
+    // por palabra completa (con espacios alrededor) para no confundir "auto" dentro de "automóvil"
+    // con otra cosa, y se queda con la coincidencia más larga/específica si hay varias.
+    resolverCategoriaDesdeTexto: function(texto) {
+        var textoNorm = this.normalizar(texto);
+        if (!textoNorm) return null;
+        // Variantes de cada palabra del texto: la palabra tal cual, y su forma singular si
+        // termina en "s" (misma regla que ya usa calcularPuntaje para plurales) -- así "zapatos"
+        // encuentra "zapato" en MAPA_CATEGORIAS sin tener que listar cada plural a mano.
+        var variantes = {};
+        textoNorm.split(' ').forEach(function(palabra) {
+            if (palabra.length <= 2) return;
+            variantes[palabra] = true;
+            if (palabra.length > 4 && palabra.charAt(palabra.length - 1) === 's') variantes[palabra.slice(0, -1)] = true;
+        });
+        var self = this, categoriaEncontrada = null, masLargo = 0;
+        Object.keys(this.MAPA_CATEGORIAS).forEach(function(categoria) {
+            self.MAPA_CATEGORIAS[categoria].forEach(function(palabra) {
+                var palabraNorm = self.normalizar(palabra);
+                if (variantes[palabraNorm] && palabraNorm.length > masLargo) {
+                    categoriaEncontrada = categoria;
+                    masLargo = palabraNorm.length;
+                }
+            });
+        });
+        return categoriaEncontrada;
+    },
     tokenizar: function(texto) { var n = this.normalizar(texto); if (!n) return []; return n.split(' ').filter(function(t) { return t.length > 2 && !this.STOPWORDS.has(t); }.bind(this)).map(function(t) { return this.JERGA[t] || t; }.bind(this)); },
     construirIndice: function(articulos) { this.catalogo = articulos; },
     // Sinónimos completos de un token: antes solo se traducía la palabra de búsqueda a UNA forma
@@ -232,6 +275,13 @@ var BuscadorMotor = {
         var categoriasDisponibles = this.obtenerCategoriasDisponibles().map(function(c) { return c.nombre; });
         var textoNorm = this.normalizar(texto);
         var categoriasEncontradas = categoriasDisponibles.filter(function(cat) { return textoNorm.indexOf(self.normalizar(cat)) !== -1; });
+        // Si no mencionó el nombre exacto de la categoría pero sí una subcategoría/tipo de producto
+        // (ej: "zapatos" en vez de "Ropa"), se resuelve igual -- pero solo si esa categoría
+        // realmente tiene publicaciones en el catálogo, para no armar una matriz vacía.
+        var categoriaPorSubcategoria = this.resolverCategoriaDesdeTexto(texto);
+        if (categoriaPorSubcategoria && categoriasEncontradas.indexOf(categoriaPorSubcategoria) === -1 && categoriasDisponibles.indexOf(categoriaPorSubcategoria) !== -1) {
+            categoriasEncontradas.push(categoriaPorSubcategoria);
+        }
         var mencionaMatriz = /\b(matriz|comparar|cruzad[oa]|categorias? por pais|categorias? por ciudad)\b/.test(textoNorm);
         var lugar = this.extraerLugar(texto);
 
@@ -327,6 +377,16 @@ var BuscadorMotor = {
         // distintos (qué buscas / dónde), no se debe mezclar "peru" como si fuera parte del producto.
         var queryProducto = (lugar && !lugarEsPropio) ? query.replace(new RegExp(lugar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ') : query;
         var tokens = this.tokenizar(queryProducto);
+        // Si la consulta menciona una subcategoría/tipo de producto (ej: "zapatos"), se agrega el
+        // nombre de su categoría real como token extra -- así también aparecen productos de esa
+        // categoría aunque su título no diga la palabra exacta. calcularPuntaje ya da más puntaje
+        // a coincidencia de título (10) que de categoría (5), así que los que sí dicen "zapato"
+        // en el título siguen apareciendo primero; esto solo agrega los demás de Ropa debajo.
+        var categoriaSugerida = this.resolverCategoriaDesdeTexto(queryProducto);
+        if (categoriaSugerida) {
+            var tokenCategoria = this.normalizar(categoriaSugerida);
+            if (tokens.indexOf(tokenCategoria) === -1) tokens = tokens.concat([tokenCategoria]);
+        }
         var presupuesto = this.extraerPresupuesto(query);
 
         var mapear = function(art, puntaje) {
