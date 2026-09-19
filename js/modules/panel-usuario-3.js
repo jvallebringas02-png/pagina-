@@ -2,7 +2,12 @@ Object.assign(PanelUsuario, {
     // Abre el modal de Publicar ya con el título sugerido por el Asistente (y marca "servicio"
     // si detecta esa palabra), para cuando el usuario dice "doy servicio de transporte" en vez de buscar.
     iniciarPublicacionDesdeAsistente: function(tituloSugerido) {
-        if (!usuarioActual) { guardarAccionPendienteLogin({ tipo: 'publicar', tituloSugerido: tituloSugerido }); toggleAuthModal(true); return; }
+        if (!usuarioActual) {
+            UIController.mostrarRespuestaIA('¡Perfecto! Para publicarlo necesitas iniciar sesión primero -- te abro el formulario.');
+            guardarAccionPendienteLogin({ tipo: 'publicar', tituloSugerido: tituloSugerido });
+            toggleAuthModal(true);
+            return;
+        }
         this.abrirModalPublicar();
         var esServicio = /servicio/i.test(tituloSugerido);
         document.getElementById('pubTipo').value = esServicio ? 'servicio' : 'producto';
