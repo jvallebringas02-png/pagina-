@@ -26,11 +26,15 @@ var AIService = {
 
     // La IA a veces envuelve el JSON en ```json ... ``` a pesar de la instrucción -- se le
     // quita eso antes de intentar parsear. Si algo falla (JSON inválido, o no hubo respuesta
-    // por un error de conexión), se devuelve un objeto de respaldo con entendido:false y
-    // accion:null, para que quien lo reciba sepa tratarlo como "no se pudo" en vez de que la
-    // página se rompa o se quede en silencio.
+    // por un error de conexión), se devuelve un objeto de respaldo. Se marca "_fallo_tecnico:
+    // true" -- esta bandera la pone SOLO el código, nunca la IA, y es la única señal confiable
+    // de que algo salió mal de verdad (sin respuesta, o JSON ilegible). El campo "entendido"
+    // que reporta la propia IA no se usa para decidir nada crítico: en la práctica el modelo lo
+    // marca en false incluso cuando respondió bien pero no disparó ninguna acción concreta
+    // (ej. una pregunta sobre la plataforma), así que confiar en él generaba avisos de "no
+    // entendí" pegados a respuestas que en realidad estaban completas y correctas.
     _parsearRespuesta: function(textoBruto) {
-        var vacio = { mensaje_chat: 'No pude conectarme bien en este momento. ¿Puedes intentar de nuevo?', entendido: false, accion: null, producto: null, categoria: null, nombre: null, titulo: null, tema: null, orden: null, ubicacion: null, modalidad: null, nivel_matriz: null };
+        var vacio = { mensaje_chat: 'No pude conectarme bien en este momento. ¿Puedes intentar de nuevo?', entendido: false, _fallo_tecnico: true, accion: null, producto: null, categoria: null, nombre: null, titulo: null, tema: null, orden: null, ubicacion: null, modalidad: null, nivel_matriz: null };
         if (!textoBruto) return vacio;
         try {
             var limpio = textoBruto.trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
@@ -38,7 +42,12 @@ var AIService = {
             if (!datos || typeof datos !== 'object') return vacio;
             if (typeof datos.mensaje_chat !== 'string' || !datos.mensaje_chat.trim()) datos.mensaje_chat = vacio.mensaje_chat;
             datos.accion = datos.accion ? String(datos.accion).trim().toUpperCase() : null;
+            // Se guarda tal cual lo que reportó la IA (por si sirve para depurar en consola),
+            // pero NO se usa para decidir si se muestra el aviso de "no entendí" -- eso lo
+            // decide únicamente _fallo_tecnico, que aquí se pone en false porque el JSON sí
+            // se pudo leer bien, sea cual sea el valor de "entendido".
             datos.entendido = (datos.entendido === false) ? false : true;
+            datos._fallo_tecnico = false;
             // Se completan los campos que la IA no haya incluido, para que el resto del código
             // pueda leer datos.orden, datos.categoria, etc. sin tener que comprobar antes si existen.
             ['producto', 'categoria', 'nombre', 'titulo', 'tema', 'orden', 'ubicacion', 'modalidad', 'nivel_matriz'].forEach(function(campo) {

@@ -82,17 +82,28 @@ var EventController = {
                 if (resultadoIA.tipo === 'busqueda') usuarios = await PanelUsuario.buscarUsuariosCompartir(resultadoIA.categoria, resultadoIA.nivel_zona);
             }
             UIController.mostrarResultadosPersonas(nombre, usuarios || []);
-        } else if (datos.entendido === false) {
-            // La IA misma avisó que no está segura de haber entendido -- en vez de quedarnos en
-            // silencio (como pasaba antes con el "else" que solo cerraba resultados sin decir
-            // nada), se guía a la persona con ejemplos concretos de frases que sí funcionan.
-            UIController.cerrarResultados();
-            UIController.mostrarRespuestaIA('Puedo ayudarte mejor si lo dices de otra forma. Por ejemplo: "zapatos baratos en Lima", "ver categorías a nivel mundial", "ropa en trueque cerca de mí", o "los últimos anuncios".');
+        } else if (datos._fallo_tecnico) {
+            // Falla técnica real y comprobable por el código (sin respuesta de la IA, o un JSON
+            // que no se pudo leer) -- no el campo "entendido" que reporta la propia IA, que
+            // resultó no ser confiable (se marcaba en false incluso ante respuestas
+            // conversacionales completas y correctas). Antes de rendirnos, se intenta igual la
+            // búsqueda literal de lo que la persona escribió, con el mismo motor genérico que
+            // ya usa toda búsqueda normal.
+            var resultadoRespaldo = await BuscadorMotor.ejecutarBusquedaHibrida(queryOriginal);
+            if (resultadoRespaldo.resultados && resultadoRespaldo.resultados.length) {
+                UIController.mostrarResultadosBusqueda(resultadoRespaldo);
+            } else {
+                // Ni la IA ni la búsqueda literal encontraron sentido a esto -- recién acá se
+                // guía a la persona con ejemplos concretos de frases que sí funcionan.
+                UIController.cerrarResultados();
+                UIController.mostrarRespuestaIA('Puedo ayudarte mejor si lo dices de otra forma. Por ejemplo: "zapatos baratos en Lima", "ver categorías a nivel mundial", "ropa en trueque cerca de mí", o "los últimos anuncios".');
+            }
         } else {
-            // accion en null pero entendido:true -- fue una respuesta puramente conversacional
-            // (saludo, pregunta de cultura general, tema delicado ya resuelto en el chat) y no
-            // hay nada que mostrar en el muro. Se cierra cualquier resultado que hubiera quedado
-            // abierto de una búsqueda anterior, y ya -- el mensaje de chat ya se mostró aparte.
+            // accion en null y sin fallo técnico -- fue una respuesta puramente conversacional
+            // (saludo, pregunta de cultura general, consejo, tema delicado ya resuelto en el
+            // chat, pregunta sobre la plataforma, etc.) y no hay nada que mostrar en el muro.
+            // No se usa el campo "entendido" para esta decisión -- ya se mostró aparte lo que
+            // dijo la IA, y aquí solo se cierra cualquier resultado que hubiera quedado abierto.
             UIController.cerrarResultados();
         }
     },
