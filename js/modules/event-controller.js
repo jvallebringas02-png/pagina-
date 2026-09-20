@@ -83,20 +83,29 @@ var EventController = {
             }
             UIController.mostrarResultadosPersonas(nombre, usuarios || []);
         } else if (datos._fallo_tecnico) {
-            // Falla técnica real y comprobable por el código (sin respuesta de la IA, o un JSON
-            // que no se pudo leer) -- no el campo "entendido" que reporta la propia IA, que
-            // resultó no ser confiable (se marcaba en false incluso ante respuestas
-            // conversacionales completas y correctas). Antes de rendirnos, se intenta igual la
-            // búsqueda literal de lo que la persona escribió, con el mismo motor genérico que
-            // ya usa toda búsqueda normal.
+            // Falla técnica real y comprobable por el código: no hubo respuesta de la IA en
+            // absoluto (sin conexión, error del servidor). Acá sí tiene sentido el aviso de
+            // guía si tampoco hay nada que mostrar -- no hay ninguna respuesta real detrás.
             var resultadoRespaldo = await BuscadorMotor.ejecutarBusquedaHibrida(queryOriginal);
             if (resultadoRespaldo.resultados && resultadoRespaldo.resultados.length) {
                 UIController.mostrarResultadosBusqueda(resultadoRespaldo);
             } else {
-                // Ni la IA ni la búsqueda literal encontraron sentido a esto -- recién acá se
-                // guía a la persona con ejemplos concretos de frases que sí funcionan.
                 UIController.cerrarResultados();
                 UIController.mostrarRespuestaIA('Puedo ayudarte mejor si lo dices de otra forma. Por ejemplo: "zapatos baratos en Lima", "ver categorías a nivel mundial", "ropa en trueque cerca de mí", o "los últimos anuncios".');
+            }
+        } else if (datos._formato_invalido) {
+            // La IA SÍ respondió con contenido real (ya se mostró en el chat aparte, tal como
+            // vino) -- solo que no vino en el formato de datos, así que no hay ningún campo
+            // confiable para decidir una acción. Se prueba en silencio una búsqueda literal por
+            // si de casualidad era un producto del catálogo, pero NUNCA se agrega el aviso de
+            // "dilo de otra forma" -- la respuesta de la IA ya era una respuesta completa y
+            // válida (ej. una recomendación de música), agregarle ese aviso encima es lo que
+            // generaba el mensaje contradictorio.
+            var resultadoSilencioso = await BuscadorMotor.ejecutarBusquedaHibrida(queryOriginal);
+            if (resultadoSilencioso.resultados && resultadoSilencioso.resultados.length) {
+                UIController.mostrarResultadosBusqueda(resultadoSilencioso);
+            } else {
+                UIController.cerrarResultados();
             }
         } else {
             // accion en null y sin fallo técnico -- fue una respuesta puramente conversacional
