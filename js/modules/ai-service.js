@@ -6,7 +6,10 @@ var AIService = {
     // según quién la llame, pero la IA solo se consulta UNA vez por mensaje.
     _consultarIA: async function(mensaje) {
         var idiomaInterfaz = obtenerIdiomaPreferido(); // Solo para la interfaz y la búsqueda web; el chat detecta el idioma real del mensaje.
-        if (this.historial.length === 0) { this.historial.push({ role: "system", content: PROMPT_BASE }); }
+        // 🔒 Ya no se manda un mensaje "system" con PROMPT_BASE aquí: el servidor (función chat-ia)
+        // lo descarta de todas formas y usa su propio PROMPT_BASE. Mandarlo solo agregaba peso
+        // a la petición sin ningún efecto real -- si en algún momento vuelven a permitir que el
+        // cliente defina el prompt, este es el lugar donde había que restaurarlo.
         this.historial.push({ role: "user", content: mensaje });
         var textoBruto = null;
         try {
