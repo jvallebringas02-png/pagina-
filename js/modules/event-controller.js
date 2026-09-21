@@ -94,13 +94,7 @@ var EventController = {
                 UIController.mostrarResultadosBusqueda(resultadoRespaldo);
             } else {
                 if (!UIController.formularioAbierto) { UIController.cerrarResultados(); }
-                UIController.mostrarRespuestaIA('No pude conectarme bien en este momento, pero puedo ayudarte igual con esto:');
-                UIController.mostrarBotonesGuia([
-                    { texto: '📍 Ver mi zona', accion: function() { EventController.ejecutarAccionGuia('zona'); } },
-                    { texto: '🆕 Lo último publicado', accion: function() { EventController.ejecutarAccionGuia('recientes'); } },
-                    { texto: '📦 Publicar algo mío', accion: function() { EventController.ejecutarAccionGuia('publicar'); } },
-                    { texto: '🔍 Buscar algo', accion: function() { EventController.ejecutarAccionGuia('buscar'); } }
-                ]);
+                UIController.mostrarRespuestaIA('No pude conectarme bien en este momento, pero tienes los accesos rápidos en la barra lateral para seguir igual.');
             }
         } else if (datos._formato_invalido) {
             // La IA SÍ respondió con contenido real (ya se mostró en el chat aparte, tal como
@@ -149,6 +143,13 @@ var EventController = {
             // búsqueda principal para que escriba ahí, en vez de intentar adivinar.
             var buscadorPrincipal = document.getElementById('dynamicSearch');
             if (buscadorPrincipal) buscadorPrincipal.focus();
+        } else if (tipo === 'categorias') {
+            var categoriasGuia = BuscadorMotor.obtenerCategoriasDisponibles();
+            UIController.mostrarListaCategorias(categoriasGuia);
+        } else if (tipo === 'mundial') {
+            UIController._matrizPila = [];
+            var matrizMundialGuia = BuscadorMotor.obtenerMatrizNiveles(null, 'mundial', null);
+            UIController.mostrarMatrizNiveles(matrizMundialGuia);
         }
     },
 
@@ -255,13 +256,7 @@ var EventController = {
     manejarLimpiarChat: function() {
         if (confirm("¿Borrar conversación?")) {
             AIService.limpiarHistorial();
-            document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>' +
-                '<div class="chat-guia-botones">' +
-                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'zona\')">📍 Ver mi zona</button>' +
-                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'recientes\')">🆕 Lo último publicado</button>' +
-                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'publicar\')">📦 Publicar algo mío</button>' +
-                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'buscar\')">🔍 Buscar algo</button>' +
-                '</div>';
+            document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>';
             var buscador = document.getElementById('dynamicSearch');
             if (buscador) buscador.value = ''; // limpiar el chat también limpia lo que quedó escrito en el buscador
             if (typeof UIController !== 'undefined' && UIController.cerrarResultados) UIController.cerrarResultados(); // y cierra el panel de resultados que haya quedado abierto
