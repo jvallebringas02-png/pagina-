@@ -180,6 +180,14 @@ var Institucional = {
         this.mostrarLibroReclamaciones();
     },
 
+    // Reportar una publicación puntual desde su tarjeta -- reusa el mismo Libro de
+    // Reclamaciones (ya funciona sin necesitar cuenta), pero llega con el tipo "Reporte" y
+    // el nombre del producto ya llenados, para que la persona no tenga que escribirlo de nuevo.
+    reportarPublicacion: function(tituloProducto) {
+        UIController.mostrarRespuestaIA('🚩 Vamos a registrar tu reporte sobre "' + tituloProducto + '" -- completa el resto de los datos y quedará constancia formal.');
+        this.mostrarLibroReclamaciones({ tipo: 'reporte', bien: tituloProducto });
+    },
+
     // ---------- Comunícate con el Admin ----------
     mostrarContactoAdmin: function() {
         UIController.mostrarFormularioEnMuro('Comunícate con el Administrador', '📩', '' +
@@ -216,15 +224,20 @@ var Institucional = {
     },
 
     // ---------- Libro de Reclamaciones ----------
-    mostrarLibroReclamaciones: function() {
+    // prefill (opcional): { tipo: 'reclamo'|'queja'|'reporte', bien: 'nombre del producto' } --
+    // se usa cuando se llega desde el botón "Reportar" de una tarjeta puntual.
+    mostrarLibroReclamaciones: function(prefill) {
+        var tipoSel = (prefill && prefill.tipo) || '';
+        var bienVal = (prefill && prefill.bien) ? escHtml(prefill.bien) : '';
+        function opt(valor, texto) { return '<option value="' + valor + '"' + (tipoSel === valor ? ' selected' : '') + '>' + texto + '</option>'; }
         UIController.mostrarFormularioEnMuro('Libro de Reclamaciones', '📋', '' +
             '<form id="formReclamo" onsubmit="Institucional.enviarReclamo(event)">' +
-            '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">Tipo...</option><option value="reclamo">Reclamo</option><option value="queja">Queja</option></select>' +
+            '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">Tipo...</option>' + opt('reclamo', 'Reclamo') + opt('queja', 'Queja') + opt('reporte', 'Reporte de publicación') + '</select>' +
             '<input type="text" id="reclamoNombre" placeholder="Nombre completo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoDocumento" placeholder="DNI / documento" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="email" id="reclamoEmail" placeholder="Correo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoTelefono" placeholder="Teléfono (opcional)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoBien" placeholder="Producto o servicio relacionado" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoBien" placeholder="Producto o servicio relacionado" required value="' + bienVal + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoMonto" placeholder="Monto reclamado (opcional, ej: 150.50)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<textarea id="reclamoDetalle" placeholder="Detalle de lo ocurrido" required rows="3" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
             '<textarea id="reclamoPedido" placeholder="¿Qué solución esperas?" required rows="2" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
