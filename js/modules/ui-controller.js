@@ -10,6 +10,11 @@ function escHtml(str) {
 
 var UIController = {
     elementos: {},
+    // Se pone en true justo cuando se muestra un formulario real en el muro (contacto,
+    // reclamos, etc.) y en false en cualquier otra vista. Sirve para que una respuesta
+    // puramente conversacional de la IA (accion: null, ej. una aclaración sobre cómo llenar
+    // el formulario) no cierre por accidente un formulario que el usuario tenía a medio llenar.
+    formularioAbierto: false,
     // Los números de página ("← Anterior | 1 | 2 | Siguiente") viven en un elemento aparte
     // (#paginacionBusqueda), fuera del bloque de contenido que arma cada vista. Antes, vistas
     // como "Quiénes somos" o el formulario de contacto no lo limpiaban, así que si justo antes
@@ -60,10 +65,10 @@ var UIController = {
     },
     renderizarArticulos: function(lista) { Paginador.inicializar('articulosContainer', 'paginacionCatalogo', lista, 9, this.renderizarTarjetaArticulo); },
     renderizarItemResultado: function(art) { var icono = art.icono || ''; var tituloSeguro = escHtml(art.titulo), descSeguro = escHtml(art.descripcion), imgSeguro = escHtml(art.imagen_url), catSeguro = escHtml(art.categoria), paisSeguro = escHtml(art.pais), modSeguro = escHtml(art.modalidad); var imagenHTML = art.imagen_url ? '<img src="' + imgSeguro + '" class="result-img" alt="' + tituloSeguro + '">' : '<div class="result-icon-fallback">' + icono + '</div>'; var exp = art._es_externo ? '<span class="badge badge-externo">🌐 Referencia Global</span>' : (art._es_expandido ? '<span class="badge badge-expandido">🌍 Zona lejana</span>' : ''); var pais = art.pais ? '<span class="badge badge-pais">📍 ' + paisSeguro + '</span>' : ''; var modal = art.modalidad ? '<span class="badge badge-modalidad">' + modSeguro + '</span>' : ''; var patrocinado = art.es_patrocinado ? '<span class="badge" style="background:#F59E0B;color:#fff;">📢 Patrocinado</span>' : ''; var distanciaHTML = (typeof art.distancia_km === 'number' && !isNaN(art.distancia_km)) ? '<span class="badge badge-distancia"> ' + art.distancia_km + ' km</span>' : ''; return '<div class="result-item" onclick="UIController.abrirModal(\'' + tituloSeguro.replace(/'/g, "\\'") + '\',\'' + descSeguro.replace(/'/g, "\\'") + '\',\'' + imgSeguro.replace(/'/g, "\\'") + '\',\'' + icono + '\')">' + imagenHTML + '<div class="result-info"><div class="result-title">' + tituloSeguro + '</div><div class="result-category">' + catSeguro + '</div><div class="result-desc">' + descSeguro.substring(0, 100) + '...</div>' + '<div class="result-badges"><span class="badge badge-disponible">🟢 Disponible</span>' + distanciaHTML + pais + modal + patrocinado + exp + '</div></div>' + '<div class="result-actions"><div class="result-price">S/ ' + art.precio + '</div><button class="btn-contactar" onclick="event.stopPropagation(); UIController.contactarProducto(' + (art.usuario_id ? "'" + art.usuario_id + "'" : 'null') + ', \'' + tituloSeguro.replace(/'/g, "\\'") + '\')">📞 Contactar</button></div></div>'; },
-    mostrarResultadosBusqueda: function(resultado) { this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' resultados'; this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Resultados de Búsqueda'; var html = resultado._volverAMatriz ? '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverMatrizAnterior();">← Volver a la matriz</a></div>' : ''; if (resultado.lugar_sin_resultados) { html += '<div class="ai-context-banner expandido">📍 No encontramos esto en <strong>' + escHtml(resultado.lugar_sin_resultados) + '</strong>, pero sí en estas otras zonas:</div>'; } else if (resultado.lugar_aplicado) { html += '<div class="ai-context-banner">📍 Filtrado por: <strong>' + escHtml(resultado.lugar_aplicado) + '</strong></div>'; } else if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>Búsqueda Híbrida:</strong> Combinamos resultados locales con referencias globales.</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>Búsqueda global:</strong> No encontramos resultados cerca, pero te mostramos opciones internacionales.</div>'; } else { html += '<div class="ai-context-banner">📍 Mostrando resultados de ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.orden_aplicado === 'precio_asc') { html += '<div class="ai-context-banner">💰 Ordenado del más barato al más caro</div>'; } else if (resultado.orden_aplicado === 'precio_desc') { html += '<div class="ai-context-banner">💰 Ordenado del más caro al más barato</div>'; } var hayExterno = (resultado.resultados_web && resultado.resultados_web.length) || (resultado.resultados_videos && resultado.resultados_videos.length);
+    mostrarResultadosBusqueda: function(resultado) { this.formularioAbierto = false; this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' resultados'; this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Resultados de Búsqueda'; var html = resultado._volverAMatriz ? '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverMatrizAnterior();">← Volver a la matriz</a></div>' : ''; if (resultado.lugar_sin_resultados) { html += '<div class="ai-context-banner expandido">📍 No encontramos esto en <strong>' + escHtml(resultado.lugar_sin_resultados) + '</strong>, pero sí en estas otras zonas:</div>'; } else if (resultado.lugar_aplicado) { html += '<div class="ai-context-banner">📍 Filtrado por: <strong>' + escHtml(resultado.lugar_aplicado) + '</strong></div>'; } else if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>Búsqueda Híbrida:</strong> Combinamos resultados locales con referencias globales.</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>Búsqueda global:</strong> No encontramos resultados cerca, pero te mostramos opciones internacionales.</div>'; } else { html += '<div class="ai-context-banner">📍 Mostrando resultados de ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.orden_aplicado === 'precio_asc') { html += '<div class="ai-context-banner">💰 Ordenado del más barato al más caro</div>'; } else if (resultado.orden_aplicado === 'precio_desc') { html += '<div class="ai-context-banner">💰 Ordenado del más caro al más barato</div>'; } var hayExterno = (resultado.resultados_web && resultado.resultados_web.length) || (resultado.resultados_videos && resultado.resultados_videos.length);
 if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-align:center;padding:20px;"><p>No tienes productos publicados para esto, pero encontramos lo siguiente:</p></div>'; } else if (resultado.coincidencias === 0) { var qSug = escHtml(resultado.query || '').replace(/'/g, "\\'"); html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos con "' + escHtml(resultado.query || '') + '". Intenta con sinónimos, o publica tú mismo lo que buscas para que otros lo vean.</p><button class="btn-publicar" onclick="PanelUsuario.iniciarPublicacionDesdeAsistente(\'' + qSug + '\')">📦 Publicar esto</button></div>'; } else { html += '<div id="resultadosProductosLista"></div>'; } var self = this; if (resultado.resultados_web && resultado.resultados_web.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🌐 <strong>Resultados de internet</strong></div>'; html += resultado.resultados_web.map(function(w) { return '<div class="result-item" onclick="window.open(\'' + escHtml(w.link) + '\', \'_blank\')"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>'; }).join(''); } if (resultado.resultados_videos && resultado.resultados_videos.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🎬 <strong>Videos de YouTube</strong></div>'; html += resultado.resultados_videos.map(function(v) { var miniatura = v.miniatura ? '<img src="' + escHtml(v.miniatura) + '" class="result-img" alt="' + escHtml(v.titulo) + '">' : '<div class="result-icon-fallback">🎬</div>'; return '<div class="result-item" onclick="window.open(\'' + escHtml(v.link) + '\', \'_blank\')">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; if (resultado.coincidencias > 0) { Paginador.inicializar('resultadosProductosLista', 'paginacionBusqueda', resultado.resultados, 9, this.renderizarItemResultado); } else { var pc = document.getElementById('paginacionBusqueda'); if (pc) pc.innerHTML = ''; } },
     // etiqueta permite reusar esta misma vista para Música, cambiando solo el ícono/texto del banner
-    mostrarResultadosVideo: function(tema, videos, etiqueta) { this.limpiarPaginacionVieja();
+    mostrarResultadosVideo: function(tema, videos, etiqueta) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         etiqueta = etiqueta || { icono: '🎬', titulo: 'Videos de YouTube', vacio: 'No encontramos videos sobre eso. Intenta con otras palabras.' };
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = tema || '';
@@ -83,7 +88,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
-    mostrarResultadosWeb: function(tema, resultadosWeb) { this.limpiarPaginacionVieja();
+    mostrarResultadosWeb: function(tema, resultadosWeb) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = tema || '';
         this.elementos.resultCount.textContent = resultadosWeb.length + (resultadosWeb.length === 1 ? ' resultado' : ' resultados');
@@ -101,7 +106,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
-    mostrarMatrizLocalidad: function(matriz) { this.limpiarPaginacionVieja();
+    mostrarMatrizLocalidad: function(matriz) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Tu zona';
         this.elementos.resultCount.textContent = matriz.categorias.length + (matriz.categorias.length === 1 ? ' categoría' : ' categorías');
@@ -121,7 +126,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
-    mostrarQuienesSomosEnMuro: function(texto) { this.limpiarPaginacionVieja();
+    mostrarQuienesSomosEnMuro: function(texto) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Quiénes somos';
         this.elementos.resultCount.textContent = '';
@@ -136,7 +141,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // en el muro central, en vez de un modal o del chat del Asistente IA -- mismo patrón visual
     // que mostrarQuienesSomosEnMuro: banner con ícono + tarjeta blanca, para que se sienta parte
     // de la misma página. formularioHTML ya viene armado (incluye su propio <form>).
-    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja();
+    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja(); this.formularioAbierto = true;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = titulo;
         this.elementos.resultCount.textContent = '';
@@ -149,7 +154,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;max-width:520px;">' + formularioHTML + '</div>';
     },
     _matrizPila: [],
-    mostrarMatrizNiveles: function(matriz) { this.limpiarPaginacionVieja();
+    mostrarMatrizNiveles: function(matriz) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this._matrizActual = matriz;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = matriz.nivel === 'pais' ? ('Matriz de ' + matriz.lugar) : 'Matriz mundial';
@@ -192,7 +197,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             this.mostrarResultadosBusqueda(resultado);
         }
     },
-    mostrarListaCategorias: function(categorias) { this.limpiarPaginacionVieja();
+    mostrarListaCategorias: function(categorias) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Categorías';
         this.elementos.resultCount.textContent = categorias.length + (categorias.length === 1 ? ' categoría' : ' categorías');
@@ -230,7 +235,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             }
         }
     },
-    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) { this.limpiarPaginacionVieja();
+    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = nombreBuscado || '';
@@ -272,7 +277,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre, nuevoNivel);
         this.mostrarResultadosPersonas(nombre, usuarios, nuevoNivel);
     },
-    cerrarResultados: function() { this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Catálogo de Economía Circular'; },
+    cerrarResultados: function() { this.formularioAbierto = false; this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Catálogo de Economía Circular'; },
     abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + escHtml(imgUrl) + '" class="modal-img-real" alt="' + escHtml(titulo) + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + icono + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
     cerrarModal: function() { this.elementos.modal.style.display = 'none'; },
     cerrarQRModal: function() { document.getElementById('qrModal').style.display = 'none'; }

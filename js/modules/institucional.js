@@ -172,11 +172,11 @@ var Institucional = {
     // sin importar si se activó desde el pie de página o escribiéndole algo al chat -- así queda
     // consistente en los dos casos, y después se queda en silencio mientras se llena el formulario.
     iniciarContactoGuiado: function() {
-        UIController.mostrarRespuestaIA('📩 Aquí tienes el formulario para comunicarte con el administrador.');
+        UIController.mostrarRespuestaIA('📩 Aquí tienes el formulario para comunicarte con el administrador -- úsalo para consultas, sugerencias, o cualquier tema que no sea un reclamo formal (para eso está el Libro de Reclamaciones). Completa tus datos y el mensaje, y el equipo te responderá.');
         this.mostrarContactoAdmin();
     },
     iniciarReclamoGuiado: function() {
-        UIController.mostrarRespuestaIA('📋 Aquí tienes el formulario del Libro de Reclamaciones.');
+        UIController.mostrarRespuestaIA('📋 Aquí tienes el Libro de Reclamaciones -- úsalo si tuviste un problema concreto con una compra, venta o publicación y quieres dejarlo registrado formalmente. Completa los datos y el detalle de lo ocurrido, y quedará constancia de tu reclamo.');
         this.mostrarLibroReclamaciones();
     },
 

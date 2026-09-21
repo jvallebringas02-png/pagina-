@@ -90,7 +90,7 @@ var EventController = {
             if (resultadoRespaldo.resultados && resultadoRespaldo.resultados.length) {
                 UIController.mostrarResultadosBusqueda(resultadoRespaldo);
             } else {
-                UIController.cerrarResultados();
+                if (!UIController.formularioAbierto) { UIController.cerrarResultados(); }
                 UIController.mostrarRespuestaIA('No pude conectarme bien en este momento, pero puedo ayudarte igual con esto:');
                 UIController.mostrarBotonesGuia([
                     { texto: '📍 Ver mi zona', accion: function() { EventController.ejecutarAccionGuia('zona'); } },
@@ -110,16 +110,19 @@ var EventController = {
             var resultadoSilencioso = await BuscadorMotor.ejecutarBusquedaHibrida(queryOriginal);
             if (resultadoSilencioso.resultados && resultadoSilencioso.resultados.length) {
                 UIController.mostrarResultadosBusqueda(resultadoSilencioso);
-            } else {
+            } else if (!UIController.formularioAbierto) {
                 UIController.cerrarResultados();
             }
         } else {
             // accion en null y sin fallo técnico -- fue una respuesta puramente conversacional
             // (saludo, pregunta de cultura general, consejo, tema delicado ya resuelto en el
-            // chat, pregunta sobre la plataforma, etc.) y no hay nada que mostrar en el muro.
-            // No se usa el campo "entendido" para esta decisión -- ya se mostró aparte lo que
-            // dijo la IA, y aquí solo se cierra cualquier resultado que hubiera quedado abierto.
-            UIController.cerrarResultados();
+            // chat, pregunta sobre la plataforma, etc.).
+            // Si hay un formulario real abierto en el muro (contacto, reclamos), NO se cierra --
+            // antes esto borraba el formulario (y lo que el usuario ya había escrito) con
+            // cualquier pregunta de aclaración, como "¿cómo se llena esto?".
+            if (!UIController.formularioAbierto) {
+                UIController.cerrarResultados();
+            }
         }
     },
 
@@ -138,7 +141,7 @@ var EventController = {
         } else if (tipo === 'publicar') {
             PanelUsuario.iniciarPublicacionDesdeAsistente('');
         } else if (tipo === 'buscar') {
-            UIController.mostrarRespuestaIA('Escribe aquí abajo qué necesitas -- puede ser algo que quieres comprar ("busco una bicicleta"), algo que quieres dar ("vendo mi laptop", "dono ropa de bebé"), un servicio ("busco clases de inglés"), o un trueque ("cambio mi bici por una laptop"). Entiendo cualquier forma en que lo escribas.');
+            UIController.mostrarRespuestaIA('Escribe abajo qué necesitas, con tus propias palabras:\n🛒 Comprar algo → "busco una bicicleta" → te muestro lo publicado.\n📦 Vender, donar o regalar algo tuyo → "vendo mi laptop" → te abro el formulario.\n🛠️ Un servicio → "doy clases de inglés" o "busco clases de inglés" → publico o busco, según el caso.\n🔄 Un trueque → "cambio mi bici por una laptop" → publico o busco, según el caso.');
             // No sabemos qué quiere buscar todavía -- solo le damos el foco a la barra de
             // búsqueda principal para que escriba ahí, en vez de intentar adivinar.
             var buscadorPrincipal = document.getElementById('dynamicSearch');
