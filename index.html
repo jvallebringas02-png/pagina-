@@ -95,12 +95,6 @@ tailwind.config = {
         <div class="assistant-response" id="assistantResponse">
             <div class="chat-message assistant" id="assistantGreeting">¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?</div>
         </div>
-        <div class="quick-actions">
-            <button onclick="iaResponde('publicar')">📦 <span id="quickTextPublicar">¿Cómo publico?</span></button>
-            <button onclick="iaResponde('vender')">💰 <span id="quickTextVender">¿Cómo vendo?</span></button>
-            <button onclick="iaResponde('seguridad')">🛡️ <span id="quickTextSeguridad">Seguridad</span></button>
-            <button onclick="iaResponde('reportar')">⚠️ <span id="quickTextReportar">Reportar</span></button>
-        </div>
         <form class="assistant-form" id="assistantForm">
             <input type="text" id="assistantInput" class="assistant-input" placeholder="Escribe tu duda aquí..." required>
             <button type="submit" class="assistant-submit">➤</button>
@@ -108,6 +102,16 @@ tailwind.config = {
         <button class="btn-clear-chat" id="clearChatBtn">🗑️ <span id="btnLimpiarTexto">Limpiar Conversación</span></button>
     </div>
 </div>
+</aside>
+
+<aside class="sidebar-quick" id="sidebarQuick">
+    <button type="button" onclick="iaResponde('publicar')">Cómo publico</button>
+    <button type="button" onclick="iaResponde('vender')">Cómo vendo</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('zona')">Ver mi zona</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('recientes')">Lo último publicado</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('categorias')">Categorías</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('mundial')">Mundial</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('buscar')">Buscar algo</button>
 </aside>
 
 <section class="content-section">
@@ -214,7 +218,8 @@ tailwind.config = {
 <div class="footer-grid">
 <div class="footer-col"><h2 style="color: #F59E0B;">remarket-db</h2><p id="footerDesc">Conectando comercios y vecinos de forma inteligente.</p></div>
 <div class="footer-col"><h4>Empresa</h4><ul><li><a href="#" onclick="Institucional.mostrarQuienesSomos(); return false;">Quiénes Somos</a></li><li><a href="#" onclick="Institucional.iniciarContactoGuiado(); return false;">Comunícate con el Administrador</a></li></ul></div>
-<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#" onclick="Institucional.iniciarReclamoGuiado(); return false;">Libro de Reclamaciones</a></li></ul></div>
+<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#" onclick="Institucional.iniciarReclamoGuiado(); return false;">Libro de Reclamaciones</a></li><li><a href="#" onclick="iaResponde('seguridad'); return false;">Seguridad</a></li><li><a href="#" onclick="iaResponde('reportar'); return false;">Reportar</a></li></ul></div>
+<div class="footer-col"><h4>Legal</h4><ul><li><a href="#" onclick="Institucional.abrirModal('Términos y condiciones', '<p>Contenido pendiente de redactar.</p>'); return false;">Términos y condiciones</a></li><li><a href="#" onclick="Institucional.abrirModal('Política de privacidad', '<p>Contenido pendiente de redactar.</p>'); return false;">Política de privacidad</a></li></ul></div>
 </div>
 </footer>
 
