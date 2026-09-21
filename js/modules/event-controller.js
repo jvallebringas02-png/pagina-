@@ -91,7 +91,13 @@ var EventController = {
                 UIController.mostrarResultadosBusqueda(resultadoRespaldo);
             } else {
                 UIController.cerrarResultados();
-                UIController.mostrarRespuestaIA('Puedo ayudarte mejor si lo dices de otra forma. Por ejemplo: "zapatos baratos en Lima", "ver categorías a nivel mundial", "ropa en trueque cerca de mí", o "los últimos anuncios".');
+                UIController.mostrarRespuestaIA('No pude conectarme bien en este momento, pero puedo ayudarte igual con esto:');
+                UIController.mostrarBotonesGuia([
+                    { texto: '📍 Ver mi zona', accion: function() { EventController.ejecutarAccionGuia('zona'); } },
+                    { texto: '🆕 Lo último publicado', accion: function() { EventController.ejecutarAccionGuia('recientes'); } },
+                    { texto: '📦 Publicar algo mío', accion: function() { EventController.ejecutarAccionGuia('publicar'); } },
+                    { texto: '🔍 Buscar algo', accion: function() { EventController.ejecutarAccionGuia('buscar'); } }
+                ]);
             }
         } else if (datos._formato_invalido) {
             // La IA SÍ respondió con contenido real (ya se mostró en el chat aparte, tal como
@@ -114,6 +120,26 @@ var EventController = {
             // No se usa el campo "entendido" para esta decisión -- ya se mostró aparte lo que
             // dijo la IA, y aquí solo se cierra cualquier resultado que hubiera quedado abierto.
             UIController.cerrarResultados();
+        }
+    },
+
+    // Ejecuta de una vez las acciones más comunes SIN pasar por la IA -- para los botones de
+    // guía que se muestran al saludar o cuando no se entendió el mensaje. Así el usuario tiene
+    // algo que tocar de inmediato, sin depender de que escriba (ni de que la IA lo entienda).
+    ejecutarAccionGuia: async function(tipo) {
+        if (tipo === 'zona') {
+            var matrizGuia = BuscadorMotor.obtenerMatrizPorLocalidad();
+            UIController.mostrarMatrizLocalidad(matrizGuia);
+        } else if (tipo === 'recientes') {
+            var recientesGuia = BuscadorMotor.obtenerRecientes(12);
+            UIController.mostrarResultadosBusqueda({ resultados: recientesGuia, total: BuscadorMotor.catalogo.length, coincidencias: recientesGuia.length, query: 'Novedades', es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null });
+        } else if (tipo === 'publicar') {
+            PanelUsuario.iniciarPublicacionDesdeAsistente('');
+        } else if (tipo === 'buscar') {
+            // No sabemos qué quiere buscar todavía -- solo le damos el foco a la barra de
+            // búsqueda principal para que escriba ahí, en vez de intentar adivinar.
+            var buscadorPrincipal = document.getElementById('dynamicSearch');
+            if (buscadorPrincipal) buscadorPrincipal.focus();
         }
     },
 
@@ -220,7 +246,13 @@ var EventController = {
     manejarLimpiarChat: function() {
         if (confirm("¿Borrar conversación?")) {
             AIService.limpiarHistorial();
-            document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>';
+            document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">💬 Conversación reiniciada. ¿En qué puedo ayudarte?</div>' +
+                '<div class="chat-guia-botones">' +
+                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'zona\')">📍 Ver mi zona</button>' +
+                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'recientes\')">🆕 Lo último publicado</button>' +
+                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'publicar\')">📦 Publicar algo mío</button>' +
+                    '<button type="button" onclick="EventController.ejecutarAccionGuia(\'buscar\')">🔍 Buscar algo</button>' +
+                '</div>';
             var buscador = document.getElementById('dynamicSearch');
             if (buscador) buscador.value = ''; // limpiar el chat también limpia lo que quedó escrito en el buscador
             if (typeof UIController !== 'undefined' && UIController.cerrarResultados) UIController.cerrarResultados(); // y cierra el panel de resultados que haya quedado abierto

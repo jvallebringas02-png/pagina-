@@ -11,7 +11,29 @@ function escHtml(str) {
 var UIController = {
     elementos: {},
     init: function() { this.elementos = { assistantResponse: document.getElementById('assistantResponse'), searchResultsContainer: document.getElementById('searchResultsContainer'), searchResultsContent: document.getElementById('searchResultsContent'), articulosContainer: document.getElementById('articulosContainer'), catalogContainer: document.getElementById('catalogContainer'), contentTitle: document.getElementById('contentTitle'), searchBreadcrumb: document.getElementById('searchBreadcrumb'), searchQuery: document.getElementById('searchQuery'), resultCount: document.getElementById('resultCount'), modal: document.getElementById('articuloModal'), qrModal: document.getElementById('qrModal') }; },
-    mostrarRespuestaIA: function(texto, tipo) { tipo = tipo || 'assistant'; var limpio = texto.replace(/\[ACCION:[^\]]+\]/g, '').trim(); var div = document.createElement('div'); div.className = 'chat-message ' + tipo; div.innerHTML = escHtml(limpio).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); this.elementos.assistantResponse.appendChild(div); this.elementos.assistantResponse.scrollTop = this.elementos.assistantResponse.scrollHeight; },
+    mostrarRespuestaIA: function(texto, tipo) { tipo = tipo || 'assistant'; var limpio = texto.replace(/\[ACCION:[^\]]+\]/g, '').trim(); var div = document.createElement('div'); div.className = 'chat-message ' + tipo; div.innerHTML = escHtml(limpio).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); this.elementos.assistantResponse.appendChild(div);
+        // Antes esto saltaba siempre al fondo de TODA la caja (scrollHeight), y si el mensaje
+        // nuevo era muy largo, la persona solo veía la última línea, con todo lo demás (incluida
+        // una posible pregunta al inicio) fuera de vista. Ahora se desplaza justo hasta el
+        // principio del mensaje que se acaba de agregar, para que se lea desde el inicio.
+        div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return div; },
+    // Agrega, debajo del último mensaje del asistente, una fila de botones de guía que el
+    // usuario puede tocar en vez de tener que escribir algo. "opciones" es un array de
+    // { texto: '...', accion: function() { ... } }.
+    mostrarBotonesGuia: function(opciones) {
+        var cont = document.createElement('div');
+        cont.className = 'chat-guia-botones';
+        opciones.forEach(function(op) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = op.texto;
+            btn.onclick = op.accion;
+            cont.appendChild(btn);
+        });
+        this.elementos.assistantResponse.appendChild(cont);
+        cont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
     mostrarEstadoCarga: function() { var div = document.createElement('div'); div.className = 'chat-message assistant'; div.id = 'typing'; div.textContent = '⏳ Pensando...'; this.elementos.assistantResponse.appendChild(div); },
     quitarEstadoCarga: function() { var t = document.getElementById('typing'); if (t) t.remove(); },
     // Alias del escHtml global de arriba, por si algo llama a UIController.escHtml directamente.
