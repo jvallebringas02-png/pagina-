@@ -8,17 +8,10 @@ document.addEventListener("DOMContentLoaded", async function() {
     var saludoInicial = saludos[idioma] || saludos['es'];
     var chat = document.getElementById('assistantResponse');
     if (chat) {
-        // Botones de guía junto al saludo: para que alguien que no sabe qué escribir tenga
-        // algo concreto que tocar desde el primer segundo, sin depender de adivinar palabras.
-        // Se construyen acá directo (no con UIController.mostrarBotonesGuia) porque en este
-        // punto UIController.init() todavía no corrió -- se llama más abajo en este mismo archivo.
-        chat.innerHTML = '<div class="chat-message assistant">' + saludoInicial + '</div>' +
-            '<div class="chat-guia-botones">' +
-                '<button type="button" onclick="EventController.ejecutarAccionGuia(\'zona\')">📍 Ver mi zona</button>' +
-                '<button type="button" onclick="EventController.ejecutarAccionGuia(\'recientes\')">🆕 Lo último publicado</button>' +
-                '<button type="button" onclick="EventController.ejecutarAccionGuia(\'publicar\')">📦 Publicar algo mío</button>' +
-                '<button type="button" onclick="EventController.ejecutarAccionGuia(\'buscar\')">🔍 Buscar algo</button>' +
-            '</div>';
+        // Los accesos rápidos (zona, últimos, categorías, mundial, buscar, etc.) ya no van
+        // como botones dentro del chat -- viven de forma permanente en la barra lateral
+        // (#sidebarQuick), así que el saludo queda solo con el mensaje.
+        chat.innerHTML = '<div class="chat-message assistant">' + saludoInicial + '</div>';
     }
     
     aplicarTraduccionUI(idioma);
