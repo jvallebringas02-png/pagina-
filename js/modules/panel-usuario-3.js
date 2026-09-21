@@ -3,7 +3,7 @@ Object.assign(PanelUsuario, {
     // si detecta esa palabra), para cuando el usuario dice "doy servicio de transporte" en vez de buscar.
     iniciarPublicacionDesdeAsistente: function(tituloSugerido) {
         if (!usuarioActual) {
-            UIController.mostrarRespuestaIA('¡Perfecto! Para publicarlo necesitas iniciar sesión primero -- te abro el formulario.');
+            UIController.mostrarRespuestaIA('Para publicar necesitamos saber quién eres, así los interesados pueden contactarte con confianza. Inicia sesión (o crea una cuenta si es tu primera vez) y seguimos con tu publicación.');
             guardarAccionPendienteLogin({ tipo: 'publicar', tituloSugerido: tituloSugerido });
             toggleAuthModal(true);
             return;

@@ -10,6 +10,15 @@ function escHtml(str) {
 
 var UIController = {
     elementos: {},
+    // Los números de página ("← Anterior | 1 | 2 | Siguiente") viven en un elemento aparte
+    // (#paginacionBusqueda), fuera del bloque de contenido que arma cada vista. Antes, vistas
+    // como "Quiénes somos" o el formulario de contacto no lo limpiaban, así que si justo antes
+    // habías hecho una búsqueda con varias páginas, esos botones se quedaban pegados en pantalla
+    // debajo de contenido que ya no tenía nada que ver con ellos.
+    limpiarPaginacionVieja: function() {
+        var pc = document.getElementById('paginacionBusqueda');
+        if (pc) pc.innerHTML = '';
+    },
     init: function() { this.elementos = { assistantResponse: document.getElementById('assistantResponse'), searchResultsContainer: document.getElementById('searchResultsContainer'), searchResultsContent: document.getElementById('searchResultsContent'), articulosContainer: document.getElementById('articulosContainer'), catalogContainer: document.getElementById('catalogContainer'), contentTitle: document.getElementById('contentTitle'), searchBreadcrumb: document.getElementById('searchBreadcrumb'), searchQuery: document.getElementById('searchQuery'), resultCount: document.getElementById('resultCount'), modal: document.getElementById('articuloModal'), qrModal: document.getElementById('qrModal') }; },
     mostrarRespuestaIA: function(texto, tipo) { tipo = tipo || 'assistant'; var limpio = texto.replace(/\[ACCION:[^\]]+\]/g, '').trim(); var div = document.createElement('div'); div.className = 'chat-message ' + tipo; div.innerHTML = escHtml(limpio).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); this.elementos.assistantResponse.appendChild(div);
         // Antes esto saltaba siempre al fondo de TODA la caja (scrollHeight), y si el mensaje
@@ -54,7 +63,7 @@ var UIController = {
     mostrarResultadosBusqueda: function(resultado) { this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' resultados'; this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' Resultados de Búsqueda'; var html = resultado._volverAMatriz ? '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverMatrizAnterior();">← Volver a la matriz</a></div>' : ''; if (resultado.lugar_sin_resultados) { html += '<div class="ai-context-banner expandido">📍 No encontramos esto en <strong>' + escHtml(resultado.lugar_sin_resultados) + '</strong>, pero sí en estas otras zonas:</div>'; } else if (resultado.lugar_aplicado) { html += '<div class="ai-context-banner">📍 Filtrado por: <strong>' + escHtml(resultado.lugar_aplicado) + '</strong></div>'; } else if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>Búsqueda Híbrida:</strong> Combinamos resultados locales con referencias globales.</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>Búsqueda global:</strong> No encontramos resultados cerca, pero te mostramos opciones internacionales.</div>'; } else { html += '<div class="ai-context-banner">📍 Mostrando resultados de ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.orden_aplicado === 'precio_asc') { html += '<div class="ai-context-banner">💰 Ordenado del más barato al más caro</div>'; } else if (resultado.orden_aplicado === 'precio_desc') { html += '<div class="ai-context-banner">💰 Ordenado del más caro al más barato</div>'; } var hayExterno = (resultado.resultados_web && resultado.resultados_web.length) || (resultado.resultados_videos && resultado.resultados_videos.length);
 if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-align:center;padding:20px;"><p>No tienes productos publicados para esto, pero encontramos lo siguiente:</p></div>'; } else if (resultado.coincidencias === 0) { var qSug = escHtml(resultado.query || '').replace(/'/g, "\\'"); html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos con "' + escHtml(resultado.query || '') + '". Intenta con sinónimos, o publica tú mismo lo que buscas para que otros lo vean.</p><button class="btn-publicar" onclick="PanelUsuario.iniciarPublicacionDesdeAsistente(\'' + qSug + '\')">📦 Publicar esto</button></div>'; } else { html += '<div id="resultadosProductosLista"></div>'; } var self = this; if (resultado.resultados_web && resultado.resultados_web.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🌐 <strong>Resultados de internet</strong></div>'; html += resultado.resultados_web.map(function(w) { return '<div class="result-item" onclick="window.open(\'' + escHtml(w.link) + '\', \'_blank\')"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>'; }).join(''); } if (resultado.resultados_videos && resultado.resultados_videos.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🎬 <strong>Videos de YouTube</strong></div>'; html += resultado.resultados_videos.map(function(v) { var miniatura = v.miniatura ? '<img src="' + escHtml(v.miniatura) + '" class="result-img" alt="' + escHtml(v.titulo) + '">' : '<div class="result-icon-fallback">🎬</div>'; return '<div class="result-item" onclick="window.open(\'' + escHtml(v.link) + '\', \'_blank\')">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; if (resultado.coincidencias > 0) { Paginador.inicializar('resultadosProductosLista', 'paginacionBusqueda', resultado.resultados, 9, this.renderizarItemResultado); } else { var pc = document.getElementById('paginacionBusqueda'); if (pc) pc.innerHTML = ''; } },
     // etiqueta permite reusar esta misma vista para Música, cambiando solo el ícono/texto del banner
-    mostrarResultadosVideo: function(tema, videos, etiqueta) {
+    mostrarResultadosVideo: function(tema, videos, etiqueta) { this.limpiarPaginacionVieja();
         etiqueta = etiqueta || { icono: '🎬', titulo: 'Videos de YouTube', vacio: 'No encontramos videos sobre eso. Intenta con otras palabras.' };
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = tema || '';
@@ -74,7 +83,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
-    mostrarResultadosWeb: function(tema, resultadosWeb) {
+    mostrarResultadosWeb: function(tema, resultadosWeb) { this.limpiarPaginacionVieja();
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = tema || '';
         this.elementos.resultCount.textContent = resultadosWeb.length + (resultadosWeb.length === 1 ? ' resultado' : ' resultados');
@@ -92,7 +101,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
-    mostrarMatrizLocalidad: function(matriz) {
+    mostrarMatrizLocalidad: function(matriz) { this.limpiarPaginacionVieja();
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Tu zona';
         this.elementos.resultCount.textContent = matriz.categorias.length + (matriz.categorias.length === 1 ? ' categoría' : ' categorías');
@@ -112,7 +121,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
         this.elementos.searchResultsContent.innerHTML = html;
     },
-    mostrarQuienesSomosEnMuro: function(texto) {
+    mostrarQuienesSomosEnMuro: function(texto) { this.limpiarPaginacionVieja();
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Quiénes somos';
         this.elementos.resultCount.textContent = '';
@@ -127,7 +136,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // en el muro central, en vez de un modal o del chat del Asistente IA -- mismo patrón visual
     // que mostrarQuienesSomosEnMuro: banner con ícono + tarjeta blanca, para que se sienta parte
     // de la misma página. formularioHTML ya viene armado (incluye su propio <form>).
-    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) {
+    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja();
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = titulo;
         this.elementos.resultCount.textContent = '';
@@ -140,7 +149,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;max-width:520px;">' + formularioHTML + '</div>';
     },
     _matrizPila: [],
-    mostrarMatrizNiveles: function(matriz) {
+    mostrarMatrizNiveles: function(matriz) { this.limpiarPaginacionVieja();
         this._matrizActual = matriz;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = matriz.nivel === 'pais' ? ('Matriz de ' + matriz.lugar) : 'Matriz mundial';
@@ -183,7 +192,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             this.mostrarResultadosBusqueda(resultado);
         }
     },
-    mostrarListaCategorias: function(categorias) {
+    mostrarListaCategorias: function(categorias) { this.limpiarPaginacionVieja();
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Categorías';
         this.elementos.resultCount.textContent = categorias.length + (categorias.length === 1 ? ' categoría' : ' categorías');
@@ -221,7 +230,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             }
         }
     },
-    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) {
+    mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) { this.limpiarPaginacionVieja();
         this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = nombreBuscado || '';

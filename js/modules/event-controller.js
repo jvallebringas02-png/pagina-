@@ -128,14 +128,17 @@ var EventController = {
     // algo que tocar de inmediato, sin depender de que escriba (ni de que la IA lo entienda).
     ejecutarAccionGuia: async function(tipo) {
         if (tipo === 'zona') {
+            UIController.mostrarRespuestaIA('Aquí tienes todo lo publicado cerca de ti, organizado por categoría -- Ropa, Tecnología, Hogar, etc. Toca cualquier categoría en la tabla para ver esos productos uno por uno. Si ya sabes qué buscas puntualmente, mejor escríbelo arriba y te lo encuentro directo.');
             var matrizGuia = BuscadorMotor.obtenerMatrizPorLocalidad();
             UIController.mostrarMatrizLocalidad(matrizGuia);
         } else if (tipo === 'recientes') {
+            UIController.mostrarRespuestaIA('Estas son las publicaciones más recientes de toda la plataforma, sin importar la categoría. Si quieres ver solo lo nuevo de un tipo en particular (por ejemplo, solo ropa reciente), escríbelo arriba, ej: "lo último en ropa".');
             var recientesGuia = BuscadorMotor.obtenerRecientes(12);
             UIController.mostrarResultadosBusqueda({ resultados: recientesGuia, total: BuscadorMotor.catalogo.length, coincidencias: recientesGuia.length, query: 'Novedades', es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null });
         } else if (tipo === 'publicar') {
             PanelUsuario.iniciarPublicacionDesdeAsistente('');
         } else if (tipo === 'buscar') {
+            UIController.mostrarRespuestaIA('Escribe aquí abajo qué necesitas -- puede ser algo que quieres comprar ("busco una bicicleta"), algo que quieres dar ("vendo mi laptop", "dono ropa de bebé"), un servicio ("busco clases de inglés"), o un trueque ("cambio mi bici por una laptop"). Entiendo cualquier forma en que lo escribas.');
             // No sabemos qué quiere buscar todavía -- solo le damos el foco a la barra de
             // búsqueda principal para que escriba ahí, en vez de intentar adivinar.
             var buscadorPrincipal = document.getElementById('dynamicSearch');
