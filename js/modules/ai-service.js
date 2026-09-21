@@ -12,14 +12,24 @@ var AIService = {
         // cliente defina el prompt, este es el lugar donde había que restaurarlo.
         this.historial.push({ role: "user", content: mensaje });
         var textoBruto = null;
+        var resultadosWebServidor = null;
+        var resultadosVideosServidor = null;
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ messages: this.historial, idioma: idiomaInterfaz }) });
             var data = await response.json();
             textoBruto = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
+            // El servidor (función chat-ia) ya ejecuta la búsqueda real en internet/YouTube
+            // cuando la IA decide usar sus herramientas, y la manda en la misma respuesta --
+            // se aprovecha esto en vez de pedirle al cliente que busque otra vez lo mismo por
+            // su cuenta (antes esto se descartaba acá y buscador.js repetía la búsqueda).
+            resultadosWebServidor = (data && data.resultados_web) || null;
+            resultadosVideosServidor = (data && data.resultados_videos) || null;
         } catch (e) {
             textoBruto = null;
         }
         var datos = this._parsearRespuesta(textoBruto);
+        datos.resultados_web = resultadosWebServidor;
+        datos.resultados_videos = resultadosVideosServidor;
         // Se guarda en el historial solo el mensaje conversacional, no el JSON crudo -- así en
         // los siguientes turnos la IA sigue viendo una conversación en lenguaje natural, no un
         // bloque de datos que podría confundirla sobre su propio formato de respuesta.

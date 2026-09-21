@@ -60,15 +60,18 @@ var EventController = {
             UIController.mostrarResultadosBusqueda({ resultados: recientes, total: BuscadorMotor.catalogo.length, coincidencias: recientes.length, query: 'Novedades', es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null });
         } else if (accion === 'VIDEO') {
             var temaVideo = datos.tema || queryOriginal;
-            var videos = await BuscadorMotor.buscarSoloVideo(temaVideo);
+            // El servidor (función chat-ia) ya buscó en YouTube en la misma llamada cuando la
+            // IA decidió usar su herramienta -- se usa eso directo en vez de pedirle al cliente
+            // que busque otra vez lo mismo (antes se disparaban las dos búsquedas por separado).
+            var videos = (datos.resultados_videos && datos.resultados_videos.length) ? datos.resultados_videos : await BuscadorMotor.buscarSoloVideo(temaVideo);
             UIController.mostrarResultadosVideo(temaVideo, videos);
         } else if (accion === 'MUSICA') {
             var temaMusica = datos.tema || queryOriginal;
-            var canciones = await BuscadorMotor.buscarSoloMusica(temaMusica);
+            var canciones = (datos.resultados_videos && datos.resultados_videos.length) ? datos.resultados_videos : await BuscadorMotor.buscarSoloMusica(temaMusica);
             UIController.mostrarResultadosVideo(temaMusica, canciones, { icono: '🎵', titulo: 'Música', vacio: 'No encontramos música sobre eso. Intenta con otras palabras.' });
         } else if (accion === 'INTERNET') {
             var temaWeb = datos.tema || queryOriginal;
-            var web = await BuscadorMotor.buscarSoloWeb(temaWeb);
+            var web = (datos.resultados_web && datos.resultados_web.length) ? datos.resultados_web : await BuscadorMotor.buscarSoloWeb(temaWeb);
             UIController.mostrarResultadosWeb(temaWeb, web);
         } else if (accion === 'PUBLICAR') {
             var tituloSugerido = datos.titulo || queryOriginal;
