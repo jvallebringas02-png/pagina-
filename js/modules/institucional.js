@@ -164,6 +164,50 @@ var Institucional = {
         }
     },
 
+    // ---------- Términos y condiciones / Política de privacidad ----------
+    // A diferencia de "Quiénes Somos", este texto NO se consulta desde Supabase: es un
+    // documento legal, y necesita quedar con historial de versiones (quién cambió qué y
+    // cuándo) -- eso lo da el historial de Git del código, no una fila de base de datos
+    // editable sin registro. Cuando exista el Panel de Administrador con una tabla propia
+    // de documentos legales versionados, este texto se puede migrar ahí.
+    RESPALDO_TERMINOS: `Al usar remarket-db aceptas estas condiciones:
+
+1. Qué es remarket-db: somos un espacio que conecta vecinos y comercios para vender, donar o intercambiar productos de segunda mano. No somos dueños de los productos publicados ni parte de las transacciones entre usuarios.
+
+2. Tu cuenta: eres responsable de la información que registras y de mantener segura tu cuenta. La información que publiques (productos, ubicación, mensajes) debe ser veraz.
+
+3. Contenido prohibido: no se permite publicar productos ilegales, contenido falso, ofensivo o que infrinja derechos de terceros. remarket-db puede remover publicaciones que incumplan estas reglas, con o sin aviso previo.
+
+4. Transacciones entre usuarios: las ventas, trueques y donaciones se acuerdan directamente entre los usuarios. remarket-db no garantiza la calidad, entrega, pago ni cumplimiento de ningún acuerdo entre partes, y no interviene en disputas salvo para fines de moderación de la plataforma.
+
+5. Asistente de IA: el asistente es una herramienta de ayuda para buscar y navegar la plataforma; su información puede contener errores y no reemplaza tu propio criterio antes de una transacción.
+
+6. Cambios: podemos actualizar estos términos; el uso continuo de la plataforma después de un cambio implica su aceptación.
+
+Última actualización: [completar fecha].`,
+
+    RESPALDO_PRIVACIDAD: `En remarket-db recopilamos:
+
+- Datos de registro: nombre, correo y los datos de tu perfil (ciudad, país, foto) que decides completar.
+- Ubicación aproximada: mediante tu IP, para mostrarte productos cercanos.
+- Contenido que publicas: productos, mensajes de chat, comentarios y reportes.
+
+Usamos estos datos para: mostrarte contenido relevante por cercanía, permitir la mensajería entre usuarios, y moderar publicaciones que incumplan las reglas de la comunidad.
+
+No vendemos tus datos a terceros. Compartimos información únicamente con los proveedores que dan soporte técnico a la plataforma (como el servicio de base de datos), bajo sus propias políticas de seguridad.
+
+Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos personales (derechos ARCO), conforme a la Ley N° 29733 de Protección de Datos Personales del Perú. Para ejercerlos, escríbenos a través de "Comunícate con el Administrador".
+
+Última actualización: [completar fecha].`,
+
+    mostrarTerminos: function() {
+        this.abrirModal('Términos y condiciones', '<p style="white-space:pre-line;">' + escHtml(this.RESPALDO_TERMINOS) + '</p>');
+    },
+
+    mostrarPrivacidad: function() {
+        this.abrirModal('Política de privacidad', '<p style="white-space:pre-line;">' + escHtml(this.RESPALDO_PRIVACIDAD) + '</p>');
+    },
+
     // ---------- Comunícate con el Admin / Libro de Reclamaciones ----------
     // Antes esto se resolvía como una conversación paso a paso dentro del chat del Asistente IA
     // (una pregunta a la vez). Se reemplazó por los formularios completos de una sola vez,
