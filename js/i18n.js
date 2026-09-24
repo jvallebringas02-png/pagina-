@@ -230,6 +230,11 @@ function changeLanguage(lang, nombre, elementoClic) {
     AIService.limpiarHistorial();
 
     aplicarTraduccionUI(lang);
+    // Los botones "Visitar" de los patrocinadores se pintan una sola vez al cargar la página;
+    // hay que actualizarles el texto al cambiar de idioma (sin volver a sortear los patrocinadores).
+    if (typeof Institucional !== 'undefined' && Institucional.t) {
+        document.querySelectorAll('.btn-sponsor').forEach(function(b) { b.textContent = Institucional.t('btn_visitar'); });
+    }
     // Si el muro está mostrando el contenido informativo (usuario sin sesión, sin búsqueda
     // activa), hay que volver a pintarlo -- si no, se queda en el idioma con el que cargó
     // la página la primera vez, aunque el resto de la interfaz ya haya cambiado.
