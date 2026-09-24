@@ -47,15 +47,34 @@ var MAPA_IDIOMAS_DETECCION = {
     'turco': 'tr', 'turkish': 'tr',
     'bulgaro': 'bg', 'bulgarian': 'bg'
 };
-// Devuelve el código de idioma detectado en el mensaje si el usuario está pidiendo un cambio de idioma, o null si no.
+// Devuelve el código de idioma si el usuario está PIDIENDO un cambio de idioma, o null si no.
+// Antes bastaba con que el mensaje contuviera "cambiar" y el nombre de un idioma, así que
+// "quiero cambiar mi libro de inglés por una bicicleta" (un trueque) cambiaba la interfaz a inglés
+// y descartaba el mensaje. Ahora solo se acepta una orden explícita de idioma.
 function detectarCambioIdiomaEnMensaje(mensaje) {
     var sinTildes = function(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
-    var texto = ' ' + sinTildes(mensaje) + ' ';
-    var disparadores = ['cambia', 'cambiar', 'cambiame', 'pon el idioma', 'poner el idioma', 'switch to', 'change language', 'change the language', 'set language', 'habla en', 'hablar en', 'hablame en', 'hablarme en', 'puedes hablar en', 'podrias hablar en', 'me hablas en', 'responde en', 'responder en', 'respondeme en', 'idioma a', 'language to'];
-    var tieneDisparador = disparadores.some(function(d) { return texto.indexOf(d) !== -1; });
-    if (!tieneDisparador) return null;
-    for (var palabra in MAPA_IDIOMAS_DETECCION) {
-        if (texto.indexOf(' ' + palabra) !== -1) return MAPA_IDIOMAS_DETECCION[palabra];
+    var texto = sinTildes(mensaje).replace(/[¿?¡!.,;:"']/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!texto) return null;
+    var nombres = Object.keys(MAPA_IDIOMAS_DETECCION).sort(function(a, b) { return b.length - a.length; }).join('|');
+    var L = '(' + nombres + ')';
+    var relleno = '(?:(?:hola|oye|hey|por favor|porfa|please)\\s+)*';
+    // [patrón, máximo de palabras permitido en el mensaje (0 = sin límite)]
+    var patrones = [
+        // "cambia el idioma a inglés", "pon mi idioma en francés", "cambiar la lengua al alemán"
+        [new RegExp('\\b(?:cambia|cambiar|cambiame|cambie|pon|poner|ponme|configura)\\s+(?:el\\s+|mi\\s+|la\\s+)?(?:idioma|lengua)\\s+(?:a|al|en|por)\\s+' + L + '\\b'), 0],
+        [new RegExp('\\b(?:change|set|switch)\\s+(?:the\\s+|my\\s+)?language\\s+(?:to|into)\\s+' + L + '\\b'), 0],
+        // Órdenes al inicio del mensaje: "habla en inglés", "puedes responderme en francés"
+        // (no "busco clases para hablar en inglés", que es una búsqueda, no una orden).
+        [new RegExp('^' + relleno + '(?:(?:puedes|podrias|can you|could you)\\s+)?(?:me\\s+)?(?:habla|hablas|hablar|hablame|hablarme|responde|respondes|responder|respondeme|responderme|contesta|contestame|escribe|escribeme|speak|talk|reply|respond|answer)\\s+(?:me\\s+)?(?:en|in)\\s+' + L + '\\b'), 0],
+        [new RegExp('^' + relleno + '(?:switch|change|go)\\s+to\\s+' + L + '\\b'), 0],
+        // "cambia a inglés" solo si el mensaje es corto
+        [new RegExp('^' + relleno + 'cambia(?:r|me)?\\s+a(?:l)?\\s+' + L + '\\b'), 5]
+    ];
+    var numPalabras = texto.split(' ').length;
+    for (var i = 0; i < patrones.length; i++) {
+        if (patrones[i][1] && numPalabras > patrones[i][1]) continue;
+        var m = texto.match(patrones[i][0]);
+        if (m && MAPA_IDIOMAS_DETECCION[m[1]]) return MAPA_IDIOMAS_DETECCION[m[1]];
     }
     return null;
 }
@@ -135,14 +154,31 @@ var RESPALDO_PRIVACIDAD_I18N = {
     ay: "remarket-dban akanaka katuqtanwa:\n\n- Qillqant'aña amtanaka: suti, correo ukat perfilana amtanaka (marka, nación, foto) kunas qillqañ munta.\n- Uñstasa kawkins jumaskta: IP-mat, jumana qayllankiri amtanak uñacht'ayañataki.\n- Uchjta amtanaka: amtanaka, chat arunaka, comentarionaka, yatiyawinaka.\n\nAka amtanak apnaqtanwa: qayllankiri amtanak uñacht'ayañataki, usuarios taypin arunak apayañataki, comunidadan kamachipa jan phuqhayki uchjatanak askichañataki.\n\nJumana amtanakaman jan aljktanti yaqha jaqinakaru. Amtanakax proveedor técnico apoyo churirinakaruk apayktan (base de datos servicio ukhama), taqi kikpa seguridad kamachipampi.\n\nDerecho utjistawa amtanakamaru mantañataki, wakichañataki, apsuñataki jan ukax apnaqäwiparu contra sarañataki, Perú markana Ley N° 29733 Amtanaka Jark'aqäwi kamachiparu uñtasa. Aka derechonak apnaqañataki, \"Kamachirimpi Aruskipaña\" ukat qillqasma jiwasaru.\n\nQhipa machaqxäwi: [uru qillqasma].",
 };
 
+// Fecha de "Última actualización" de los documentos legales. Mientras esté vacía, la línea
+// con el marcador "[completar fecha]" NO se muestra. Cuando tengas la fecha real, escríbela aquí
+// (ej: '24/09/2026') y aparecerá en la última línea, en el idioma que corresponda.
+var FECHA_ACTUALIZACION_LEGAL = '';
+function ajustarFechaLegal(texto) {
+    var lineas = String(texto).replace(/\s+$/, '').split('\n');
+    var ultima = lineas[lineas.length - 1];
+    if (!/\[[^\]]+\]/.test(ultima)) return texto;
+    if (FECHA_ACTUALIZACION_LEGAL) {
+        lineas[lineas.length - 1] = ultima.replace(/\[[^\]]+\]/, FECHA_ACTUALIZACION_LEGAL);
+    } else {
+        lineas.pop();
+        while (lineas.length && !lineas[lineas.length - 1].trim()) lineas.pop();
+    }
+    return lineas.join('\n');
+}
+
 function obtenerTerminosTraducidos() {
     var lang = obtenerIdiomaPreferido();
-    return RESPALDO_TERMINOS_I18N[lang] || RESPALDO_TERMINOS_I18N['es'];
+    return ajustarFechaLegal(RESPALDO_TERMINOS_I18N[lang] || RESPALDO_TERMINOS_I18N['es']);
 }
 
 function obtenerPrivacidadTraducida() {
     var lang = obtenerIdiomaPreferido();
-    return RESPALDO_PRIVACIDAD_I18N[lang] || RESPALDO_PRIVACIDAD_I18N['es'];
+    return ajustarFechaLegal(RESPALDO_PRIVACIDAD_I18N[lang] || RESPALDO_PRIVACIDAD_I18N['es']);
 }
 
 // ============================================
@@ -257,31 +293,189 @@ const UI_TRANSLATIONS = {
 var SOBRE_TITULO_TRADUCIDO = { es: 'Sobre remarket-db', en: 'About remarket-db', pt: 'Sobre o remarket-db', fr: 'À propos de remarket-db', de: 'Über remarket-db', it: 'Info su remarket-db', ru: 'О remarket-db', zh: '关于 remarket-db', ja: 'remarket-dbについて', ko: 'remarket-db 소개', ar: 'حول remarket-db', hi: 'remarket-db के बारे में', nl: 'Over remarket-db', tr: 'remarket-db Hakkında', bg: 'За remarket-db', qu: 'remarket-db Rikuchisqa', ay: 'remarket-db Toqita' };
 function obtenerSobreTitulo(lang) { return SOBRE_TITULO_TRADUCIDO[lang] || SOBRE_TITULO_TRADUCIDO['es']; }
 
-function aplicarTraduccionUI(lang) {
-    const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS['es'];
-    const accountBtn = document.getElementById('accountBtn');
-    if (accountBtn && !accountBtn.querySelector('.user-email')) accountBtn.textContent = t.account_btn;
-    const contentTitle = document.getElementById('contentTitle'); if (contentTitle) contentTitle.textContent = t.content_title;
-    const contentSubtitle = document.getElementById('contentSubtitle'); if (contentSubtitle) contentSubtitle.textContent = t.content_subtitle;
-    const featuredTitle = document.getElementById('featuredTitle'); if (featuredTitle) featuredTitle.textContent = t.featured_title;
-    const assistantHeader = document.getElementById('assistantHeaderTitle'); if (assistantHeader) assistantHeader.textContent = t.assistant_header;
-    const searchInput = document.getElementById('dynamicSearch'); if (searchInput) searchInput.placeholder = t.search_placeholder;
-    const tabLogin = document.getElementById('tabLogin'); if (tabLogin) tabLogin.textContent = t.login_tab;
-    const tabRegister = document.getElementById('tabRegister'); if (tabRegister) tabRegister.textContent = t.register_tab;
-    const footerDesc = document.getElementById('footerDesc'); if (footerDesc) footerDesc.textContent = t.footer_desc;
 
-    // Menú lateral
+// ============================================
+// CLAVES EXTRA DE LA PÁGINA PRINCIPAL
+// ============================================
+// Textos que estaban fijos en español dentro de index.html (accesos rápidos de la barra
+// lateral, patrocinadores, banner, placeholder del chat, etc.). Se mezclan dentro de
+// UI_TRANSLATIONS más abajo.
+// PENDIENTE: quechua (qu) y aymara (ay) no tienen estas claves porque no hay una traducción
+// verificada; mientras tanto se muestran en español (ver tUI). Pídele a un hablante nativo que
+// las complete y agrégalas aquí con el mismo formato.
+var UI_TRANSLATIONS_EXTRA = {
+    es: { quick_zona: "Ver mi zona", quick_recientes: "Lo último publicado", quick_categorias: "Categorías", quick_mundial: "Mundial", quick_buscar: "Buscar algo", sponsors_title: "Patrocinadores", sponsor_visit: "Visitar", banner_text: "🚀 IA Autónoma: Generando contexto, cumplimiento legal y ético de economía circular.", chat_placeholder: "Escribe tu duda aquí...", other_lang_hint: "¿Otro idioma? Traduce aquí", menu_logout: "Cerrar Sesión", results_for: "Resultados para:" },
+    en: { quick_zona: "See my area", quick_recientes: "Latest posts", quick_categorias: "Categories", quick_mundial: "Worldwide", quick_buscar: "Search something", sponsors_title: "Sponsors", sponsor_visit: "Visit", banner_text: "🚀 Autonomous AI: generating context, legal compliance and ethics for the circular economy.", chat_placeholder: "Type your question here...", other_lang_hint: "Other language? Translate here", menu_logout: "Log Out", results_for: "Results for:" },
+    pt: { quick_zona: "Ver minha região", quick_recientes: "Últimas publicações", quick_categorias: "Categorias", quick_mundial: "Mundial", quick_buscar: "Buscar algo", sponsors_title: "Patrocinadores", sponsor_visit: "Visitar", banner_text: "🚀 IA Autônoma: gerando contexto, conformidade legal e ética da economia circular.", chat_placeholder: "Escreva sua dúvida aqui...", other_lang_hint: "Outro idioma? Traduza aqui", menu_logout: "Sair", results_for: "Resultados para:" },
+    fr: { quick_zona: "Voir ma zone", quick_recientes: "Dernières publications", quick_categorias: "Catégories", quick_mundial: "Monde", quick_buscar: "Chercher quelque chose", sponsors_title: "Partenaires", sponsor_visit: "Visiter", banner_text: "🚀 IA autonome : génération de contexte, conformité légale et éthique de l'économie circulaire.", chat_placeholder: "Écrivez votre question ici...", other_lang_hint: "Une autre langue ? Traduisez ici", menu_logout: "Se déconnecter", results_for: "Résultats pour :" },
+    de: { quick_zona: "Meine Region ansehen", quick_recientes: "Neueste Anzeigen", quick_categorias: "Kategorien", quick_mundial: "Weltweit", quick_buscar: "Etwas suchen", sponsors_title: "Sponsoren", sponsor_visit: "Besuchen", banner_text: "🚀 Autonome KI: erzeugt Kontext, rechtliche Konformität und Ethik der Kreislaufwirtschaft.", chat_placeholder: "Schreibe hier deine Frage...", other_lang_hint: "Andere Sprache? Hier übersetzen", menu_logout: "Abmelden", results_for: "Ergebnisse für:" },
+    it: { quick_zona: "Vedi la mia zona", quick_recientes: "Ultime pubblicazioni", quick_categorias: "Categorie", quick_mundial: "Mondiale", quick_buscar: "Cerca qualcosa", sponsors_title: "Sponsor", sponsor_visit: "Visita", banner_text: "🚀 IA autonoma: genera contesto, conformità legale ed etica dell'economia circolare.", chat_placeholder: "Scrivi qui la tua domanda...", other_lang_hint: "Un'altra lingua? Traduci qui", menu_logout: "Esci", results_for: "Risultati per:" },
+    ru: { quick_zona: "Моя зона", quick_recientes: "Последние публикации", quick_categorias: "Категории", quick_mundial: "Весь мир", quick_buscar: "Найти что-нибудь", sponsors_title: "Спонсоры", sponsor_visit: "Перейти", banner_text: "🚀 Автономный ИИ: формирует контекст, юридическое и этическое соответствие циркулярной экономики.", chat_placeholder: "Напишите свой вопрос здесь...", other_lang_hint: "Другой язык? Переведите здесь", menu_logout: "Выйти", results_for: "Результаты для:" },
+    zh: { quick_zona: "查看我的区域", quick_recientes: "最新发布", quick_categorias: "分类", quick_mundial: "全球", quick_buscar: "搜索内容", sponsors_title: "赞助商", sponsor_visit: "访问", banner_text: "🚀 自主人工智能：生成循环经济的背景、法律合规与伦理。", chat_placeholder: "在此输入您的问题...", other_lang_hint: "其他语言？在此翻译", menu_logout: "退出登录", results_for: "搜索结果：" },
+    ja: { quick_zona: "近くを見る", quick_recientes: "最新の投稿", quick_categorias: "カテゴリ", quick_mundial: "世界", quick_buscar: "何か探す", sponsors_title: "スポンサー", sponsor_visit: "訪問", banner_text: "🚀 自律型AI：循環型経済の文脈、法令遵守、倫理を生成します。", chat_placeholder: "ここに質問を入力...", other_lang_hint: "他の言語？ここで翻訳", menu_logout: "ログアウト", results_for: "検索結果：" },
+    ko: { quick_zona: "내 지역 보기", quick_recientes: "최근 게시물", quick_categorias: "카테고리", quick_mundial: "전 세계", quick_buscar: "무언가 검색", sponsors_title: "후원사", sponsor_visit: "방문", banner_text: "🚀 자율 AI: 순환경제의 맥락, 법적 준수 및 윤리를 생성합니다.", chat_placeholder: "여기에 질문을 입력하세요...", other_lang_hint: "다른 언어? 여기서 번역", menu_logout: "로그아웃", results_for: "검색 결과:" },
+    ar: { quick_zona: "عرض منطقتي", quick_recientes: "أحدث المنشورات", quick_categorias: "الفئات", quick_mundial: "عالمي", quick_buscar: "ابحث عن شيء", sponsors_title: "الرعاة", sponsor_visit: "زيارة", banner_text: "🚀 ذكاء اصطناعي مستقل: يولّد السياق والامتثال القانوني والأخلاقي للاقتصاد الدائري.", chat_placeholder: "اكتب سؤالك هنا...", other_lang_hint: "لغة أخرى؟ ترجم هنا", menu_logout: "تسجيل الخروج", results_for: "النتائج لـ:" },
+    hi: { quick_zona: "मेरा क्षेत्र देखें", quick_recientes: "नवीनतम पोस्ट", quick_categorias: "श्रेणियाँ", quick_mundial: "दुनिया भर", quick_buscar: "कुछ खोजें", sponsors_title: "प्रायोजक", sponsor_visit: "देखें", banner_text: "🚀 स्वायत्त AI: चक्रीय अर्थव्यवस्था के लिए संदर्भ, कानूनी अनुपालन और नैतिकता तैयार करता है।", chat_placeholder: "अपना प्रश्न यहाँ लिखें...", other_lang_hint: "दूसरी भाषा? यहाँ अनुवाद करें", menu_logout: "लॉग आउट", results_for: "इसके परिणाम:" },
+    nl: { quick_zona: "Mijn regio bekijken", quick_recientes: "Nieuwste advertenties", quick_categorias: "Categorieën", quick_mundial: "Wereldwijd", quick_buscar: "Iets zoeken", sponsors_title: "Sponsors", sponsor_visit: "Bezoeken", banner_text: "🚀 Autonome AI: genereert context, juridische naleving en ethiek voor de circulaire economie.", chat_placeholder: "Typ hier je vraag...", other_lang_hint: "Andere taal? Vertaal hier", menu_logout: "Uitloggen", results_for: "Resultaten voor:" },
+    tr: { quick_zona: "Bölgemi gör", quick_recientes: "Son yayınlananlar", quick_categorias: "Kategoriler", quick_mundial: "Dünya geneli", quick_buscar: "Bir şey ara", sponsors_title: "Sponsorlar", sponsor_visit: "Ziyaret et", banner_text: "🚀 Otonom yapay zekâ: döngüsel ekonomi için bağlam, yasal uyum ve etik üretir.", chat_placeholder: "Sorunuzu buraya yazın...", other_lang_hint: "Başka bir dil? Buradan çevirin", menu_logout: "Çıkış yap", results_for: "Şunun için sonuçlar:" },
+    bg: { quick_zona: "Виж моя район", quick_recientes: "Последно публикувано", quick_categorias: "Категории", quick_mundial: "Цял свят", quick_buscar: "Търси нещо", sponsors_title: "Спонсори", sponsor_visit: "Посети", banner_text: "🚀 Автономен ИИ: генерира контекст, правно съответствие и етика на кръговата икономика.", chat_placeholder: "Напишете въпроса си тук...", other_lang_hint: "Друг език? Преведете тук", menu_logout: "Изход", results_for: "Резултати за:" }
+};
+Object.keys(UI_TRANSLATIONS_EXTRA).forEach(function(codigo) {
+    if (UI_TRANSLATIONS[codigo]) Object.assign(UI_TRANSLATIONS[codigo], UI_TRANSLATIONS_EXTRA[codigo]);
+});
+
+// Devuelve una función t(clave) para el idioma dado. Si al idioma le falta una clave, usa el
+// español en vez de dejar en pantalla el texto del idioma anterior.
+function tUI(lang) {
+    var dic = UI_TRANSLATIONS[lang] || {};
+    var base = UI_TRANSLATIONS['es'];
+    return function(clave) { return dic[clave] || base[clave] || ''; };
+}
+
+// ============================================
+// SALUDO INICIAL DEL ASISTENTE (una sola fuente para index.html, main.js y changeLanguage)
+// ============================================
+var SALUDOS_IA = {
+    es: '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?',
+    en: 'Hello! I am your global circular economy assistant. What do you need today?',
+    pt: 'Olá! Sou seu assistente de economia circular global. O que você precisa hoje?',
+    fr: 'Bonjour! Je suis votre assistant mondial d\'économie circulaire. De quoi avez-vous besoin aujourd\'hui?',
+    de: 'Hallo! Ich bin dein globaler Assistent für Kreislaufwirtschaft. Was brauchst du heute?',
+    it: 'Ciao! Sono il tuo assistente globale per l\'economia circolare. Di cosa hai bisogno oggi?',
+    ru: 'Здравствуйте! Я ваш глобальный ассистент по циркулярной экономике. Что вам нужно сегодня?',
+    zh: '你好！我是你的全球循环经济助手。今天需要什么帮助？',
+    ja: 'こんにちは！私はあなたのグローバル循環型経済アシスタントです。今日は何をお手伝いしましょうか？',
+    ko: '안녕하세요! 저는 글로벌 순환경제 도우미입니다. 오늘 무엇이 필요하세요?',
+    ar: 'مرحبًا! أنا مساعدك العالمي للاقتصاد الدائري. ماذا تحتاج اليوم؟',
+    hi: 'नमस्ते! मैं आपका वैश्विक चक्रीय अर्थव्यवस्था सहायक हूँ। आज आपको क्या चाहिए?',
+    nl: 'Hallo! Ik ben je wereldwijde assistent voor circulaire economie. Wat heb je vandaag nodig?',
+    tr: 'Merhaba! Ben küresel döngüsel ekonomi asistanınızım. Bugün neye ihtiyacınız var?',
+    bg: 'Здравейте! Аз съм вашият асистент за кръгова икономика.',
+    qu: 'Allin p\'unchaw! Qamta yanapayta munani. ¿Imatataq munanki?',
+    ay: 'Aspakiruski! Qamta yanapt\'añataki. ¿Kunsa muntaxa?'
+};
+// Versiones antiguas del saludo (las de main.js eran más cortas): se reconocen para poder
+// reemplazarlas cuando cambia el idioma, sin tocar otros mensajes del chat.
+var SALUDOS_ANTIGUOS = [
+    'Olá! Sou seu assistente de economia circular global.',
+    'Bonjour! Je suis votre assistant mondial d\'économie circulaire.',
+    'Allin p\'unchaw! Qamta yanapayta munani.',
+    'Aspakiruski! Qamta yanapt\'añataki.'
+];
+function obtenerSaludo(lang) { return SALUDOS_IA[lang] || SALUDOS_IA['es']; }
+function esSaludoConocido(texto) {
+    var limpio = (texto || '').replace(/\s+/g, ' ').trim();
+    if (!limpio) return false;
+    return Object.keys(SALUDOS_IA).some(function(k) { return SALUDOS_IA[k] === limpio; }) || SALUDOS_ANTIGUOS.indexOf(limpio) !== -1;
+}
+// Si el chat solo contiene el saludo inicial, lo repinta en el idioma actual.
+function refrescarSaludoChat(lang) {
+    var chat = document.getElementById('assistantResponse');
+    if (!chat) return;
+    var mensajes = chat.querySelectorAll('.chat-message');
+    if (mensajes.length !== 1) return;
+    var m = mensajes[0];
+    if (!m.classList.contains('assistant') || !esSaludoConocido(m.textContent)) return;
+    m.textContent = obtenerSaludo(lang);
+}
+
+// ============================================
+// SELECTOR DE IDIOMA, <html lang> y dirección de escritura
+// ============================================
+var IDIOMAS_RTL = ['ar'];
+var USAR_DIR_RTL = true; // pon false si el diseño se rompe en árabe y prefieres dejarlo de izquierda a derecha
+
+function sincronizarSelectorIdioma(lang) {
+    var lista = document.getElementById('languageDropdown');
+    if (lista) {
+        // El ruso está soportado en el código pero faltaba en el desplegable.
+        if (!lista.querySelector('[onclick*="changeLanguage(\'ru\'"]')) {
+            var item = document.createElement('div');
+            item.className = 'language-dropdown-item';
+            item.setAttribute('onclick', "changeLanguage('ru', 'Русский')");
+            item.innerHTML = '<span class="flag">🇷🇺</span><span class="lang-name">Русский</span><span class="check">✓</span>';
+            var ref = lista.querySelector('[onclick*="changeLanguage(\'bg\'"]');
+            if (ref && ref.nextElementSibling) lista.insertBefore(item, ref.nextElementSibling); else lista.appendChild(item);
+        }
+        lista.querySelectorAll('.language-dropdown-item').forEach(function(it) {
+            var m = (it.getAttribute('onclick') || '').match(/changeLanguage\('(\w+)'/);
+            if (!m) return;
+            it.classList.toggle('active', m[1] === lang);
+            var nombreEl = it.querySelector('.lang-name');
+            if (nombreEl && NOMBRES_IDIOMA_DISPLAY[m[1]]) nombreEl.textContent = NOMBRES_IDIOMA_DISPLAY[m[1]];
+        });
+    }
+    var sel = document.getElementById('selectedLanguage');
+    if (sel) sel.textContent = NOMBRES_IDIOMA_DISPLAY[lang] || lang.toUpperCase();
+}
+
+function aplicarIdiomaDocumento(lang) {
+    var raiz = document.documentElement;
+    raiz.setAttribute('lang', lang);
+    if (USAR_DIR_RTL) raiz.setAttribute('dir', IDIOMAS_RTL.indexOf(lang) !== -1 ? 'rtl' : 'ltr');
+}
+
+// Cambia el texto de un botón que tiene un icono <span> delante ("<span>👤</span> Mi Perfil").
+function setTextoTrasIcono(boton, texto) {
+    var nodos = Array.prototype.slice.call(boton.childNodes).filter(function(n) { return n.nodeType === 3; });
+    if (nodos.length) nodos[nodos.length - 1].nodeValue = ' ' + texto;
+    else boton.appendChild(document.createTextNode(' ' + texto));
+}
+
+function aplicarTraduccionUI(lang) {
+    var t = tUI(lang);
+    var accountBtn = document.getElementById('accountBtn');
+    if (accountBtn && !accountBtn.querySelector('.user-email')) accountBtn.textContent = t('account_btn');
+    var contentTitle = document.getElementById('contentTitle'); if (contentTitle) contentTitle.textContent = t('content_title');
+    var contentSubtitle = document.getElementById('contentSubtitle'); if (contentSubtitle) contentSubtitle.textContent = t('content_subtitle');
+    var featuredTitle = document.getElementById('featuredTitle'); if (featuredTitle) featuredTitle.textContent = t('featured_title');
+    var assistantHeader = document.getElementById('assistantHeaderTitle'); if (assistantHeader) assistantHeader.textContent = t('assistant_header');
+    var searchInput = document.getElementById('dynamicSearch'); if (searchInput) searchInput.placeholder = t('search_placeholder');
+    var chatInput = document.getElementById('assistantInput'); if (chatInput) chatInput.placeholder = t('chat_placeholder');
+    var tabLogin = document.getElementById('tabLogin'); if (tabLogin) tabLogin.textContent = t('login_tab');
+    var tabRegister = document.getElementById('tabRegister'); if (tabRegister) tabRegister.textContent = t('register_tab');
+    var footerDesc = document.getElementById('footerDesc'); if (footerDesc) footerDesc.textContent = t('footer_desc');
+
+    // Textos con id propio: { id del elemento: clave del diccionario }
     var mapaMenu = { menuTextInicio: 'menu_inicio', menuTextPerfil: 'menu_perfil', menuTextPublicaciones: 'menu_publicaciones', menuTextMensajes: 'menu_mensajes', menuTextFavoritos: 'menu_favoritos', menuTextConfig: 'menu_config',
-        panelTextAlcance: 'panel_alcance', panelTextIntereses: 'panel_intereses', btnPublicarTexto: 'btn_publicar',
-        quickTextPublicar: 'quick_publicar', quickTextVender: 'quick_vender', quickTextSeguridad: 'quick_seguridad', quickTextReportar: 'quick_reportar', btnLimpiarTexto: 'btn_limpiar',
-        // Paso 1 (footer): encabezados de columna y enlaces del pie de página.
+        panelTextAlcance: 'panel_alcance', panelTextIntereses: 'panel_intereses', btnPublicarTexto: 'btn_publicar', btnLimpiarTexto: 'btn_limpiar',
+        sponsorsTitle: 'sponsors_title', bannerText: 'banner_text',
         footerColEmpresa: 'footer_col_empresa', footerQuienesSomos: 'footer_quienes_somos', footerContactoAdmin: 'footer_contacto_admin',
         footerColTransparencia: 'footer_col_transparencia', footerReclamaciones: 'footer_reclamaciones', footerSeguridad: 'footer_seguridad', footerReportar: 'footer_reportar',
         footerColLegal: 'footer_col_legal', footerTerminos: 'footer_terminos', footerPrivacidad: 'footer_privacidad' };
     Object.keys(mapaMenu).forEach(function(elId) {
         var el = document.getElementById(elId);
-        if (el && t[mapaMenu[elId]]) el.textContent = t[mapaMenu[elId]];
+        if (el && t(mapaMenu[elId])) el.textContent = t(mapaMenu[elId]);
     });
+
+    // Accesos rápidos de la barra lateral (#sidebarQuick): los botones no tienen id, así que se
+    // reconocen por la acción que ejecutan.
+    var botonesRapidos = { "iaResponde('publicar')": 'quick_publicar', "iaResponde('vender')": 'quick_vender',
+        "ejecutarAccionGuia('zona')": 'quick_zona', "ejecutarAccionGuia('recientes')": 'quick_recientes',
+        "ejecutarAccionGuia('categorias')": 'quick_categorias', "ejecutarAccionGuia('mundial')": 'quick_mundial',
+        "ejecutarAccionGuia('buscar')": 'quick_buscar' };
+    document.querySelectorAll('#sidebarQuick button').forEach(function(b) {
+        var accion = b.getAttribute('onclick') || '';
+        Object.keys(botonesRapidos).forEach(function(k) { if (accion.indexOf(k) !== -1) b.textContent = t(botonesRapidos[k]); });
+    });
+
+    // Menú desplegable de la cuenta
+    document.querySelectorAll('#userMenuDropdown button').forEach(function(b) {
+        var accion = b.getAttribute('onclick') || '';
+        if (accion.indexOf("menuClick('perfil')") !== -1) setTextoTrasIcono(b, t('menu_perfil'));
+        else if (accion.indexOf("menuClick('config')") !== -1) setTextoTrasIcono(b, t('menu_config'));
+        else if (accion.indexOf('logout()') !== -1) setTextoTrasIcono(b, t('menu_logout'));
+    });
+
+    // Aviso "¿Otro idioma? Traduce aquí", botones "Visitar" de patrocinadores y "Resultados para:"
+    var avisoIdioma = document.querySelector('.translate-hint span:last-child'); if (avisoIdioma) avisoIdioma.textContent = t('other_lang_hint');
+    document.querySelectorAll('.btn-sponsor').forEach(function(b) { b.textContent = t('sponsor_visit'); });
+    var migaBusqueda = document.querySelector('#searchBreadcrumb > span');
+    if (migaBusqueda && migaBusqueda.firstChild && migaBusqueda.firstChild.nodeType === 3) migaBusqueda.firstChild.nodeValue = ' ' + t('results_for') + ' ';
+
+    aplicarIdiomaDocumento(lang);
+    sincronizarSelectorIdioma(lang);
+    refrescarSaludoChat(lang);
 }
 
 // ============================================
@@ -292,25 +486,21 @@ function toggleLanguageDropdown() { document.getElementById('languageDropdown').
 function changeLanguage(lang, nombre, elementoClic) {
     idiomaDetectado = lang;
     try { localStorage.setItem('idioma_preferido', lang); } catch (e) { console.warn('No se pudo guardar idioma_preferido:', e); }
-    document.getElementById('selectedLanguage').textContent = nombre || lang.toUpperCase();
-    document.querySelectorAll('.language-dropdown-item').forEach(i => i.classList.remove('active'));
-    var origenClic = elementoClic || (typeof event !== 'undefined' && event ? event.currentTarget : null);
-    if (origenClic && origenClic.classList) origenClic.classList.add('active');
     var dropdownEl = document.getElementById('languageDropdown');
     if (dropdownEl) dropdownEl.classList.remove('show');
-    
-    var saludos = {
-        'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?',
-        'en': 'Hello! I am your global circular economy assistant. What do you need today?',
-        'pt': 'Olá! Sou seu assistente de economia circular global. O que você precisa hoje?',
-        'fr': 'Bonjour! Je suis votre assistant mondial d\'économie circulaire. De quoi avez-vous besoin aujourd\'hui?',
-        'bg': 'Здравейте! Аз съм вашият асистент за кръгова икономика.',
-        'qu': 'Allin p\'unchaw! Qamta yanapayta munani. ¿Imatataq munanki?',
-        'ay': 'Aspakiruski! Qamta yanapt\'añataki. ¿Kunsa muntaxa?'
-    };
-    document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">' + (saludos[lang] || saludos['es']) + '</div>';
-    AIService.limpiarHistorial();
 
+    // Saludo nuevo en el idioma elegido (una sola fuente: SALUDOS_IA) y chat reiniciado.
+    var chat = document.getElementById('assistantResponse');
+    if (chat) {
+        chat.innerHTML = '';
+        var saludo = document.createElement('div');
+        saludo.className = 'chat-message assistant';
+        saludo.textContent = obtenerSaludo(lang);
+        chat.appendChild(saludo);
+    }
+    if (typeof AIService !== 'undefined' && AIService.limpiarHistorial) AIService.limpiarHistorial();
+
+    // Traduce la interfaz y sincroniza el selector (nombre, ✓ y ruso) y <html lang>/dir.
     aplicarTraduccionUI(lang);
     // Si el muro está mostrando el contenido informativo (usuario sin sesión, sin búsqueda
     // activa), hay que volver a pintarlo -- si no, se queda en el idioma con el que cargó
@@ -336,14 +526,18 @@ var IDIOMAS_AUTODETECTABLES = ['es', 'en', 'pt', 'fr', 'de', 'it', 'nl', 'tr', '
 
 // Palabras muy comunes y distintivas por idioma (artículos, pronombres, saludos), sin tildes.
 var PALABRAS_COMUNES_IDIOMA = {
-    es: ['el', 'la', 'los', 'las', 'que', 'es', 'como', 'para', 'quiero', 'hola', 'gracias', 'donde', 'necesito', 'puedo'],
-    en: ['the', 'is', 'are', 'you', 'and', 'what', 'how', 'my', 'want', 'hello', 'thanks', 'where', 'need', 'can'],
-    pt: ['o', 'a', 'os', 'as', 'voce', 'para', 'com', 'isso', 'nao', 'como', 'meu', 'minha', 'quero', 'ola', 'obrigado'],
-    fr: ['le', 'la', 'les', 'vous', 'est', 'avec', 'pour', 'comment', 'je', 'moi', 'bonjour', 'merci', 'veux'],
-    de: ['der', 'die', 'das', 'und', 'ist', 'sie', 'ich', 'wie', 'fur', 'mochte', 'danke', 'hallo'],
-    it: ['il', 'gli', 'sono', 'tu', 'come', 'per', 'che', 'vorrei', 'ciao', 'grazie'],
-    nl: ['het', 'een', 'jij', 'met', 'hoe', 'wil', 'hallo', 'dank'],
-    tr: ['bir', 'bu', 've', 'ile', 'nasil', 'ben', 'sen', 'istiyorum', 'merhaba', 'tesekkur']
+    // Solo palabras DISTINTIVAS de cada idioma (sin tildes). Se quitaron las que se escriben igual
+    // en varios idiomas ("a", "o", "para", "como", "que", "la", "tu", "come"...): por ellas un
+    // mensaje en español como "casa o departamento en alquiler para estudiantes" se detectaba
+    // como portugués y cambiaba toda la interfaz.
+    es: ['el', 'los', 'las', 'una', 'unos', 'unas', 'quiero', 'hola', 'gracias', 'donde', 'necesito', 'puedo', 'busco', 'vendo', 'tengo', 'mis', 'muy', 'del', 'mucho', 'estoy', 'precio', 'cuanto', 'cuesta'],
+    en: ['the', 'is', 'are', 'you', 'and', 'what', 'how', 'my', 'want', 'hello', 'thanks', 'where', 'need', 'can', 'for', 'with', 'this', 'that', 'buy', 'sell', 'looking', 'please', 'i'],
+    pt: ['voce', 'uma', 'umas', 'nao', 'isso', 'meu', 'minha', 'quero', 'ola', 'obrigado', 'obrigada', 'preciso', 'estou', 'tenho', 'muito', 'onde', 'com'],
+    fr: ['le', 'les', 'vous', 'est', 'avec', 'pour', 'comment', 'je', 'moi', 'bonjour', 'merci', 'veux', 'une', 'des', 'dans', 'mon', 'cherche', 'vends'],
+    de: ['der', 'die', 'das', 'und', 'ist', 'sie', 'ich', 'wie', 'fur', 'mochte', 'danke', 'hallo', 'nicht', 'ein', 'eine', 'mein', 'suche', 'verkaufe', 'mit'],
+    it: ['il', 'gli', 'sono', 'per', 'che', 'vorrei', 'ciao', 'grazie', 'cerco', 'mio', 'mia', 'della', 'anche', 'questo', 'voglio'],
+    nl: ['het', 'een', 'jij', 'met', 'hoe', 'wil', 'hallo', 'dank', 'ik', 'mijn', 'niet', 'ook', 'voor', 'zoek', 'verkoop'],
+    tr: ['bir', 'bu', 've', 'ile', 'nasil', 'ben', 'sen', 'istiyorum', 'merhaba', 'tesekkur', 'icin', 'degil', 'ariyorum', 'arıyorum']
 };
 
 // Detecta el idioma "real" del mensaje del usuario. Devuelve un código de IDIOMAS_AUTODETECTABLES
@@ -375,19 +569,25 @@ function detectarIdiomaEscritoEnMensaje(mensaje) {
     // La puntuación (comas, signos de interrogación, etc.) se convierte en espacio para que
     // palabras como "Bonjour," o "¿Hola?" sí se reconozcan como la palabra suelta que son.
     var normalizado = ' ' + texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\s]/gu, ' ') + ' ';
+    var puntajes = {};
     var mejorIdioma = null, mejorPuntaje = 0, segundoPuntaje = 0;
-    ['es', 'en', 'pt', 'fr', 'de', 'it', 'nl', 'tr'].forEach(function(codigo) {
+    Object.keys(PALABRAS_COMUNES_IDIOMA).forEach(function(codigo) {
         var puntaje = 0;
         PALABRAS_COMUNES_IDIOMA[codigo].forEach(function(palabra) {
             if (normalizado.indexOf(' ' + palabra + ' ') !== -1) puntaje++;
         });
+        puntajes[codigo] = puntaje;
         if (puntaje > mejorPuntaje) { segundoPuntaje = mejorPuntaje; mejorPuntaje = puntaje; mejorIdioma = codigo; }
         else if (puntaje > segundoPuntaje) { segundoPuntaje = puntaje; }
     });
     // Se exige al menos 2 coincidencias y una ventaja clara sobre el segundo idioma más probable,
     // para no cambiar el idioma por una sola palabra que coincide por casualidad entre dos idiomas.
-    if (mejorIdioma && mejorPuntaje >= 2 && mejorPuntaje > segundoPuntaje) return mejorIdioma;
-    return null;
+    if (!mejorIdioma || mejorPuntaje < 2 || mejorPuntaje <= segundoPuntaje) return null;
+    // Freno extra: si el idioma ACTUAL de la interfaz también aparece en el mensaje y la ventaja
+    // es pequeña (mensaje mezclado, nombres de productos en inglés, etc.), no se cambia nada.
+    var actual = idiomaDetectado;
+    if (actual && actual !== mejorIdioma && (puntajes[actual] || 0) >= 1 && mejorPuntaje - puntajes[actual] < 2) return null;
+    return mejorIdioma;
 }
 
 // Igual que changeLanguage(), pero sin limpiar el historial del chat ni pintar un saludo nuevo:
@@ -410,4 +610,64 @@ function aplicarIdiomaSilencioso(lang) {
 // ============================================
 // FUNCIONES IA
 // ============================================
-  
+
+// ============================================
+// AJUSTES AL CARGAR LA PÁGINA
+// ============================================
+// Este listener se registra antes que el de main.js (i18n.js se carga antes), así que estos
+// parches ya están aplicados cuando main.js arranca. Cuando puedas, lo más limpio es mover cada
+// parche a su archivo de origen (se indica cuál en cada comentario).
+document.addEventListener('DOMContentLoaded', function() {
+    var escapar = function(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+
+    // 1) Términos y política de privacidad: institucional.js mostraba siempre el texto en español
+    //    (RESPALDO_TERMINOS / RESPALDO_PRIVACIDAD) y nunca usaba las traducciones de este archivo.
+    //    Cámbialo allí para que llamen a obtenerTerminosTraducidos() / obtenerPrivacidadTraducida().
+    if (typeof Institucional !== 'undefined' && Institucional.abrirModal) {
+        Institucional.mostrarTerminos = function() {
+            var t = tUI(obtenerIdiomaPreferido());
+            this.abrirModal(t('footer_terminos'), '<p style="white-space:pre-line;">' + escapar(obtenerTerminosTraducidos()) + '</p>');
+        };
+        Institucional.mostrarPrivacidad = function() {
+            var t = tUI(obtenerIdiomaPreferido());
+            this.abrirModal(t('footer_privacidad'), '<p style="white-space:pre-line;">' + escapar(obtenerPrivacidadTraducida()) + '</p>');
+        };
+    }
+
+    // 2) Nombres de idioma para traducir productos y mensajes (panel-usuario-3.js, NOMBRES_IDIOMAS).
+    //    Sin ru/bg/qu/ay caía en 'inglés' y guardaba en Supabase texto en inglés como si fuera ruso,
+    //    búlgaro, quechua o aimara.
+    if (typeof PanelUsuario !== 'undefined' && PanelUsuario.NOMBRES_IDIOMAS) {
+        var faltantes = { ru: 'ruso', bg: 'búlgaro', qu: 'quechua', ay: 'aimara' };
+        Object.keys(faltantes).forEach(function(k) { if (!PanelUsuario.NOMBRES_IDIOMAS[k]) PanelUsuario.NOMBRES_IDIOMAS[k] = faltantes[k]; });
+    }
+
+    // 3) Modal de login: se recrea en español cada vez que se abre (auth-modales.js), así que se
+    //    vuelve a traducir justo después de abrirlo. Solo cubre título, pestañas y botón principal;
+    //    el resto de etiquetas del formulario sigue en español hasta que tengan sus propias claves.
+    if (typeof toggleAuthModal === 'function') {
+        var toggleAuthModalOriginal = toggleAuthModal;
+        window.toggleAuthModal = function(show) {
+            var resultado = toggleAuthModalOriginal.apply(this, arguments);
+            if (show) {
+                var t = tUI(obtenerIdiomaPreferido());
+                var titulo = document.querySelector('#authModal h2');
+                if (titulo) titulo.textContent = t('bienvenida_title').replace(/^[^\p{L}]+/u, '');
+                var pestanaLogin = document.getElementById('tabLogin'); if (pestanaLogin) pestanaLogin.textContent = t('login_tab');
+                var pestanaRegistro = document.getElementById('tabRegister'); if (pestanaRegistro) pestanaRegistro.textContent = t('register_tab');
+                var botonLogin = document.querySelector('#loginForm .btn-auth-primary'); if (botonLogin) botonLogin.textContent = t('login_tab');
+            }
+            return resultado;
+        };
+    }
+
+    // 4) Los patrocinadores se dibujan después de cargar la página (Institucional.cargarPatrocinadores),
+    //    con "Visitar" en español; se traduce cada vez que la lista se vuelve a dibujar.
+    var listaPatrocinadores = document.getElementById('patrocinadoresLista');
+    if (listaPatrocinadores && typeof MutationObserver !== 'undefined') {
+        new MutationObserver(function() {
+            var visitar = tUI(obtenerIdiomaPreferido())('sponsor_visit');
+            listaPatrocinadores.querySelectorAll('.btn-sponsor').forEach(function(b) { if (b.textContent !== visitar) b.textContent = visitar; });
+        }).observe(listaPatrocinadores, { childList: true });
+    }
+});
