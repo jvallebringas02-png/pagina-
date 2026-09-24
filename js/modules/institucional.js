@@ -249,31 +249,49 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         try { var guardado = localStorage.getItem(claveCache); if (guardado) return guardado; } catch (e) { /* sin caché */ }
         var nombre = this.NOMBRES_IDIOMA_LEGAL[idioma];
         if (!nombre) return null;
-        var controlador = new AbortController();
-        var temporizador = setTimeout(function() { controlador.abort(); }, 40000);
-        try {
-            var res = await fetch(CONFIG.GROQ_API_URL, {
-                method: 'POST',
-                signal: controlador.signal,
-                headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
-                body: JSON.stringify({ messages: [
-                    { role: 'system', content: 'Eres un traductor profesional. Traduce el siguiente documento legal al idioma ' + nombre + '. Conserva exactamente la estructura: la numeración, los guiones, los saltos de línea y los párrafos. No resumas, no omitas nada y no agregues comentarios. No traduzcas "remarket-db", "ARCO" ni "Ley N° 29733". Responde solo con la traducción.' },
-                    { role: 'user', content: textoEs }
-                ] })
-            });
-            var data = await res.json();
-            var salida = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-            salida = salida ? salida.trim() : '';
-            // Si la respuesta llega cortada o casi vacía, es mejor mostrar el original en español.
-            var minimo = (idioma === 'zh' || idioma === 'ja' || idioma === 'ko') ? 0.15 : 0.5;
-            if (salida.length < textoEs.length * minimo) return null;
-            try { localStorage.setItem(claveCache, salida); } catch (e) { /* sin caché */ }
-            return salida;
-        } catch (e) {
+        var instruccion = 'Eres un traductor profesional. Traduce el siguiente fragmento de un documento legal al idioma ' + nombre + '. Conserva la numeración, los guiones y los saltos de línea. No resumas, no omitas nada y no agregues comentarios. No traduzcas "remarket-db", "ARCO" ni "Ley N° 29733". Responde solo con la traducción.';
+
+        // Se traduce párrafo por párrafo (en vez de todo el documento de una vez): los textos cortos
+        // pasan mejor por el límite de tamaño y de tiempo de la función de IA. Cada párrafo se
+        // reintenta una vez, y si alguno falla se muestra TODO en español (no se mezclan idiomas).
+        async function traducirParte(parte) {
+            if (!parte.trim()) return parte;
+            for (var intento = 1; intento <= 2; intento++) {
+                var controlador = new AbortController();
+                var temporizador = setTimeout(function() { controlador.abort(); }, 25000);
+                try {
+                    var res = await fetch(CONFIG.GROQ_API_URL, {
+                        method: 'POST',
+                        signal: controlador.signal,
+                        headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
+                        body: JSON.stringify({ messages: [{ role: 'system', content: instruccion }, { role: 'user', content: parte }] })
+                    });
+                    var cuerpo = await res.text();
+                    var data = null;
+                    try { data = JSON.parse(cuerpo); } catch (e) { /* respuesta que no es JSON */ }
+                    var salida = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+                    if (res.ok && salida && salida.trim()) return salida.trim();
+                    console.warn('remarket-db: la traducción legal (' + idioma + ') falló, intento ' + intento + '. HTTP ' + res.status + ': ' + cuerpo.slice(0, 300));
+                } catch (e) {
+                    console.warn('remarket-db: la traducción legal (' + idioma + ') no llegó (red o tiempo), intento ' + intento + '.', e);
+                } finally {
+                    clearTimeout(temporizador);
+                }
+                if (intento < 2) await new Promise(function(r) { setTimeout(r, 1500); });
+            }
             return null;
-        } finally {
-            clearTimeout(temporizador);
         }
+
+        var partes = textoEs.split(/\n{2,}/);
+        var resultados = [];
+        for (var i = 0; i < partes.length; i += 3) {
+            var lote = await Promise.all(partes.slice(i, i + 3).map(traducirParte));
+            resultados = resultados.concat(lote);
+        }
+        if (resultados.some(function(r) { return r === null; })) return null;
+        var traducido = resultados.join('\n\n');
+        try { localStorage.setItem(claveCache, traducido); } catch (e) { /* sin caché */ }
+        return traducido;
     },
 
     mostrarDocumentoLegal: async function(clave, textoEs, claveTitulo, tituloEs) {
