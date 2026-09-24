@@ -447,3 +447,80 @@ var BuscadorMotor = {
         };
     }
 };
+
+// ============================================
+// PASO 6: TRADUCCIÓN DE CONTENIDO DE USUARIOS (título/descripción de productos), bajo demanda y con caché.
+// ============================================
+// Caché en memoria de la sesión actual: { "idioma_id": { titulo, descripcion } }.
+// Vive mientras dure la pestaña abierta -- evita re-traducir lo mismo dos veces en la misma sesión.
+var CACHE_TRADUCCION_PRODUCTOS = {};
+
+function obtenerTraduccionCacheada(productoId) {
+    if (!productoId) return null;
+    var idioma = obtenerIdiomaPreferido();
+    if (idioma === 'es') return null;
+    return CACHE_TRADUCCION_PRODUCTOS[idioma + '_' + productoId] || null;
+}
+
+var TraduccionProductos = {
+
+    // No bloquea el renderizado: la tarjeta ya se mostró en español (renderizarItemResultado),
+    // esto traduce en paralelo y, cuando cada producto está listo, actualiza solo esos dos
+    // elementos del DOM (por su data-id/data-campo) en vez de recargar toda la lista.
+    // Así ni retrasa lo primero que ve la persona, ni provoca un parpadeo de toda la pantalla.
+    traducirEnSegundoPlano: async function(lista, idioma) {
+        if (idioma === 'es' || !lista || !lista.length) return;
+        for (var i = 0; i < lista.length; i++) {
+            this._traducirUno(lista[i], idioma); // sin await -- cada producto se traduce en paralelo, no en fila
+        }
+    },
+
+    _traducirUno: async function(producto, idioma) {
+        if (!producto || !producto.id) return; // productos externos (dummyjson) no tienen id real, se quedan como están
+        var claveCache = idioma + '_' + producto.id;
+        if (CACHE_TRADUCCION_PRODUCTOS[claveCache]) return this._aplicarEnDOM(producto.id, CACHE_TRADUCCION_PRODUCTOS[claveCache]);
+
+        // Ya traducido y guardado en Supabase de una vez anterior (por cualquier usuario, no solo el actual)
+        if (producto.traducciones && producto.traducciones[idioma]) {
+            CACHE_TRADUCCION_PRODUCTOS[claveCache] = producto.traducciones[idioma];
+            return this._aplicarEnDOM(producto.id, producto.traducciones[idioma]);
+        }
+
+        if (typeof PanelUsuario === 'undefined' || !PanelUsuario.traducirTextoIA) return;
+        try {
+            var tituloT = await PanelUsuario.traducirTextoIA(producto.titulo, idioma);
+            var descT = await PanelUsuario.traducirTextoIA(producto.descripcion, idioma);
+            if (!tituloT || !descT) return; // si falla, se queda en español -- mejor eso que un texto roto
+
+            var traduccion = { titulo: tituloT, descripcion: descT };
+            CACHE_TRADUCCION_PRODUCTOS[claveCache] = traduccion;
+            this._aplicarEnDOM(producto.id, traduccion);
+            this._guardarEnSupabase(producto, idioma, traduccion);
+        } catch (e) {
+            console.warn('remarket-db: no se pudo traducir el producto ' + producto.id + ', se muestra en español.', e);
+        }
+    },
+
+    // Actualiza en el sitio los dos textos ya visibles en pantalla, si esa tarjeta sigue ahí
+    // (la persona pudo haber cambiado de búsqueda mientras la traducción viajaba de ida y vuelta).
+    _aplicarEnDOM: function(productoId, traduccion) {
+        var elTitulo = document.querySelector('[data-campo="titulo"][data-id="' + productoId + '"]');
+        var elDesc = document.querySelector('[data-campo="descripcion"][data-id="' + productoId + '"]');
+        if (elTitulo) elTitulo.textContent = traduccion.titulo;
+        if (elDesc) elDesc.textContent = traduccion.descripcion.substring(0, 100) + '...';
+    },
+
+    // Guarda la traducción en la fila del producto en Supabase, para que la próxima persona
+    // que vea este mismo producto en este mismo idioma no vuelva a pagar el costo de traducirlo.
+    // Se hace "en silencio" (fire-and-forget) -- si falla, no pasa nada grave: se recalculará la
+    // próxima vez, ya que igual quedó servida desde el caché de esta sesión.
+    _guardarEnSupabase: async function(producto, idioma, traduccion) {
+        try {
+            var traduccionesActuales = producto.traducciones || {};
+            traduccionesActuales[idioma] = traduccion;
+            await supabase.from('productos').update({ traducciones: traduccionesActuales }).eq('id', producto.id);
+        } catch (e) {
+            console.warn('remarket-db: no se pudo guardar la traducción del producto ' + producto.id + ' en Supabase.', e);
+        }
+    }
+};
