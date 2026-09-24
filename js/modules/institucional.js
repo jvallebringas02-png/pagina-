@@ -227,11 +227,82 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
 Última actualización: [completar fecha].`,
 
     mostrarTerminos: function() {
-        this.abrirModal('Términos y condiciones', '<p style="white-space:pre-line;">' + escHtml(this.RESPALDO_TERMINOS) + '</p>');
+        this.mostrarDocumentoLegal('terminos', this.RESPALDO_TERMINOS, 'footer_terminos', 'Términos y condiciones');
     },
 
     mostrarPrivacidad: function() {
-        this.abrirModal('Política de privacidad', '<p style="white-space:pre-line;">' + escHtml(this.RESPALDO_PRIVACIDAD) + '</p>');
+        this.mostrarDocumentoLegal('privacidad', this.RESPALDO_PRIVACIDAD, 'footer_privacidad', 'Política de privacidad');
+    },
+
+    // ---------- Traducción con IA de los documentos legales ----------
+    // El texto en español es la versión con validez legal; la traducción es solo una ayuda de
+    // lectura y así se avisa en el propio modal. Se guarda en localStorage por idioma para no
+    // gastar la IA cada vez. La clave incluye el largo del texto: si editas el documento, la
+    // traducción vieja deja de usarse sola.
+    // Quechua y aimara se muestran en español a propósito: un modelo de IA general no traduce
+    // esos idiomas con la fiabilidad que exige un texto legal.
+    IDIOMAS_LEGAL_SOLO_ES: ['qu', 'ay'],
+    NOMBRES_IDIOMA_LEGAL: { en: 'inglés', pt: 'portugués', fr: 'francés', de: 'alemán', it: 'italiano', ru: 'ruso', bg: 'búlgaro', zh: 'chino', ja: 'japonés', ko: 'coreano', ar: 'árabe', hi: 'hindi', nl: 'neerlandés', tr: 'turco' },
+
+    traducirDocumentoLegal: async function(clave, textoEs, idioma) {
+        var claveCache = 'legal_tr:' + clave + ':' + idioma + ':' + textoEs.length;
+        try { var guardado = localStorage.getItem(claveCache); if (guardado) return guardado; } catch (e) { /* sin caché */ }
+        var nombre = this.NOMBRES_IDIOMA_LEGAL[idioma];
+        if (!nombre) return null;
+        var controlador = new AbortController();
+        var temporizador = setTimeout(function() { controlador.abort(); }, 40000);
+        try {
+            var res = await fetch(CONFIG.GROQ_API_URL, {
+                method: 'POST',
+                signal: controlador.signal,
+                headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
+                body: JSON.stringify({ messages: [
+                    { role: 'system', content: 'Eres un traductor profesional. Traduce el siguiente documento legal al idioma ' + nombre + '. Conserva exactamente la estructura: la numeración, los guiones, los saltos de línea y los párrafos. No resumas, no omitas nada y no agregues comentarios. No traduzcas "remarket-db", "ARCO" ni "Ley N° 29733". Responde solo con la traducción.' },
+                    { role: 'user', content: textoEs }
+                ] })
+            });
+            var data = await res.json();
+            var salida = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+            salida = salida ? salida.trim() : '';
+            // Si la respuesta llega cortada o casi vacía, es mejor mostrar el original en español.
+            var minimo = (idioma === 'zh' || idioma === 'ja' || idioma === 'ko') ? 0.15 : 0.5;
+            if (salida.length < textoEs.length * minimo) return null;
+            try { localStorage.setItem(claveCache, salida); } catch (e) { /* sin caché */ }
+            return salida;
+        } catch (e) {
+            return null;
+        } finally {
+            clearTimeout(temporizador);
+        }
+    },
+
+    mostrarDocumentoLegal: async function(clave, textoEs, claveTitulo, tituloEs) {
+        var self = this;
+        var idioma = obtenerIdiomaPreferido();
+        var ui = (typeof UI_TRANSLATIONS !== 'undefined' && (UI_TRANSLATIONS[idioma] || UI_TRANSLATIONS.es)) || {};
+        var titulo = escHtml(ui[claveTitulo] || tituloEs);
+        function nota(texto) {
+            return texto ? '<p style="font-size:12px;color:var(--texto-secundario);margin:0 0 12px;">' + escHtml(texto) + '</p>' : '';
+        }
+        function cuerpo(notaTexto, texto) {
+            return nota(notaTexto) + '<p style="white-space:pre-line;">' + escHtml(texto) + '</p>';
+        }
+        if (idioma === 'es') { this.abrirModal(titulo, cuerpo('', textoEs)); return; }
+        if (this.IDIOMAS_LEGAL_SOLO_ES.indexOf(idioma) !== -1) { this.abrirModal(titulo, cuerpo(ui.legal_nota_es, textoEs)); return; }
+
+        // Se abre de inmediato con un aviso de carga y luego se rellena, para no dejar la pantalla congelada
+        this.abrirModal(titulo, nota(ui.legal_traduciendo || 'Traduciendo…'));
+        var modal = document.getElementById('modalInstitucional');
+        if (modal) modal.dataset.doc = clave + ':' + idioma;
+
+        var traducido = await this.traducirDocumentoLegal(clave, textoEs, idioma);
+
+        // Si mientras tanto la persona cerró el modal o abrió otro documento, no se toca nada
+        var actual = document.getElementById('modalInstitucional');
+        if (!actual || actual.dataset.doc !== clave + ':' + idioma) return;
+        var cont = actual.querySelector('.modal-fb-body');
+        if (!cont) return;
+        cont.innerHTML = traducido ? cuerpo(ui.legal_nota_ia, traducido) : cuerpo(ui.legal_nota_es, textoEs);
     },
 
     // ---------- Comunícate con el Admin / Libro de Reclamaciones ----------
