@@ -4,6 +4,13 @@
 // ============================================
 var Institucional = {
 
+    // Devuelve el texto en el idioma actual del sitio; si falta esa clave o ese idioma, cae a español.
+    t: function(clave) {
+        var idioma = obtenerIdiomaPreferido();
+        var dict = INSTITUCIONAL_TEXTOS[idioma] || INSTITUCIONAL_TEXTOS.es;
+        return dict[clave] || INSTITUCIONAL_TEXTOS.es[clave] || clave;
+    },
+
     // ---------- Motor común de niveles + peso + vigencia, usado por Patrocinadores y Publicidad ----------
     // Nivel más específico gana: ciudad -> país -> mundial (sin ubicación). Dentro del nivel
     // ganador, cada anuncio compite por un sorteo pesado según su "peso" (peso 1 = gratis/por
@@ -69,7 +76,7 @@ var Institucional = {
 
         contenedor.innerHTML = lista.map(function(p) {
             return '<div class="sponsor-card"><div class="sponsor-name">' + escHtml(p.titulo) + '</div>' +
-                '<button class="btn-sponsor" onclick="window.open(\'' + escHtml(p.enlace || '#') + '\', \'_blank\')">Visitar</button></div>';
+                '<button class="btn-sponsor" onclick="window.open(\'' + escHtml(p.enlace || '#') + '\', \'_blank\')">' + Institucional.t('btn_visitar') + '</button></div>';
         }).join('');
     },
 
@@ -134,22 +141,41 @@ var Institucional = {
     RESPALDO_QUIENES_SOMOS: 'remarket-db es una plataforma peruana de economía circular que conecta a vecinos y comercios para vender, donar e intercambiar productos de segunda mano. Creemos que darle una segunda vida a lo que ya tienes es una forma simple y poderosa de cuidar el planeta y fortalecer la comunidad.',
 
     obtenerTextoQuienesSomos: async function() {
-        var texto = this.RESPALDO_QUIENES_SOMOS;
+        var registro = { id: null, contenido: this.RESPALDO_QUIENES_SOMOS, traducciones: {} };
         try {
             var resultado = await supabase
                 .from('contenido_administrable')
-                .select('contenido')
+                .select('id, contenido, traducciones')
                 .eq('tipo_contenido', 'institucional')
                 .eq('titulo', 'quienes_somos')
                 .eq('activo', true)
                 .limit(1);
-            if (!resultado.error && resultado.data && resultado.data.length > 0 && resultado.data[0].contenido) texto = resultado.data[0].contenido;
+            if (!resultado.error && resultado.data && resultado.data.length > 0 && resultado.data[0].contenido) registro = resultado.data[0];
         } catch (e) { /* se queda con el respaldo fijo */ }
-        return texto;
+        return registro;
+    },
+
+    // Reutiliza el mismo sistema de traducción con caché que usa el artículo del muro
+    // (chat-ia -> Groq la primera vez, y se guarda en la fila para no repetir el gasto).
+    traducirTextoInstitucional: async function(id, textoOriginal, traducciones, idioma) {
+        if (idioma === 'es' || !id) return textoOriginal;
+        if (traducciones && traducciones[idioma] && traducciones[idioma].contenido) return traducciones[idioma].contenido;
+        try {
+            var res = await fetch(CONFIG.GROQ_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
+                body: JSON.stringify({ traducir_articulo: true, articulo_id: id, idioma: idioma, idioma_nombre: NOMBRES_IDIOMA_DISPLAY[idioma] || idioma })
+            });
+            var data = await res.json();
+            if (data && data.contenido) return data.contenido;
+        } catch (e) { /* si falla, se muestra en español antes que no mostrar nada */ }
+        return textoOriginal;
     },
 
     mostrarQuienesSomos: async function() {
-        var texto = await this.obtenerTextoQuienesSomos();
+        var idioma = obtenerIdiomaPreferido();
+        var registro = await this.obtenerTextoQuienesSomos();
+        var texto = await this.traducirTextoInstitucional(registro.id, registro.contenido, registro.traducciones, idioma);
         var panelActivo = document.getElementById('userPanelView') && document.getElementById('userPanelView').classList.contains('active');
         if (panelActivo && typeof PanelUsuario !== 'undefined') {
             var cont = document.getElementById('userFeedContainer');
@@ -160,7 +186,7 @@ var Institucional = {
         } else if (typeof UIController !== 'undefined' && UIController.mostrarQuienesSomosEnMuro) {
             UIController.mostrarQuienesSomosEnMuro(texto);
         } else {
-            this.abrirModal('Quiénes Somos', '<p>' + escHtml(texto) + '</p>');
+            this.abrirModal(Institucional.t('titulo_quienes_somos'), '<p>' + escHtml(texto) + '</p>');
         }
     },
 
@@ -234,23 +260,25 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
 
     // ---------- Comunícate con el Admin ----------
     mostrarContactoAdmin: function() {
-        UIController.mostrarFormularioEnMuro('Comunícate con el Administrador', '📩', '' +
+        var t = this.t.bind(this);
+        UIController.mostrarFormularioEnMuro(t('titulo_contacto'), '📩', '' +
             '<form id="formContactoAdmin" onsubmit="Institucional.enviarContacto(event)">' +
-            '<input type="text" id="contactoNombre" placeholder="Tu nombre" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="email" id="contactoEmail" placeholder="Tu correo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<textarea id="contactoMensaje" placeholder="Escribe tu mensaje..." required rows="4" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
-            '<button type="submit" id="contactoBtnEnviar" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Enviar mensaje</button>' +
+            '<input type="text" id="contactoNombre" placeholder="' + t('ph_nombre') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="email" id="contactoEmail" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<textarea id="contactoMensaje" placeholder="' + t('ph_mensaje') + '" required rows="4" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<button type="submit" id="contactoBtnEnviar" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + t('btn_enviar_mensaje') + '</button>' +
             '<div id="contactoEstado" style="margin-top:10px;text-align:center;"></div>' +
             '</form>');
     },
     enviarContacto: async function(e) {
         e.preventDefault();
+        var t = this.t.bind(this);
         var estado = document.getElementById('contactoEstado');
         var boton = document.getElementById('contactoBtnEnviar');
         // Se desactiva el botón mientras se envía, para que un doble clic por impaciencia no
         // mande el mismo mensaje dos veces. Si falla, se reactiva para que pueda reintentar.
         boton.disabled = true;
-        boton.textContent = 'Enviando...';
+        boton.textContent = t('enviando');
         estado.textContent = '';
         try {
             var { error } = await supabase.from('mensajes_contacto').insert({
@@ -259,11 +287,11 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
                 mensaje: document.getElementById('contactoMensaje').value
             });
             if (error) throw error;
-            document.getElementById('formContactoAdmin').innerHTML = '<p style="text-align:center;color:#059669;">✅ ¡Mensaje enviado! Te responderemos a tu correo pronto.</p>';
+            document.getElementById('formContactoAdmin').innerHTML = '<p style="text-align:center;color:#059669;">' + t('exito_mensaje') + '</p>';
         } catch (err) {
-            estado.textContent = 'No se pudo enviar. Intenta de nuevo.';
+            estado.textContent = t('error_mensaje');
             boton.disabled = false;
-            boton.textContent = 'Enviar mensaje';
+            boton.textContent = t('btn_enviar_mensaje');
         }
     },
 
@@ -271,26 +299,28 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     // prefill (opcional): { tipo: 'reclamo'|'queja'|'reporte', bien: 'nombre del producto' } --
     // se usa cuando se llega desde el botón "Reportar" de una tarjeta puntual.
     mostrarLibroReclamaciones: function(prefill) {
+        var t = this.t.bind(this);
         var tipoSel = (prefill && prefill.tipo) || '';
         var bienVal = (prefill && prefill.bien) ? escHtml(prefill.bien) : '';
         function opt(valor, texto) { return '<option value="' + valor + '"' + (tipoSel === valor ? ' selected' : '') + '>' + texto + '</option>'; }
-        UIController.mostrarFormularioEnMuro('Libro de Reclamaciones', '📋', '' +
+        UIController.mostrarFormularioEnMuro(t('titulo_reclamo'), '📋', '' +
             '<form id="formReclamo" onsubmit="Institucional.enviarReclamo(event)">' +
-            '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">Tipo...</option>' + opt('reclamo', 'Reclamo') + opt('queja', 'Queja') + opt('reporte', 'Reporte de publicación') + '</select>' +
-            '<input type="text" id="reclamoNombre" placeholder="Nombre completo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoDocumento" placeholder="DNI / documento" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="email" id="reclamoEmail" placeholder="Correo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoTelefono" placeholder="Teléfono (opcional)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoBien" placeholder="Producto o servicio relacionado" required value="' + bienVal + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoMonto" placeholder="Monto reclamado (opcional, ej: 150.50)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<textarea id="reclamoDetalle" placeholder="Detalle de lo ocurrido" required rows="3" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
-            '<textarea id="reclamoPedido" placeholder="¿Qué solución esperas?" required rows="2" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
-            '<button type="submit" id="reclamoBtnEnviar" style="width:100%;padding:12px;background:#DC2626;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Registrar reclamo</button>' +
+            '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">' + t('ph_tipo') + '</option>' + opt('reclamo', t('opt_reclamo')) + opt('queja', t('opt_queja')) + opt('reporte', t('opt_reclamo')) + '</select>' +
+            '<input type="text" id="reclamoNombre" placeholder="' + t('ph_nombre_completo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoDocumento" placeholder="' + t('ph_documento') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="email" id="reclamoEmail" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoTelefono" placeholder="' + t('ph_telefono') + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoBien" placeholder="' + t('ph_bien') + '" required value="' + bienVal + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoMonto" placeholder="' + t('ph_monto') + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<textarea id="reclamoDetalle" placeholder="' + t('ph_detalle') + '" required rows="3" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<textarea id="reclamoPedido" placeholder="' + t('ph_pedido') + '" required rows="2" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<button type="submit" id="reclamoBtnEnviar" style="width:100%;padding:12px;background:#DC2626;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + t('btn_registrar') + '</button>' +
             '<div id="reclamoEstado" style="margin-top:10px;text-align:center;"></div>' +
             '</form>');
     },
     enviarReclamo: async function(e) {
         e.preventDefault();
+        var t = this.t.bind(this);
         var estado = document.getElementById('reclamoEstado');
         var boton = document.getElementById('reclamoBtnEnviar');
         var montoTexto = document.getElementById('reclamoMonto').value.trim();
@@ -301,14 +331,14 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             var montoNormalizado = montoTexto.replace(',', '.').replace(/[^0-9.]/g, '');
             monto = parseFloat(montoNormalizado);
             if (isNaN(monto)) {
-                estado.textContent = 'El monto reclamado debe ser un número (ej: 150.50). Déjalo vacío si no aplica.';
+                estado.textContent = t('error_monto');
                 return;
             }
         }
         // Se desactiva el botón mientras se envía, para que un doble clic por impaciencia no
         // registre el mismo reclamo dos veces. Si falla, se reactiva para que pueda reintentar.
         boton.disabled = true;
-        boton.textContent = 'Enviando...';
+        boton.textContent = t('enviando');
         estado.textContent = '';
         try {
             var { error } = await supabase.from('libro_reclamaciones').insert({
@@ -323,11 +353,11 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
                 pedido_consumidor: document.getElementById('reclamoPedido').value
             });
             if (error) throw error;
-            document.getElementById('formReclamo').innerHTML = '<p style="text-align:center;color:#059669;">✅ Tu reclamo fue registrado. Nos comunicaremos contigo pronto.</p>';
+            document.getElementById('formReclamo').innerHTML = '<p style="text-align:center;color:#059669;">' + t('exito_reclamo') + '</p>';
         } catch (err) {
-            estado.textContent = 'No se pudo registrar. Intenta de nuevo.';
+            estado.textContent = t('error_reclamo');
             boton.disabled = false;
-            boton.textContent = 'Registrar reclamo';
+            boton.textContent = t('btn_registrar');
         }
     }
 };
