@@ -4,10 +4,12 @@ function toggleAI() {
 
 function iaResponde(tema) {
     const input = document.getElementById('assistantInput');
-    if(tema === 'publicar') input.value = "¿Cómo puedo publicar un artículo?";
-    if(tema === 'vender') input.value = "¿Cómo vendo algo de valor de forma segura?";
-    if(tema === 'seguridad') input.value = "¿Qué medidas de seguridad tienen?";
-    if(tema === 'reportar') input.value = "Quiero reportar una publicación sospechosa";
+    // La pregunta se manda en el idioma elegido en la página, para que el Asistente responda en ese idioma
+    // (quechua y aimara usan la pregunta en español).
+    if(tema === 'publicar') input.value = textoUI('ask_publicar', "¿Cómo puedo publicar un artículo?");
+    if(tema === 'vender') input.value = textoUI('ask_vender', "¿Cómo vendo algo de valor de forma segura?");
+    if(tema === 'seguridad') input.value = textoUI('ask_seguridad', "¿Qué medidas de seguridad tienen?");
+    if(tema === 'reportar') input.value = textoUI('ask_reportar', "Quiero reportar una publicación sospechosa");
     document.getElementById('assistantForm').dispatchEvent(new Event('submit'));
 }
 
