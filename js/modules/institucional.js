@@ -227,100 +227,75 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
 Última actualización: [completar fecha].`,
 
     mostrarTerminos: function() {
-        this.mostrarDocumentoLegal('terminos', this.RESPALDO_TERMINOS, 'footer_terminos', 'Términos y condiciones');
+        this.mostrarDocumentoLegal(this.RESPALDO_TERMINOS, 'footer_terminos', 'Términos y condiciones', 'terminos_condiciones');
     },
 
     mostrarPrivacidad: function() {
-        this.mostrarDocumentoLegal('privacidad', this.RESPALDO_PRIVACIDAD, 'footer_privacidad', 'Política de privacidad');
+        this.mostrarDocumentoLegal(this.RESPALDO_PRIVACIDAD, 'footer_privacidad', 'Política de privacidad', 'politica_privacidad');
     },
 
-    // ---------- Traducción con IA de los documentos legales ----------
-    // El texto en español es la versión con validez legal; la traducción es solo una ayuda de
-    // lectura y así se avisa en el propio modal. Se guarda en localStorage por idioma para no
-    // gastar la IA cada vez. La clave incluye el largo del texto: si editas el documento, la
-    // traducción vieja deja de usarse sola.
-    // Quechua y aimara se muestran en español a propósito: un modelo de IA general no traduce
-    // esos idiomas con la fiabilidad que exige un texto legal.
+    // ---------- Documentos legales traducidos ----------
+    // El texto en español es la versión con validez legal. Se lee de la tabla contenido_administrable
+    // (tipo 'institucional', igual que "Quiénes Somos"); si no está ahí, se usa el respaldo fijo de arriba.
+    // La traducción usa el MISMO sistema que ya traduce el artículo del muro y "Quiénes Somos": la función
+    // chat-ia traduce la fila, la guarda en su columna `traducciones` y desde entonces se sirve desde ahí
+    // (una sola vez por idioma para todos los visitantes). No se manda ningún prompt desde el navegador.
+    // Quechua y aimara se muestran en español a propósito: un modelo de IA general no traduce esos idiomas
+    // con la fiabilidad que exige un texto legal.
     IDIOMAS_LEGAL_SOLO_ES: ['qu', 'ay'],
-    NOMBRES_IDIOMA_LEGAL: { en: 'inglés', pt: 'portugués', fr: 'francés', de: 'alemán', it: 'italiano', ru: 'ruso', bg: 'búlgaro', zh: 'chino', ja: 'japonés', ko: 'coreano', ar: 'árabe', hi: 'hindi', nl: 'neerlandés', tr: 'turco' },
 
-    traducirDocumentoLegal: async function(clave, textoEs, idioma) {
-        var claveCache = 'legal_tr:' + clave + ':' + idioma + ':' + textoEs.length;
-        try { var guardado = localStorage.getItem(claveCache); if (guardado) return guardado; } catch (e) { /* sin caché */ }
-        var nombre = this.NOMBRES_IDIOMA_LEGAL[idioma];
-        if (!nombre) return null;
-        var instruccion = 'Eres un traductor profesional. Traduce el siguiente fragmento de un documento legal al idioma ' + nombre + '. Conserva la numeración, los guiones y los saltos de línea. No resumas, no omitas nada y no agregues comentarios. No traduzcas "remarket-db", "ARCO" ni "Ley N° 29733". Responde solo con la traducción.';
-
-        // Se traduce párrafo por párrafo (en vez de todo el documento de una vez): los textos cortos
-        // pasan mejor por el límite de tamaño y de tiempo de la función de IA. Cada párrafo se
-        // reintenta una vez, y si alguno falla se muestra TODO en español (no se mezclan idiomas).
-        async function traducirParte(parte) {
-            if (!parte.trim()) return parte;
-            for (var intento = 1; intento <= 2; intento++) {
-                var controlador = new AbortController();
-                var temporizador = setTimeout(function() { controlador.abort(); }, 25000);
-                try {
-                    var res = await fetch(CONFIG.GROQ_API_URL, {
-                        method: 'POST',
-                        signal: controlador.signal,
-                        headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
-                        body: JSON.stringify({ messages: [{ role: 'system', content: instruccion }, { role: 'user', content: parte }] })
-                    });
-                    var cuerpo = await res.text();
-                    var data = null;
-                    try { data = JSON.parse(cuerpo); } catch (e) { /* respuesta que no es JSON */ }
-                    var salida = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-                    if (res.ok && salida && salida.trim()) return salida.trim();
-                    console.warn('remarket-db: la traducción legal (' + idioma + ') falló, intento ' + intento + '. HTTP ' + res.status + ': ' + cuerpo.slice(0, 300));
-                } catch (e) {
-                    console.warn('remarket-db: la traducción legal (' + idioma + ') no llegó (red o tiempo), intento ' + intento + '.', e);
-                } finally {
-                    clearTimeout(temporizador);
-                }
-                if (intento < 2) await new Promise(function(r) { setTimeout(r, 1500); });
-            }
-            return null;
-        }
-
-        var partes = textoEs.split(/\n{2,}/);
-        var resultados = [];
-        for (var i = 0; i < partes.length; i += 3) {
-            var lote = await Promise.all(partes.slice(i, i + 3).map(traducirParte));
-            resultados = resultados.concat(lote);
-        }
-        if (resultados.some(function(r) { return r === null; })) return null;
-        var traducido = resultados.join('\n\n');
-        try { localStorage.setItem(claveCache, traducido); } catch (e) { /* sin caché */ }
-        return traducido;
+    obtenerDocumentoLegalDB: async function(tituloDB) {
+        try {
+            var r = await supabase
+                .from('contenido_administrable')
+                .select('id, contenido, traducciones')
+                .eq('tipo_contenido', 'institucional')
+                .eq('titulo', tituloDB)
+                .eq('activo', true)
+                .limit(1);
+            if (!r.error && r.data && r.data.length > 0 && r.data[0].contenido) return r.data[0];
+        } catch (e) { /* se queda con el respaldo fijo */ }
+        return null;
     },
 
-    mostrarDocumentoLegal: async function(clave, textoEs, claveTitulo, tituloEs) {
-        var self = this;
+    mostrarDocumentoLegal: async function(textoRespaldo, claveTitulo, tituloEs, tituloDB) {
         var idioma = obtenerIdiomaPreferido();
         var ui = (typeof UI_TRANSLATIONS !== 'undefined' && (UI_TRANSLATIONS[idioma] || UI_TRANSLATIONS.es)) || {};
         var titulo = escHtml(ui[claveTitulo] || tituloEs);
+        var marca = tituloDB + ':' + idioma;
         function nota(texto) {
             return texto ? '<p style="font-size:12px;color:var(--texto-secundario);margin:0 0 12px;">' + escHtml(texto) + '</p>' : '';
         }
         function cuerpo(notaTexto, texto) {
             return nota(notaTexto) + '<p style="white-space:pre-line;">' + escHtml(texto) + '</p>';
         }
-        if (idioma === 'es') { this.abrirModal(titulo, cuerpo('', textoEs)); return; }
-        if (this.IDIOMAS_LEGAL_SOLO_ES.indexOf(idioma) !== -1) { this.abrirModal(titulo, cuerpo(ui.legal_nota_es, textoEs)); return; }
+        // Solo se actualiza si la persona no cerró el modal ni abrió otro documento mientras tanto
+        function pintar(html) {
+            var m = document.getElementById('modalInstitucional');
+            if (!m || m.dataset.doc !== marca) return;
+            var c = m.querySelector('.modal-fb-body');
+            if (c) c.innerHTML = html;
+        }
 
-        // Se abre de inmediato con un aviso de carga y luego se rellena, para no dejar la pantalla congelada
-        this.abrirModal(titulo, nota(ui.legal_traduciendo || 'Traduciendo…'));
+        // Se abre de inmediato: en español con el texto de respaldo, en otros idiomas con un aviso de carga
+        if (idioma === 'es') this.abrirModal(titulo, cuerpo('', textoRespaldo));
+        else this.abrirModal(titulo, nota(ui.legal_traduciendo || 'Traduciendo…'));
         var modal = document.getElementById('modalInstitucional');
-        if (modal) modal.dataset.doc = clave + ':' + idioma;
+        if (modal) modal.dataset.doc = marca;
 
-        var traducido = await this.traducirDocumentoLegal(clave, textoEs, idioma);
+        var registro = await this.obtenerDocumentoLegalDB(tituloDB);
+        var textoEs = registro ? registro.contenido : textoRespaldo;
 
-        // Si mientras tanto la persona cerró el modal o abrió otro documento, no se toca nada
-        var actual = document.getElementById('modalInstitucional');
-        if (!actual || actual.dataset.doc !== clave + ':' + idioma) return;
-        var cont = actual.querySelector('.modal-fb-body');
-        if (!cont) return;
-        cont.innerHTML = traducido ? cuerpo(ui.legal_nota_ia, traducido) : cuerpo(ui.legal_nota_es, textoEs);
+        if (idioma === 'es') { if (registro && registro.contenido !== textoRespaldo) pintar(cuerpo('', textoEs)); return; }
+        if (this.IDIOMAS_LEGAL_SOLO_ES.indexOf(idioma) !== -1 || !registro) { pintar(cuerpo(ui.legal_nota_es, textoEs)); return; }
+
+        var traducido = await this.traducirTextoInstitucional(registro.id, registro.contenido, registro.traducciones, idioma);
+        if (traducido && traducido !== registro.contenido) {
+            pintar(cuerpo(ui.legal_nota_ia, traducido));
+        } else {
+            console.warn('remarket-db: no se pudo traducir el documento legal "' + tituloDB + '" al idioma ' + idioma + '; se muestra en español.');
+            pintar(cuerpo(ui.legal_nota_es, textoEs));
+        }
     },
 
     // ---------- Comunícate con el Admin / Libro de Reclamaciones ----------
@@ -331,11 +306,11 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     // sin importar si se activó desde el pie de página o escribiéndole algo al chat -- así queda
     // consistente en los dos casos, y después se queda en silencio mientras se llena el formulario.
     iniciarContactoGuiado: function() {
-        UIController.mostrarRespuestaIA('📩 Aquí tienes el formulario para comunicarte con el administrador -- úsalo para consultas, sugerencias, o cualquier tema que no sea un reclamo formal (para eso está el Libro de Reclamaciones). Completa tus datos y el mensaje, y el equipo te responderá.');
+        UIController.mostrarRespuestaIA(textoUI('msg_contacto', '📩 Aquí tienes el formulario para comunicarte con el administrador -- úsalo para consultas, sugerencias, o cualquier tema que no sea un reclamo formal (para eso está el Libro de Reclamaciones). Completa tus datos y el mensaje, y el equipo te responderá.'));
         this.mostrarContactoAdmin();
     },
     iniciarReclamoGuiado: function() {
-        UIController.mostrarRespuestaIA('📋 Aquí tienes el Libro de Reclamaciones -- úsalo si tuviste un problema concreto con una compra, venta o publicación y quieres dejarlo registrado formalmente. Completa los datos y el detalle de lo ocurrido, y quedará constancia de tu reclamo.');
+        UIController.mostrarRespuestaIA(textoUI('msg_reclamo', '📋 Aquí tienes el Libro de Reclamaciones -- úsalo si tuviste un problema concreto con una compra, venta o publicación y quieres dejarlo registrado formalmente. Completa los datos y el detalle de lo ocurrido, y quedará constancia de tu reclamo.'));
         this.mostrarLibroReclamaciones();
     },
 
@@ -343,7 +318,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     // Reclamaciones (ya funciona sin necesitar cuenta), pero llega con el tipo "Reporte" y
     // el nombre del producto ya llenados, para que la persona no tenga que escribirlo de nuevo.
     reportarPublicacion: function(tituloProducto) {
-        UIController.mostrarRespuestaIA('🚩 Vamos a registrar tu reporte sobre "' + tituloProducto + '" -- completa el resto de los datos y quedará constancia formal.');
+        UIController.mostrarRespuestaIA(textoUI('msg_reporte', '🚩 Vamos a registrar tu reporte sobre "{p}" -- completa el resto de los datos y quedará constancia formal.').replace('{p}', function() { return tituloProducto; }));
         this.mostrarLibroReclamaciones({ tipo: 'reporte', bien: tituloProducto });
     },
 
