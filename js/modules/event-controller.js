@@ -128,17 +128,17 @@ var EventController = {
     // algo que tocar de inmediato, sin depender de que escriba (ni de que la IA lo entienda).
     ejecutarAccionGuia: async function(tipo) {
         if (tipo === 'zona') {
-            UIController.mostrarRespuestaIA('Aquí tienes todo lo publicado cerca de ti, organizado por categoría -- Ropa, Tecnología, Hogar, etc. Toca cualquier categoría en la tabla para ver esos productos uno por uno. Si ya sabes qué buscas puntualmente, mejor escríbelo arriba y te lo encuentro directo.');
+            UIController.mostrarRespuestaIA(obtenerMensajeGuia('zona'));
             var matrizGuia = BuscadorMotor.obtenerMatrizPorLocalidad();
             UIController.mostrarMatrizLocalidad(matrizGuia);
         } else if (tipo === 'recientes') {
-            UIController.mostrarRespuestaIA('Estas son las publicaciones más recientes de toda la plataforma, sin importar la categoría. Si quieres ver solo lo nuevo de un tipo en particular (por ejemplo, solo ropa reciente), escríbelo arriba, ej: "lo último en ropa".');
+            UIController.mostrarRespuestaIA(obtenerMensajeGuia('recientes'));
             var recientesGuia = BuscadorMotor.obtenerRecientes(12);
-            UIController.mostrarResultadosBusqueda({ resultados: recientesGuia, total: BuscadorMotor.catalogo.length, coincidencias: recientesGuia.length, query: 'Novedades', es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null });
+            UIController.mostrarResultadosBusqueda({ resultados: recientesGuia, total: BuscadorMotor.catalogo.length, coincidencias: recientesGuia.length, query: obtenerMensajeGuia('novedades_label'), es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null });
         } else if (tipo === 'publicar') {
             PanelUsuario.iniciarPublicacionDesdeAsistente('');
         } else if (tipo === 'buscar') {
-            UIController.mostrarRespuestaIA('Escribe abajo qué necesitas, con tus propias palabras:\n🛒 Comprar algo → "busco una bicicleta" → te muestro lo publicado.\n📦 Vender, donar o regalar algo tuyo → "vendo mi laptop" → te abro el formulario.\n🛠️ Un servicio → "doy clases de inglés" o "busco clases de inglés" → publico o busco, según el caso.\n🔄 Un trueque → "cambio mi bici por una laptop" → publico o busco, según el caso.');
+            UIController.mostrarRespuestaIA(obtenerMensajeGuia('buscar'));
             // No sabemos qué quiere buscar todavía -- solo le damos el foco a la barra de
             // búsqueda principal para que escriba ahí, en vez de intentar adivinar.
             var buscadorPrincipal = document.getElementById('dynamicSearch');
