@@ -322,6 +322,41 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         this.mostrarLibroReclamaciones({ tipo: 'reporte', bien: tituloProducto });
     },
 
+    // Si el usuario cambia de idioma con el formulario de Contacto o el Libro de Reclamaciones
+    // abierto, hay que actualizar sus textos (título, placeholders, botón) al nuevo idioma --
+    // pero SIN reconstruir el <form>, porque eso borraría lo que la persona ya haya escrito.
+    // Por eso acá se tocan solo las propiedades de texto (textContent, placeholder), nunca
+    // .value ni .innerHTML del formulario.
+    retraducirFormularioAbierto: function() {
+        if (!UIController.formularioAbierto) return;
+        var t = this.t.bind(this);
+        var banner = UIController.elementos.searchResultsContent && UIController.elementos.searchResultsContent.querySelector('.ai-context-banner strong');
+
+        if (document.getElementById('formContactoAdmin')) {
+            var tituloC = t('titulo_contacto');
+            UIController.elementos.searchQuery.textContent = tituloC;
+            if (banner) banner.textContent = tituloC;
+            var cNombre = document.getElementById('contactoNombre'); if (cNombre) cNombre.placeholder = t('ph_nombre');
+            var cEmail = document.getElementById('contactoEmail'); if (cEmail) cEmail.placeholder = t('ph_correo');
+            var cMsg = document.getElementById('contactoMensaje'); if (cMsg) cMsg.placeholder = t('ph_mensaje');
+            var cBtn = document.getElementById('contactoBtnEnviar'); if (cBtn && !cBtn.disabled) cBtn.textContent = t('btn_enviar_mensaje');
+        } else if (document.getElementById('formReclamo')) {
+            var tituloR = t('titulo_reclamo');
+            UIController.elementos.searchQuery.textContent = tituloR;
+            if (banner) banner.textContent = tituloR;
+            var tipoSel = document.getElementById('reclamoTipo');
+            if (tipoSel && tipoSel.options.length >= 4) {
+                tipoSel.options[0].textContent = t('ph_tipo');
+                tipoSel.options[1].textContent = t('opt_reclamo');
+                tipoSel.options[2].textContent = t('opt_queja');
+                tipoSel.options[3].textContent = t('opt_reclamo');
+            }
+            var placeholdersReclamo = { reclamoNombre: 'ph_nombre_completo', reclamoDocumento: 'ph_documento', reclamoEmail: 'ph_correo', reclamoTelefono: 'ph_telefono', reclamoBien: 'ph_bien', reclamoMonto: 'ph_monto', reclamoDetalle: 'ph_detalle', reclamoPedido: 'ph_pedido' };
+            Object.keys(placeholdersReclamo).forEach(function(id) { var el = document.getElementById(id); if (el) el.placeholder = t(placeholdersReclamo[id]); });
+            var rBtn = document.getElementById('reclamoBtnEnviar'); if (rBtn && !rBtn.disabled) rBtn.textContent = t('btn_registrar');
+        }
+    },
+
     // ---------- Comunícate con el Admin ----------
     mostrarContactoAdmin: function() {
         var t = this.t.bind(this);
