@@ -150,7 +150,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         this.elementos.searchResultsContainer.style.display = 'block';
         this.elementos.contentTitle.textContent = ' Resultados de Búsqueda';
         this.elementos.searchResultsContent.innerHTML =
-            '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.cerrarResultados();">← Volver al inicio</a></div>' +
+            '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.cerrarResultados();">← ' + escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</a></div>' +
             '<div class="ai-context-banner">' + icono + ' <strong>' + escHtml(titulo) + '</strong></div>' +
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;max-width:520px;">' + formularioHTML + '</div>';
     },
