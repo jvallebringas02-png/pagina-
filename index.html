@@ -105,13 +105,13 @@ tailwind.config = {
 </aside>
 
 <aside class="sidebar-quick" id="sidebarQuick">
-    <button type="button" onclick="iaResponde('publicar')">Cómo publico</button>
-    <button type="button" onclick="iaResponde('vender')">Cómo vendo</button>
-    <button type="button" onclick="EventController.ejecutarAccionGuia('zona')">Ver mi zona</button>
-    <button type="button" onclick="EventController.ejecutarAccionGuia('recientes')">Lo último publicado</button>
-    <button type="button" onclick="EventController.ejecutarAccionGuia('categorias')">Categorías</button>
-    <button type="button" onclick="EventController.ejecutarAccionGuia('mundial')">Mundial</button>
-    <button type="button" onclick="EventController.ejecutarAccionGuia('buscar')">Buscar algo</button>
+    <button type="button" onclick="iaResponde('publicar')" id="sideQuickPublicar">Cómo publico</button>
+    <button type="button" onclick="iaResponde('vender')" id="sideQuickVender">Cómo vendo</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('zona')" id="sideQuickZona">Ver mi zona</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('recientes')" id="sideQuickRecientes">Lo último publicado</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('categorias')" id="sideQuickCategorias">Categorías</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('mundial')" id="sideQuickMundial">Mundial</button>
+    <button type="button" onclick="EventController.ejecutarAccionGuia('buscar')" id="sideQuickBuscar">Buscar algo</button>
 </aside>
 
 <section class="content-section">
@@ -217,9 +217,9 @@ tailwind.config = {
 <footer>
 <div class="footer-grid">
 <div class="footer-col"><h2 style="color: #F59E0B;">remarket-db</h2><p id="footerDesc">Conectando comercios y vecinos de forma inteligente.</p></div>
-<div class="footer-col"><h4>Empresa</h4><ul><li><a href="#" onclick="Institucional.mostrarQuienesSomos(); return false;">Quiénes Somos</a></li><li><a href="#" onclick="Institucional.iniciarContactoGuiado(); return false;">Comunícate con el Administrador</a></li></ul></div>
-<div class="footer-col"><h4>Transparencia</h4><ul><li><a href="#" onclick="Institucional.iniciarReclamoGuiado(); return false;">Libro de Reclamaciones</a></li><li><a href="#" onclick="iaResponde('seguridad'); return false;">Seguridad</a></li><li><a href="#" onclick="iaResponde('reportar'); return false;">Reportar</a></li></ul></div>
-<div class="footer-col"><h4>Legal</h4><ul><li><a href="#" onclick="Institucional.mostrarTerminos(); return false;">Términos y condiciones</a></li><li><a href="#" onclick="Institucional.mostrarPrivacidad(); return false;">Política de privacidad</a></li></ul></div>
+<div class="footer-col"><h4 id="footerEmpresa">Empresa</h4><ul><li><a href="#" onclick="Institucional.mostrarQuienesSomos(); return false;" id="footerQuienes">Quiénes Somos</a></li><li><a href="#" onclick="Institucional.iniciarContactoGuiado(); return false;" id="footerContacto">Comunícate con el Administrador</a></li></ul></div>
+<div class="footer-col"><h4 id="footerTransparencia">Transparencia</h4><ul><li><a href="#" onclick="Institucional.iniciarReclamoGuiado(); return false;" id="footerReclamos">Libro de Reclamaciones</a></li><li><a href="#" onclick="iaResponde('seguridad'); return false;" id="footerSeguridad">Seguridad</a></li><li><a href="#" onclick="iaResponde('reportar'); return false;" id="footerReportar">Reportar</a></li></ul></div>
+<div class="footer-col"><h4 id="footerLegal">Legal</h4><ul><li><a href="#" onclick="Institucional.mostrarTerminos(); return false;" id="footerTerminos">Términos y condiciones</a></li><li><a href="#" onclick="Institucional.mostrarPrivacidad(); return false;" id="footerPrivacidad">Política de privacidad</a></li></ul></div>
 </div>
 </footer>
 
