@@ -468,10 +468,19 @@ var TraduccionProductos = {
     // esto traduce en paralelo y, cuando cada producto está listo, actualiza solo esos dos
     // elementos del DOM (por su data-id/data-campo) en vez de recargar toda la lista.
     // Así ni retrasa lo primero que ve la persona, ni provoca un parpadeo de toda la pantalla.
+    //
+    // Paso 2: en vez de disparar TODOS los productos a la vez (lo que puede agotar la cuota
+    // de Groq -- 30 peticiones/minuto en el plan gratuito, compartida con el chat del Asistente),
+    // se traducen de a TAMANO_TANDA productos por vez, esperando a que cada tanda termine antes
+    // de empezar la siguiente. Tarda un poco más en terminar toda la página, pero no arriesga
+    // que la mitad de las traducciones fallen en silencio por rate limit.
+    TAMANO_TANDA: 3,
+
     traducirEnSegundoPlano: async function(lista, idioma) {
         if (idioma === 'es' || !lista || !lista.length) return;
-        for (var i = 0; i < lista.length; i++) {
-            this._traducirUno(lista[i], idioma); // sin await -- cada producto se traduce en paralelo, no en fila
+        for (var i = 0; i < lista.length; i += this.TAMANO_TANDA) {
+            var tanda = lista.slice(i, i + this.TAMANO_TANDA);
+            await Promise.all(tanda.map(function(producto) { return TraduccionProductos._traducirUno(producto, idioma); }));
         }
     },
 
@@ -503,11 +512,17 @@ var TraduccionProductos = {
 
     // Actualiza en el sitio los dos textos ya visibles en pantalla, si esa tarjeta sigue ahí
     // (la persona pudo haber cambiado de búsqueda mientras la traducción viajaba de ida y vuelta).
+    // El propio elemento dice si su texto va cortado o completo (data-truncar), para respetar
+    // lo mismo que se mostró en español -- los resultados de búsqueda cortan a 100 caracteres,
+    // el catálogo inicial muestra la descripción completa.
     _aplicarEnDOM: function(productoId, traduccion) {
         var elTitulo = document.querySelector('[data-campo="titulo"][data-id="' + productoId + '"]');
         var elDesc = document.querySelector('[data-campo="descripcion"][data-id="' + productoId + '"]');
         if (elTitulo) elTitulo.textContent = traduccion.titulo;
-        if (elDesc) elDesc.textContent = traduccion.descripcion.substring(0, 100) + '...';
+        if (elDesc) {
+            var maxChars = elDesc.getAttribute('data-truncar');
+            elDesc.textContent = maxChars ? (traduccion.descripcion.substring(0, parseInt(maxChars, 10)) + '...') : traduccion.descripcion;
+        }
     },
 
     // Guarda la traducción en la fila del producto en Supabase, para que la próxima persona
