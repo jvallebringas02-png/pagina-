@@ -1174,10 +1174,13 @@ Object.assign(PanelUsuario, {
         }
     },
 
+    // Traduce con la cuenta de Groq #2 (CONFIG.TRADUCCION_API_URL), separada de la del chat del
+    // Asistente (CONFIG.GROQ_API_URL). Usada para productos (TraduccionProductos, buscador.js) y
+    // para mensajes de chat entre usuarios. Ver BITACORA-SESION-CUOTA-GROQ.md.
     traducirTextoIA: async function(texto, idiomaDestinoCode) {
         var idiomaNombre = this.NOMBRES_IDIOMAS[idiomaDestinoCode] || 'inglés';
         try {
-            var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ messages: [{ role: 'system', content: 'Traduce el siguiente mensaje de chat al ' + idiomaNombre + '. Responde solo con la traducción, sin explicaciones ni comillas.' }, { role: 'user', content: texto }] }) });
+            var response = await fetch(CONFIG.TRADUCCION_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ texto: texto, idioma: idiomaNombre }) });
             var data = await response.json();
             return data.choices && data.choices[0] ? data.choices[0].message.content.trim() : null;
         } catch (e) { return null; }
