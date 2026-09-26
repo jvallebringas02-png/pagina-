@@ -155,21 +155,40 @@ var Institucional = {
         return registro;
     },
 
-    // Reutiliza el mismo sistema de traducción con caché que usa el artículo del muro
-    // (chat-ia -> Groq la primera vez, y se guarda en la fila para no repetir el gasto).
+    // Traduce con la cuenta de Groq dedicada a traducciones (separada de la del chat, ver
+    // BITACORA-SESION-CUOTA-GROQ.md) y guarda el resultado en la fila de contenido_administrable,
+    // para no volver a pagar el costo la próxima vez que alguien lo pida en el mismo idioma.
     traducirTextoInstitucional: async function(id, textoOriginal, traducciones, idioma) {
         if (idioma === 'es' || !id) return textoOriginal;
         if (traducciones && traducciones[idioma] && traducciones[idioma].contenido) return traducciones[idioma].contenido;
         try {
-            var res = await fetch(CONFIG.GROQ_API_URL, {
+            var res = await fetch(CONFIG.TRADUCCION_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
-                body: JSON.stringify({ traducir_articulo: true, articulo_id: id, idioma: idioma, idioma_nombre: NOMBRES_IDIOMA_DISPLAY[idioma] || idioma })
+                body: JSON.stringify({ texto: textoOriginal, idioma: NOMBRES_IDIOMA_DISPLAY[idioma] || idioma })
             });
             var data = await res.json();
-            if (data && data.contenido) return data.contenido;
+            var traducido = data.choices && data.choices[0] ? data.choices[0].message.content.trim() : null;
+            if (traducido) {
+                this._guardarTraduccionInstitucional(id, traducciones, idioma, traducido); // en silencio, no bloquea la respuesta
+                return traducido;
+            }
         } catch (e) { /* si falla, se muestra en español antes que no mostrar nada */ }
         return textoOriginal;
+    },
+
+    // Guarda la traducción en la misma fila de contenido_administrable (columna traducciones,
+    // JSONB) -- antes esto lo hacía el servidor solo; ahora que el endpoint de traducción es
+    // liviano y no toca la base de datos, el guardado queda del lado del cliente, igual que ya
+    // hace TraduccionProductos con los productos.
+    _guardarTraduccionInstitucional: async function(id, traduccionesActuales, idioma, textoTraducido) {
+        try {
+            var nuevas = traduccionesActuales || {};
+            nuevas[idioma] = { contenido: textoTraducido };
+            await supabase.from('contenido_administrable').update({ traducciones: nuevas }).eq('id', id);
+        } catch (e) {
+            console.warn('remarket-db: no se pudo guardar la traducción institucional en Supabase.', e);
+        }
     },
 
     mostrarQuienesSomos: async function() {
