@@ -56,24 +56,30 @@ var ContenidoInfo = {
         }
 
         try {
-            var res = await fetch(CONFIG.GROQ_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': MI_API_KEY, 'Authorization': 'Bearer ' + MI_API_KEY },
-                body: JSON.stringify({
-                    traducir_articulo: true,
-                    articulo_id: articulo.id,
-                    idioma: idioma,
-                    idioma_nombre: NOMBRES_IDIOMA_DISPLAY[idioma] || idioma
-                })
-            });
-            var traducido = await res.json();
-            if (traducido && traducido.titulo) {
-                return { titulo: traducido.titulo, contenido: traducido.contenido, video_url: articulo.video_url };
+            if (typeof PanelUsuario === 'undefined' || !PanelUsuario.traducirTextoIA) return articulo;
+            var tituloTraducido = await PanelUsuario.traducirTextoIA(articulo.titulo, idioma);
+            var contenidoTraducido = await PanelUsuario.traducirTextoIA(articulo.contenido, idioma);
+            if (tituloTraducido && contenidoTraducido) {
+                this._guardarTraduccionArticulo(articulo.id, articulo.traducciones, idioma, tituloTraducido, contenidoTraducido); // en silencio, no bloquea
+                return { titulo: tituloTraducido, contenido: contenidoTraducido, video_url: articulo.video_url };
             }
         } catch (e) {
             console.warn('remarket-db: no se pudo traducir el artículo, se muestra en español.', e);
         }
         return articulo; // si algo falla, se muestra en español antes que no mostrar nada
+    },
+
+    // Guarda la traducción del artículo en su fila de contenido_administrable -- antes lo hacía
+    // el servidor solo (chat-ia); ahora que la traducción usa el endpoint liviano dedicado
+    // (ver BITACORA-SESION-CUOTA-GROQ.md), el guardado queda del lado del cliente.
+    _guardarTraduccionArticulo: async function(id, traduccionesActuales, idioma, titulo, contenido) {
+        try {
+            var nuevas = traduccionesActuales || {};
+            nuevas[idioma] = { titulo: titulo, contenido: contenido };
+            await supabase.from('contenido_administrable').update({ traducciones: nuevas }).eq('id', id);
+        } catch (e) {
+            console.warn('remarket-db: no se pudo guardar la traducción del artículo en Supabase.', e);
+        }
     },
 
     renderizarTarjeta: function(articulo) {
