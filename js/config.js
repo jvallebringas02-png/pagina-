@@ -25,6 +25,7 @@
 // ============================================
 var CONFIG = {
     GROQ_API_URL: "https://kqazkraxlqncfcwbbsps.supabase.co/functions/v1/chat-ia",
+    TRADUCCION_API_URL: "https://kqazkraxlqncfcwbbsps.supabase.co/functions/v1/traducir-texto",
     SUPABASE_URL: "https://kqazkraxlqncfcwbbsps.supabase.co",
     SUPABASE_KEY: "sb_publishable_9xuQa7wsNT4LYCKHOGRDPQ_9eccAk-G"
 };
