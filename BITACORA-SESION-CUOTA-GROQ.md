@@ -1,4 +1,6 @@
-> **Estado: PLANEADO, no implementado todavía.** Esta bitácora deja el diseño completo por escrito antes de tocar código, siguiendo el mismo criterio que `BITACORA-SESION-BOTONES-GUIA.md`.
+> **Estado: IMPLEMENTADO, con un ajuste pendiente encontrado en pruebas reales.** Código de la sección 5 aplicado (5.1 función Edge desplegada por el usuario, 5.2 `config.js`, 5.3 `panel-usuario-3.js`, 5.4 `institucional.js`). Además, se encontró y adaptó un quinto lugar que este diagnóstico no había cubierto: `contenido-info.js` (el artículo central del muro), que usaba el mismo patrón viejo.
+>
+> **Bug encontrado en pruebas (27/09/2026):** el modelo `llama-3.1-8b-instant` usado en la función Edge `traducir-texto` fue retirado oficialmente por Groq el 16/08/2026 (ver https://console.groq.com/docs/deprecations) — todas las traducciones de productos fallaban con error 404 `model_not_found`, en silencio (por eso costó tanto encontrarlo: el `catch` de `traducirTextoIA` en `panel-usuario-3.js` escondía el error hasta que se corrigió para loguearlo). **Solución: cambiar `const MODELO = "llama-3.1-8b-instant";` por `const MODELO = "openai/gpt-oss-20b";` en la función Edge (línea 84), reemplazo oficial recomendado por Groq. Pendiente de que el usuario aplique este cambio en Supabase y confirme que ya traduce.**
 
 # Bitácora — Separar la cuota de Groq entre el chat y las traducciones
 
