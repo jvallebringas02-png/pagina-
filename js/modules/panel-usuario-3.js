@@ -1181,9 +1181,21 @@ Object.assign(PanelUsuario, {
         var idiomaNombre = this.NOMBRES_IDIOMAS[idiomaDestinoCode] || 'inglés';
         try {
             var response = await fetch(CONFIG.TRADUCCION_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ texto: texto, idioma: idiomaNombre }) });
+            if (!response.ok) {
+                var textoError = await response.text();
+                console.warn('remarket-db: traducir-texto respondió con error', response.status, textoError);
+                return null;
+            }
             var data = await response.json();
-            return data.choices && data.choices[0] ? data.choices[0].message.content.trim() : null;
-        } catch (e) { return null; }
+            if (!data.choices || !data.choices[0]) {
+                console.warn('remarket-db: traducir-texto respondió sin choices, respuesta completa:', data);
+                return null;
+            }
+            return data.choices[0].message.content.trim();
+        } catch (e) {
+            console.warn('remarket-db: fallo de red llamando a traducir-texto', e);
+            return null;
+        }
     },
 
     actualizarBadgesMensajes: async function() {
