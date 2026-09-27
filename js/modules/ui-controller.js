@@ -129,6 +129,11 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             }).join('');
         }
         this.elementos.searchResultsContent.innerHTML = html;
+        if (typeof TraduccionProductos !== 'undefined') {
+            var todosLosProductos = [];
+            matriz.categorias.forEach(function(bloque) { todosLosProductos = todosLosProductos.concat(bloque.productos); });
+            TraduccionProductos.traducirEnSegundoPlano(todosLosProductos, obtenerIdiomaPreferido());
+        }
     },
     mostrarQuienesSomosEnMuro: function(texto) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this.elementos.searchBreadcrumb.style.display = 'flex';
