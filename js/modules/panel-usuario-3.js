@@ -1082,7 +1082,10 @@ Object.assign(PanelUsuario, {
     },
 
 
-    NOMBRES_IDIOMAS: { 'en': 'inglés', 'pt': 'portugués', 'fr': 'francés', 'de': 'alemán', 'it': 'italiano', 'zh': 'chino', 'ja': 'japonés', 'ko': 'coreano', 'ar': 'árabe', 'hi': 'hindi', 'nl': 'holandés', 'tr': 'turco', 'es': 'español' },
+    // 'ru','bg','qu','ay' agregados -- sin ellos, traducirTextoIA caía en "|| 'inglés'" y esos 4
+    // idiomas recibían texto en INGLÉS (guardado luego como si fuera la traducción real). Ver
+    // BITACORA-SESION-IDIOMAS-FALTANTES.md.
+    NOMBRES_IDIOMAS: { 'en': 'inglés', 'pt': 'portugués', 'fr': 'francés', 'de': 'alemán', 'it': 'italiano', 'zh': 'chino', 'ja': 'japonés', 'ko': 'coreano', 'ar': 'árabe', 'hi': 'hindi', 'nl': 'holandés', 'tr': 'turco', 'es': 'español', 'ru': 'ruso', 'bg': 'búlgaro', 'qu': 'quechua', 'ay': 'aimara' },
 
     // Micro-Paso 6.2: Declaración Jurada de Chat
     tieneDeclaracionChatAceptada: function() {

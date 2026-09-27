@@ -104,8 +104,16 @@ var ContenidoInfo = {
         if (elTitulo && t.bienvenida_title) elTitulo.textContent = t.bienvenida_title;
         if (elSubtitulo && t.bienvenida_subtitle) elSubtitulo.textContent = t.bienvenida_subtitle;
 
+        // Si el usuario cambia de idioma varias veces seguidas, una traducción lenta de un idioma
+        // anterior podía llegar TARDE y pisar el muro ya pintado con el idioma nuevo. Con este
+        // número de turno, solo la última petición en salir tiene permiso de pintar el resultado.
+        // Ver BITACORA-SESION-IDIOMAS-FALTANTES.md.
+        this._turnoMuro = (this._turnoMuro || 0) + 1;
+        var miTurno = this._turnoMuro;
+
         var articulos = await this.cargarArticulos();
         var traducidos = await Promise.all(articulos.map(function(a) { return ContenidoInfo.traducirSiHaceFalta(a, idioma); }));
+        if (miTurno !== this._turnoMuro) return; // llegó tarde -- ya se pidió otro idioma mientras tanto
 
         // El contenedor es una cuadrícula de 3 columnas (pensada para tarjetas de producto).
         // Este wrapper ocupa las 3 columnas completas para que el artículo se vea de ancho completo,
