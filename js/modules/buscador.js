@@ -474,7 +474,10 @@ var TraduccionProductos = {
     // se traducen de a TAMANO_TANDA productos por vez, esperando a que cada tanda termine antes
     // de empezar la siguiente. Tarda un poco más en terminar toda la página, pero no arriesga
     // que la mitad de las traducciones fallen en silencio por rate limit.
-    TAMANO_TANDA: 3,
+    // Era 3 (6 llamadas a la vez: título + descripción de 3 productos), lo que agotaba el límite de
+    // tokens por minuto de Groq (error 429) y dejaba productos sin traducir. Con 1 se hacen las
+    // llamadas de a una. Ver BITACORA-SESION-LIMITE-GROQ.md.
+    TAMANO_TANDA: 1,
 
     traducirEnSegundoPlano: async function(lista, idioma) {
         if (idioma === 'es' || !lista || !lista.length) return;

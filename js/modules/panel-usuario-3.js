@@ -1180,25 +1180,40 @@ Object.assign(PanelUsuario, {
     // Traduce con la cuenta de Groq #2 (CONFIG.TRADUCCION_API_URL), separada de la del chat del
     // Asistente (CONFIG.GROQ_API_URL). Usada para productos (TraduccionProductos, buscador.js) y
     // para mensajes de chat entre usuarios. Ver BITACORA-SESION-CUOTA-GROQ.md.
+    // Espera (en milisegundos) antes de cada reintento cuando Groq responde 429 (límite de tokens por
+    // minuto). Si el 2.º reintento también falla, se rinde y el texto queda en español.
+    ESPERAS_REINTENTO_MS: [4000, 10000],
+
     traducirTextoIA: async function(texto, idiomaDestinoCode) {
         var idiomaNombre = this.NOMBRES_IDIOMAS[idiomaDestinoCode] || 'inglés';
-        try {
-            var response = await fetch(CONFIG.TRADUCCION_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ texto: texto, idioma: idiomaNombre }) });
-            if (!response.ok) {
-                var textoError = await response.text();
-                console.warn('remarket-db: traducir-texto respondió con error', response.status, textoError);
+        var esperas = this.ESPERAS_REINTENTO_MS;
+        for (var intento = 0; intento <= esperas.length; intento++) {
+            try {
+                var response = await fetch(CONFIG.TRADUCCION_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ texto: texto, idioma: idiomaNombre }) });
+                // 429 = límite de Groq por minuto. Se espera y se reintenta (un 429 rechazado no gasta cuota).
+                // 503 = servicio ocupado, se trata igual.
+                if ((response.status === 429 || response.status === 503) && intento < esperas.length) {
+                    console.warn('remarket-db: traducir-texto está al límite (' + response.status + '), se reintenta en ' + (esperas[intento] / 1000) + ' s.');
+                    await new Promise(function(resolve) { setTimeout(resolve, esperas[intento]); });
+                    continue;
+                }
+                if (!response.ok) {
+                    var textoError = await response.text();
+                    console.warn('remarket-db: traducir-texto respondió con error', response.status, textoError);
+                    return null;
+                }
+                var data = await response.json();
+                if (!data.choices || !data.choices[0]) {
+                    console.warn('remarket-db: traducir-texto respondió sin choices, respuesta completa:', data);
+                    return null;
+                }
+                return data.choices[0].message.content.trim();
+            } catch (e) {
+                console.warn('remarket-db: fallo de red llamando a traducir-texto', e);
                 return null;
             }
-            var data = await response.json();
-            if (!data.choices || !data.choices[0]) {
-                console.warn('remarket-db: traducir-texto respondió sin choices, respuesta completa:', data);
-                return null;
-            }
-            return data.choices[0].message.content.trim();
-        } catch (e) {
-            console.warn('remarket-db: fallo de red llamando a traducir-texto', e);
-            return null;
         }
+        return null;
     },
 
     actualizarBadgesMensajes: async function() {
