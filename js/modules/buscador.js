@@ -479,8 +479,15 @@ var TraduccionProductos = {
     // llamadas de a una. Ver BITACORA-SESION-LIMITE-GROQ.md.
     TAMANO_TANDA: 1,
 
+    // Quechua y aimara: los productos se quedan en español. La IA gratuita inventa palabras en
+    // estos idiomas y, como la traducción se guarda en Supabase, el error quedaría fijo para todos.
+    // La interfaz (menú, botones, etiquetas) sí sigue traducida, porque está escrita a mano.
+    // Cuando un hablante nativo pueda revisar, se vacía esta lista y se activa.
+    IDIOMAS_PRODUCTOS_SOLO_ES: ['qu', 'ay'],
+
     traducirEnSegundoPlano: async function(lista, idioma) {
         if (idioma === 'es' || !lista || !lista.length) return;
+        if (this.IDIOMAS_PRODUCTOS_SOLO_ES.indexOf(idioma) !== -1) return;
         for (var i = 0; i < lista.length; i += this.TAMANO_TANDA) {
             var tanda = lista.slice(i, i + this.TAMANO_TANDA);
             await Promise.all(tanda.map(function(producto) { return TraduccionProductos._traducirUno(producto, idioma); }));

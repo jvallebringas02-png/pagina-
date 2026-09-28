@@ -607,7 +607,8 @@ Object.assign(PanelUsuario, {
                     video_plataforma: this._videoVerificado ? this._videoVerificado.plataforma : null,
                     video_url: this._videoVerificado ? this._videoVerificado.url : null,
                     video_titulo: this._videoVerificado ? this._videoVerificado.titulo : null,
-                    video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null
+                    video_miniatura: this._videoVerificado ? this._videoVerificado.miniatura : null,
+                    traducciones: {} // el texto cambió: las traducciones guardadas ya no corresponden y se regeneran solas
                 }).eq('id', this._editandoProductoId).eq('usuario_id', usuarioActual.id);
                 if (error) throw error;
                 this.volverAlFeedDesdeVistaPrevia();
