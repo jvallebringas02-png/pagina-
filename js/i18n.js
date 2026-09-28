@@ -326,8 +326,10 @@ function changeLanguage(lang, nombre, elementoClic) {
     // Si el muro está mostrando el contenido informativo (usuario sin sesión, sin búsqueda
     // activa), hay que volver a pintarlo -- si no, se queda en el idioma con el que cargó
     // la página la primera vez, aunque el resto de la interfaz ya haya cambiado.
-    if (!usuarioActual && typeof ContenidoInfo !== 'undefined' && document.getElementById('articulosContainer')) {
-        ContenidoInfo.mostrarEnMuro(lang);
+    if (typeof UIController !== 'undefined' && UIController.repintarVistaActual) {
+        UIController.repintarVistaActual(lang);
+    } else if (!usuarioActual && typeof ContenidoInfo !== 'undefined' && document.getElementById('articulosContainer')) {
+        ContenidoInfo.mostrarEnMuro(lang); // respaldo por si UIController no cargó todavía
     }
 }
 
@@ -413,8 +415,10 @@ function aplicarIdiomaSilencioso(lang) {
     if (selectedEl) selectedEl.textContent = nombre;
     document.querySelectorAll('.language-dropdown-item').forEach(function(i) { i.classList.remove('active'); });
     aplicarTraduccionUI(lang);
-    if (!usuarioActual && typeof ContenidoInfo !== 'undefined' && document.getElementById('articulosContainer')) {
-        ContenidoInfo.mostrarEnMuro(lang);
+    if (typeof UIController !== 'undefined' && UIController.repintarVistaActual) {
+        UIController.repintarVistaActual(lang);
+    } else if (!usuarioActual && typeof ContenidoInfo !== 'undefined' && document.getElementById('articulosContainer')) {
+        ContenidoInfo.mostrarEnMuro(lang); // respaldo por si UIController no cargó todavía
     }
 }
 
