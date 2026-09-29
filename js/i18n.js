@@ -245,24 +245,6 @@ const UI_TRANSLATIONS = {
 var SOBRE_TITULO_TRADUCIDO = { es: 'Sobre remarket-db', en: 'About remarket-db', pt: 'Sobre o remarket-db', fr: 'À propos de remarket-db', de: 'Über remarket-db', it: 'Info su remarket-db', ru: 'О remarket-db', zh: '关于 remarket-db', ja: 'remarket-dbについて', ko: 'remarket-db 소개', ar: 'حول remarket-db', hi: 'remarket-db के बारे में', nl: 'Over remarket-db', tr: 'remarket-db Hakkında', bg: 'За remarket-db', qu: 'remarket-db Rikuchisqa', ay: 'remarket-db Toqita' };
 function obtenerSobreTitulo(lang) { return SOBRE_TITULO_TRADUCIDO[lang] || SOBRE_TITULO_TRADUCIDO['es']; }
 
-// Textos sueltos de la página principal que antes estaban fijos en español (tooltips, aria-label y el
-// aviso "¿Otro idioma?"). Se aplican con los atributos data-ui-text / data-ui-title / data-ui-aria del
-// HTML (ver aplicarTraduccionUI). Quechua (qu) y aimara (ay) NO tienen traducción aquí a propósito:
-// caen en español hasta que un hablante nativo los escriba (misma política que el contenido largo).
-var UI_EXTRA = {
-    otro_idioma: { es: "¿Otro idioma? Traduce aquí", en: "Another language? Translate here", pt: "Outro idioma? Traduza aqui", fr: "Une autre langue ? Traduis ici", de: "Andere Sprache? Übersetze hier", it: "Un'altra lingua? Traduci qui", ru: "Другой язык? Переведи здесь", bg: "Друг език? Преведи тук", zh: "其他语言？在此翻译", ja: "他の言語？ここで翻訳", ko: "다른 언어? 여기서 번역하세요", ar: "لغة أخرى؟ ترجم هنا", hi: "कोई और भाषा? यहाँ अनुवाद करें", nl: "Andere taal? Vertaal hier", tr: "Başka bir dil mi? Buradan çevir" },
-    otro_idioma_ayuda: { es: "Haz clic derecho en la página y selecciona 'Traducir al [tu idioma]'", en: "Right-click the page and choose 'Translate to [your language]'", pt: "Clique com o botão direito na página e selecione 'Traduzir para [seu idioma]'", fr: "Fais un clic droit sur la page et choisis « Traduire en [ta langue] »", de: "Klicke mit der rechten Maustaste auf die Seite und wähle „Auf [deine Sprache] übersetzen“", it: "Fai clic con il tasto destro sulla pagina e seleziona «Traduci in [tua lingua]»", ru: "Щёлкни правой кнопкой мыши по странице и выбери «Перевести на [твой язык]»", bg: "Кликни с десния бутон върху страницата и избери „Преведи на [твоя език]“", zh: "在页面上右键单击，然后选择“翻译成[你的语言]”", ja: "ページを右クリックして「[あなたの言語]に翻訳」を選択", ko: "페이지를 마우스 오른쪽 버튼으로 클릭하고 '[내 언어](으)로 번역'을 선택하세요", ar: "انقر بزر الماوس الأيمن على الصفحة واختر «ترجمة إلى [لغتك]»", hi: "पेज पर राइट-क्लिक करें और '[आपकी भाषा] में अनुवाद करें' चुनें", nl: "Klik met de rechtermuisknop op de pagina en kies 'Vertalen naar [jouw taal]'", tr: "Sayfaya sağ tıkla ve '[Dilin] diline çevir' seçeneğini seç" },
-    minimizar: { es: "Minimizar", en: "Minimize", pt: "Minimizar", fr: "Réduire", de: "Minimieren", it: "Riduci a icona", ru: "Свернуть", bg: "Минимизирай", zh: "最小化", ja: "最小化", ko: "최소화", ar: "تصغير", hi: "छोटा करें", nl: "Minimaliseren", tr: "Küçült" },
-    pantalla_completa: { es: "Abrir en pantalla completa", en: "Open full screen", pt: "Abrir em tela cheia", fr: "Ouvrir en plein écran", de: "Im Vollbild öffnen", it: "Apri a schermo intero", ru: "Открыть на весь экран", bg: "Отвори на цял екран", zh: "全屏打开", ja: "全画面で開く", ko: "전체 화면으로 열기", ar: "فتح بملء الشاشة", hi: "पूरी स्क्रीन में खोलें", nl: "Op volledig scherm openen", tr: "Tam ekranda aç" },
-    cerrar: { es: "Cerrar", en: "Close", pt: "Fechar", fr: "Fermer", de: "Schließen", it: "Chiudi", ru: "Закрыть", bg: "Затвори", zh: "关闭", ja: "閉じる", ko: "닫기", ar: "إغلاق", hi: "बंद करें", nl: "Sluiten", tr: "Kapat" },
-    menu: { es: "Menú", en: "Menu", pt: "Menu", fr: "Menu", de: "Menü", it: "Menu", ru: "Меню", bg: "Меню", zh: "菜单", ja: "メニュー", ko: "메뉴", ar: "القائمة", hi: "मेनू", nl: "Menu", tr: "Menü" }
-};
-function textoUIExtra(clave, lang) {
-    var d = UI_EXTRA[clave];
-    if (!d) return '';
-    return d[lang] || d.es;
-}
-
 function aplicarTraduccionUI(lang) {
     const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS['es'];
     const accountBtn = document.getElementById('accountBtn');
@@ -292,15 +274,6 @@ function aplicarTraduccionUI(lang) {
         var el = document.getElementById(elId);
         if (el && t[mapaMenu[elId]]) el.textContent = t[mapaMenu[elId]];
     });
-
-    // Textos sueltos marcados en el HTML con data-ui-text / data-ui-title / data-ui-aria.
-    document.querySelectorAll('[data-ui-text]').forEach(function(el) { el.textContent = textoUIExtra(el.getAttribute('data-ui-text'), lang); });
-    document.querySelectorAll('[data-ui-title]').forEach(function(el) { el.title = textoUIExtra(el.getAttribute('data-ui-title'), lang); });
-    document.querySelectorAll('[data-ui-aria]').forEach(function(el) { el.setAttribute('aria-label', textoUIExtra(el.getAttribute('data-ui-aria'), lang)); });
-
-    // Idioma y dirección de lectura de toda la página (lectores de pantalla, traductor del navegador, árabe).
-    document.documentElement.lang = lang;
-    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
 }
 
 // ============================================
