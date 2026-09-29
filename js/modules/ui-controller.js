@@ -73,6 +73,7 @@ var UIController = {
 if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-align:center;padding:20px;"><p>No tienes productos publicados para esto, pero encontramos lo siguiente:</p></div>'; } else if (resultado.coincidencias === 0) { var qSug = escHtml(resultado.query || '').replace(/'/g, "\\'"); html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos con "' + escHtml(resultado.query || '') + '". Intenta con sinónimos, o publica tú mismo lo que buscas para que otros lo vean.</p><button class="btn-publicar" onclick="PanelUsuario.iniciarPublicacionDesdeAsistente(\'' + qSug + '\')">📦 Publicar esto</button></div>'; } else { html += '<div id="resultadosProductosLista"></div>'; } var self = this; if (resultado.resultados_web && resultado.resultados_web.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🌐 <strong>Resultados de internet</strong></div>'; html += resultado.resultados_web.map(function(w) { return '<div class="result-item" onclick="window.open(\'' + escHtml(w.link) + '\', \'_blank\')"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>'; }).join(''); } if (resultado.resultados_videos && resultado.resultados_videos.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🎬 <strong>Videos de YouTube</strong></div>'; html += resultado.resultados_videos.map(function(v) { var miniatura = v.miniatura ? '<img src="' + escHtml(v.miniatura) + '" class="result-img" alt="' + escHtml(v.titulo) + '">' : '<div class="result-icon-fallback">🎬</div>'; return '<div class="result-item" onclick="window.open(\'' + escHtml(v.link) + '\', \'_blank\')">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; if (resultado.coincidencias > 0) { Paginador.inicializar('resultadosProductosLista', 'paginacionBusqueda', resultado.resultados, 9, this.renderizarItemResultado); if (typeof TraduccionProductos !== 'undefined') TraduccionProductos.traducirEnSegundoPlano(resultado.resultados, obtenerIdiomaPreferido()); } else { var pc = document.getElementById('paginacionBusqueda'); if (pc) pc.innerHTML = ''; } },
     // etiqueta permite reusar esta misma vista para Música, cambiando solo el ícono/texto del banner
     mostrarResultadosVideo: function(tema, videos, etiqueta) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
+        this._vistaActual = 'video'; this._ultimoVideo = { tema: tema, videos: videos, etiqueta: etiqueta };
         etiqueta = etiqueta || { icono: '🎬', titulo: 'Videos de YouTube', vacio: 'No encontramos videos sobre eso. Intenta con otras palabras.' };
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = tema || '';
@@ -93,6 +94,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         this.elementos.searchResultsContent.innerHTML = html;
     },
     mostrarResultadosWeb: function(tema, resultadosWeb) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
+        this._vistaActual = 'web'; this._ultimoWeb = { tema: tema, resultadosWeb: resultadosWeb };
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = tema || '';
         this.elementos.resultCount.textContent = resultadosWeb.length + ' ' + obtenerTextoChrome(resultadosWeb.length === 1 ? 'chrome_resultado_singular' : 'chrome_resultado_plural');
@@ -136,6 +138,9 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
     },
     mostrarQuienesSomosEnMuro: function(texto) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
+        // No se repinta al cambiar de idioma: "texto" ya viene traducido de antemano (institucional.js
+        // lo vuelve a pedir por su cuenta), así que redibujar aquí solo repetiría el texto viejo.
+        this._vistaActual = 'quienes_somos';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Quiénes somos';
         this.elementos.resultCount.textContent = '';
@@ -151,6 +156,9 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // que mostrarQuienesSomosEnMuro: banner con ícono + tarjeta blanca, para que se sienta parte
     // de la misma página. formularioHTML ya viene armado (incluye su propio <form>).
     mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja(); this.formularioAbierto = true;
+        // No se repinta al cambiar de idioma: es un formulario abierto (la persona puede estar a
+        // mitad de escribir algo), y redibujarlo lo borraría. Se deja tal cual está.
+        this._vistaActual = 'formulario';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = titulo;
         this.elementos.resultCount.textContent = '';
@@ -164,7 +172,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     },
     _matrizPila: [],
     mostrarMatrizNiveles: function(matriz) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
-        this._matrizActual = matriz;
+        this._matrizActual = matriz; this._vistaActual = 'matriz_niveles';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = matriz.nivel === 'pais' ? ('Matriz de ' + matriz.lugar) : 'Matriz mundial';
         this.elementos.resultCount.textContent = matriz.filas.length + (matriz.filas.length === 1 ? ' categoría' : ' categorías');
@@ -207,6 +215,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
     },
     mostrarListaCategorias: function(categorias) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
+        this._vistaActual = 'categorias'; this._ultimasCategorias = categorias;
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Categorías';
         this.elementos.resultCount.textContent = categorias.length + (categorias.length === 1 ? ' categoría' : ' categorías');
@@ -246,6 +255,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     },
     mostrarResultadosPersonas: function(nombreBuscado, usuarios, nivelZona) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this._ultimaBusquedaPersonaNombre = nombreBuscado || '';
+        this._vistaActual = 'personas'; this._ultimasPersonas = { nombreBuscado: nombreBuscado, usuarios: usuarios, nivelZona: nivelZona };
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = nombreBuscado || '';
         this.elementos.resultCount.textContent = usuarios.length + (usuarios.length === 1 ? ' persona' : ' personas');
@@ -293,10 +303,24 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // la persona cambia de idioma, para que no se quede pegado en el idioma con el que se dibujó
     // la vista por primera vez.
     repintarVistaActual: function(idioma) {
+        // "quienes_somos" y "formulario" se dejan tal cual están (ver el aviso en cada una de esas
+        // funciones); para el resto, si hay datos guardados de esa vista, se vuelve a dibujar con ellos.
         if (this._vistaActual === 'busqueda' && this._ultimoResultadoBusqueda) {
             this.mostrarResultadosBusqueda(this._ultimoResultadoBusqueda);
         } else if (this._vistaActual === 'matriz' && this._ultimaMatrizLocalidad) {
             this.mostrarMatrizLocalidad(this._ultimaMatrizLocalidad);
+        } else if (this._vistaActual === 'matriz_niveles' && this._matrizActual) {
+            this.mostrarMatrizNiveles(this._matrizActual);
+        } else if (this._vistaActual === 'categorias' && this._ultimasCategorias) {
+            this.mostrarListaCategorias(this._ultimasCategorias);
+        } else if (this._vistaActual === 'personas' && this._ultimasPersonas) {
+            this.mostrarResultadosPersonas(this._ultimasPersonas.nombreBuscado, this._ultimasPersonas.usuarios, this._ultimasPersonas.nivelZona);
+        } else if (this._vistaActual === 'video' && this._ultimoVideo) {
+            this.mostrarResultadosVideo(this._ultimoVideo.tema, this._ultimoVideo.videos, this._ultimoVideo.etiqueta);
+        } else if (this._vistaActual === 'web' && this._ultimoWeb) {
+            this.mostrarResultadosWeb(this._ultimoWeb.tema, this._ultimoWeb.resultadosWeb);
+        } else if (this._vistaActual === 'quienes_somos' || this._vistaActual === 'formulario') {
+            return; // a propósito: no se toca (ver comentario en cada función)
         } else if (typeof ContenidoInfo !== 'undefined' && typeof usuarioActual !== 'undefined' && !usuarioActual && document.getElementById('articulosContainer')) {
             ContenidoInfo.mostrarEnMuro(idioma); // vista por defecto: el artículo del muro
         }
