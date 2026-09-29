@@ -138,8 +138,8 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
     },
     mostrarQuienesSomosEnMuro: function(texto) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
-        // No se repinta al cambiar de idioma: "texto" ya viene traducido de antemano (institucional.js
-        // lo vuelve a pedir por su cuenta), así que redibujar aquí solo repetiría el texto viejo.
+        // Al cambiar de idioma NO se redibuja con el "texto" guardado (sería el texto del idioma viejo):
+        // repintarVistaActual llama a _repintarQuienesSomos, que vuelve a pedir el texto en el idioma nuevo.
         this._vistaActual = 'quienes_somos';
         this.elementos.searchBreadcrumb.style.display = 'flex';
         this.elementos.searchQuery.textContent = 'Quiénes somos';
@@ -302,6 +302,21 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // traducirCategoria, etc.) ya apuntando al idioma nuevo. Se llama desde i18n.js cada vez que
     // la persona cambia de idioma, para que no se quede pegado en el idioma con el que se dibujó
     // la vista por primera vez.
+    // "Quiénes somos" se repinta pidiendo de nuevo el texto y traduciéndolo al idioma nuevo (usa el
+    // caché de la columna "traducciones", así que si ya existe no gasta IA). El número de turno evita
+    // que una respuesta lenta de un idioma anterior pise a la del idioma más reciente, y la
+    // comprobación de _vistaActual evita pintar si la persona ya se fue a otra pantalla.
+    _repintarQuienesSomos: async function(idioma) {
+        if (typeof Institucional === 'undefined' || !Institucional.obtenerTextoQuienesSomos || !Institucional.traducirTextoInstitucional) return;
+        var turno = this._turnoQuienesSomos = (this._turnoQuienesSomos || 0) + 1;
+        try {
+            var registro = await Institucional.obtenerTextoQuienesSomos();
+            var texto = await Institucional.traducirTextoInstitucional(registro.id, registro.contenido, registro.traducciones, idioma || obtenerIdiomaPreferido());
+            if (turno !== this._turnoQuienesSomos || this._vistaActual !== 'quienes_somos') return;
+            this.mostrarQuienesSomosEnMuro(texto);
+        } catch (e) { /* si falla, se deja lo que ya estaba en pantalla */ }
+    },
+
     repintarVistaActual: function(idioma) {
         // "quienes_somos" y "formulario" se dejan tal cual están (ver el aviso en cada una de esas
         // funciones); para el resto, si hay datos guardados de esa vista, se vuelve a dibujar con ellos.
@@ -319,8 +334,10 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             this.mostrarResultadosVideo(this._ultimoVideo.tema, this._ultimoVideo.videos, this._ultimoVideo.etiqueta);
         } else if (this._vistaActual === 'web' && this._ultimoWeb) {
             this.mostrarResultadosWeb(this._ultimoWeb.tema, this._ultimoWeb.resultadosWeb);
-        } else if (this._vistaActual === 'quienes_somos' || this._vistaActual === 'formulario') {
-            return; // a propósito: no se toca (ver comentario en cada función)
+        } else if (this._vistaActual === 'quienes_somos') {
+            this._repintarQuienesSomos(idioma); // vuelve a pedir el texto ya traducido (con caché), no reutiliza el viejo
+        } else if (this._vistaActual === 'formulario') {
+            return; // a propósito: no se toca, para no borrar lo que la persona esté escribiendo
         } else if (typeof ContenidoInfo !== 'undefined' && typeof usuarioActual !== 'undefined' && !usuarioActual && document.getElementById('articulosContainer')) {
             ContenidoInfo.mostrarEnMuro(idioma); // vista por defecto: el artículo del muro
         }
