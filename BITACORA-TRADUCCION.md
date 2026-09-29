@@ -49,7 +49,9 @@ Cada tipo de contenido se traduce de una forma distinta:
   | `formulario` | (ninguno) | **no se toca**, para no borrar lo que la persona esté escribiendo (los formularios se retraducen en el sitio con `Institucional.retraducirFormularioAbierto`) |
   | `muro` (o sin cartel) | (ninguno) | usuario sin sesión: `ContenidoInfo.mostrarEnMuro` |
 
-  **Regla para pantallas nuevas:** toda función nueva de `UIController` que pinte en el muro debe poner su propio `_vistaActual` (y guardar sus datos si se puede repintar). Si no, el cartel viejo se queda pegado y al cambiar de idioma reaparece la pantalla anterior.
+  **Textos sueltos en el HTML:** para traducir un tooltip, un `aria-label` o un texto que no tenga `id`, agregar la clave a `UI_EXTRA` (en `i18n.js`) y marcar el elemento con `data-ui-text="clave"`, `data-ui-title="clave"` o `data-ui-aria="clave"`. `aplicarTraduccionUI` los actualiza en cada cambio de idioma.
+
+**Regla para pantallas nuevas:** toda función nueva de `UIController` que pinte en el muro debe poner su propio `_vistaActual` (y guardar sus datos si se puede repintar). Si no, el cartel viejo se queda pegado y al cambiar de idioma reaparece la pantalla anterior.
 - El Asistente responde en el idioma en que escribe la persona, no en el del selector.
 - Los productos sin `id` de Supabase (los 6 de ejemplo de `database.js` y los de dummyjson) no se traducen a propósito: no hay dónde guardar la traducción.
 
@@ -67,6 +69,8 @@ Cada tipo de contenido se traduce de una forma distinta:
 - ✅ Artículo central del muro traducido con el endpoint nuevo
 - ✅ Separación de cuenta de Groq: chat en una cuenta, traducciones en otra
 - ✅ Limpieza en Supabase (28/09/2026) de las traducciones `ru`, `bg`, `qu`, `ay` guardadas por error en inglés
+- ✅ **Página principal, textos sueltos (29/09/2026):** "¿Otro idioma? Traduce aquí" y su ayuda, botones del chat (Minimizar, Abrir en pantalla completa, Cerrar) y "Menú" del móvil, en 15 idiomas (quechua y aimara caen en español hasta que un hablante nativo los escriba); nombres de idioma sin paréntesis en español; `<html lang>` cambia con el idioma y el árabe usa `dir="rtl"`
+- ✅ **"Quiénes somos" (29/09/2026):** desde el chat ya no muestra `[object Object]`; el título y el banner se traducen (usan `titulo_quienes_somos`; el banner dice "<título> · remarket-db")
 - ✅ **Decisión sobre quechua y aimara (29/09/2026):** contenido en español, interfaz traducida (ver sección 4). Productos ya lo hacían; se completó con "Quiénes somos" y el artículo del muro
 - ✅ **Repintado al cambiar de idioma (29/09/2026):** las 9 pantallas de `UIController` ponen su cartel `_vistaActual`; búsqueda, "Ver mi zona", matriz mundial, categorías, personas, videos y resultados web se repintan; "Quiénes somos" se retraduce; el formulario no se borra (ver sección 1)
 
@@ -105,12 +109,10 @@ Pesa más por la idea de destacar quechua y aimara ante patrocinadores públicos
 - [ ] **Limpiar en Supabase las traducciones `qu` y `ay` ya guardadas** en `productos.traducciones` y en `contenido_administrable.traducciones` (la prueba del 28/09 guardó aimara). Hacer respaldo antes. Ya no se muestran, pero siguen ocupando la columna y volverían a verse si algún día se vacían las listas.
 - [ ] **Que un hablante nativo revise los textos fijos de quechua y aimara** (`i18n.js` e `i18n-institucional.js`): son lo único que se traduce en esos idiomas y se ve en toda la página.
 - [ ] **Feed de usuarios logueados** (`panel-usuario-1.js` → `renderPost`): sin traducción de productos.
-- [ ] **"Quiénes somos": títulos fijos en español** (`ui-controller.js`, `mostrarQuienesSomosEnMuro`): el breadcrumb ("Quiénes somos") y el banner ("Sobre remarket-db") no se traducen. Existe `Institucional.t('titulo_quienes_somos')` para el primero.
-- [ ] **Bug: "Quiénes somos" desde el chat muestra `[object Object]`** (`event-controller.js`, línea ~50): pasa el registro completo (`obtenerTextoQuienesSomos()`) a `mostrarQuienesSomosEnMuro` en vez del texto. Arreglo propuesto: llamar a `Institucional.mostrarQuienesSomos()`, que ya pide y traduce el texto. Se corrige solo después de cambiar de idioma, pero la primera vez sale mal.
 - [ ] **Probar en vivo el repintado** (sección 9): las pruebas del 29/09/2026 se hicieron en un navegador de prueba (Chromium) con Supabase simulado, no contra Supabase real ni Vercel.
 - [ ] **Guardar las funciones Edge en el repo** (`supabase/functions/traducir-texto/index.ts` y `chat-ia`).
 - [ ] **Quechua y aimara como idiomas emblemáticos** en el selector (ideas en la sección 6).
-- [ ] Otros pendientes menores: detector de idioma por escritura ("casa o departamento" detecta portugués por error), "cambiar" como disparador de cambio de idioma, `<html lang>` y RTL para árabe, "¿Otro idioma? Traduce aquí" fijo en español, nombres de idioma "(Chino)" fijos en `index.html`.
+- [ ] Otros pendientes menores: detector de idioma por escritura ("casa o departamento" detecta portugués por error), "cambiar" como disparador de cambio de idioma. Revisar el modo de derecha a izquierda del árabe en un móvil real (en el navegador de prueba de escritorio se ve bien).
 - [ ] Definir qué hacer con los 6 productos de ejemplo de `database.js` y con los patrocinadores (datos de prueba).
 - [ ] Bug aparte: "Tool call validation failed" (error 400) en `chat-ia`.
 - [ ] Mejora futura: pedir título y descripción en una sola llamada, o traducir al publicar en vez de al visitar.
@@ -136,6 +138,7 @@ Destacarlos en vez de listarlos por orden alfabético: valor cultural y argument
 - "Ver mi zona" no disparaba la traducción de productos.
 - **Repintado que traía una pantalla vieja (29/09/2026):** solo `busqueda` y `matriz` ponían `_vistaActual`. Si buscabas, abrías Categorías (u otra pantalla) y cambiabas de idioma, reaparecía la búsqueda vieja encima. Ahora todas las pantallas ponen su cartel.
 - **"Quiénes somos" no se retraducía al cambiar de idioma (29/09/2026):** un comentario decía que `institucional.js` volvía a pedir el texto por su cuenta, pero no había ninguna llamada que lo hiciera. Ahora lo hace `_repintarQuienesSomos`. Lección: no confiar en un comentario que afirma que "otra parte del código" hace algo; buscar la llamada.
+- **"Quiénes somos" desde el chat mostraba `[object Object]` (29/09/2026):** `event-controller.js` pasaba el registro completo a `mostrarQuienesSomosEnMuro`. Ahora llama a `Institucional.mostrarQuienesSomos()`.
 - **Al repintar, `quienes_somos` y `formulario` caían en la rama del muro** (usuario sin sesión) y el formulario perdía lo escrito. Ahora `formulario` sale antes con `return`.
 
 ---
@@ -144,7 +147,7 @@ Destacarlos en vez de listarlos por orden alfabético: valor cultural y argument
 
 | Archivo | Contenido sobre traducción |
 |---|---|
-| `js/i18n.js` | `UI_TRANSLATIONS`, mensajes de guía, `CHROME_RESULTADOS_I18N`, `CATEGORIAS_I18N`, `MODALIDADES_I18N`, `obtenerIdiomaPreferido()` |
+| `js/i18n.js` | `UI_TRANSLATIONS`, `UI_EXTRA` (textos sueltos marcados en el HTML con `data-ui-text`, `data-ui-title`, `data-ui-aria`; quechua/aimara caen en español), mensajes de guía, `CHROME_RESULTADOS_I18N`, `CATEGORIAS_I18N`, `MODALIDADES_I18N`, `obtenerIdiomaPreferido()` |
 | `js/i18n-institucional.js` | `INSTITUCIONAL_TEXTOS` (formularios) |
 | `js/modules/institucional.js` | Documentos legales y "Quiénes somos" |
 | `js/modules/contenido-info.js` | Artículo del muro |
