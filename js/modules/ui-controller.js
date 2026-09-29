@@ -155,7 +155,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // en el muro central, en vez de un modal o del chat del Asistente IA -- mismo patrón visual
     // que mostrarQuienesSomosEnMuro: banner con ícono + tarjeta blanca, para que se sienta parte
     // de la misma página. formularioHTML ya viene armado (incluye su propio <form>).
-    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja(); this.formularioAbierto = true;
+    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja(); if (this._vistaActual !== 'formulario') { this._vistaAntesFormulario = this._vistaActual; } this.formularioAbierto = true;
         // No se repinta al cambiar de idioma: es un formulario abierto (la persona puede estar a
         // mitad de escribir algo), y redibujarlo lo borraría. Se deja tal cual está.
         this._vistaActual = 'formulario';
@@ -166,7 +166,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         this.elementos.searchResultsContainer.style.display = 'block';
         this.elementos.contentTitle.textContent = ' ' + obtenerTextoChrome('chrome_resultados_titulo');
         this.elementos.searchResultsContent.innerHTML =
-            '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.cerrarResultados();">← ' + escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</a></div>' +
+            '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverDeFormulario();">← ' + escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</a></div>' +
             '<div class="ai-context-banner">' + icono + ' <strong>' + escHtml(titulo) + '</strong></div>' +
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;max-width:520px;">' + formularioHTML + '</div>';
     },
@@ -343,6 +343,22 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         }
     },
 
+    // Vuelve desde un formulario (Reportar, Contacto, Libro de Reclamaciones) a la pantalla que la persona
+    // tenía antes de abrirlo (búsqueda, "Ver mi zona", categorías, etc.), reusando los datos que cada
+    // pantalla ya guarda para repintarse al cambiar de idioma. Si no había una pantalla con datos que
+    // restaurar (venía del inicio, o de "Quiénes somos"), hace lo de siempre: ir al inicio.
+    volverDeFormulario: function() {
+        var previa = this._vistaAntesFormulario;
+        this._vistaAntesFormulario = null;
+        var datosDeVista = { busqueda: this._ultimoResultadoBusqueda, matriz: this._ultimaMatrizLocalidad, matriz_niveles: this._matrizActual, categorias: this._ultimasCategorias, personas: this._ultimasPersonas, video: this._ultimoVideo, web: this._ultimoWeb };
+        if (previa && datosDeVista[previa]) {
+            this.formularioAbierto = false;
+            this._vistaActual = previa;
+            this.repintarVistaActual(obtenerIdiomaPreferido());
+            return;
+        }
+        this.cerrarResultados();
+    },
     cerrarResultados: function() { this.formularioAbierto = false; this._vistaActual = 'muro'; this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; var t = UI_TRANSLATIONS[obtenerIdiomaPreferido()] || UI_TRANSLATIONS['es']; this.elementos.contentTitle.textContent = ' ' + (t.content_title || 'Catálogo de Economía Circular'); },
     abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + escHtml(imgUrl) + '" class="modal-img-real" alt="' + escHtml(titulo) + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + icono + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
     cerrarModal: function() { this.elementos.modal.style.display = 'none'; },
