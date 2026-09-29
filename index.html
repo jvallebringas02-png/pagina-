@@ -33,9 +33,9 @@ tailwind.config = {
 </form>
 </div>
 <div class="nav-right">
-<div class="translate-hint" data-ui-title="otro_idioma_ayuda" title="Haz clic derecho en la página y selecciona 'Traducir al [tu idioma]'">
+<div class="translate-hint" title="Haz clic derecho en la página y selecciona 'Traducir al [tu idioma]'">
 <span>🌐</span>
-<span data-ui-text="otro_idioma">¿Otro idioma? Traduce aquí</span>
+<span>¿Otro idioma? Traduce aquí</span>
 </div>
 
 <div class="language-selector-wrapper">
@@ -55,11 +55,11 @@ tailwind.config = {
         <div class="language-dropdown-item" onclick="changeLanguage('bg', 'Български')"><span class="flag">🇧🇬</span><span class="lang-name">Български</span><span class="check">✓</span></div>
         <div class="language-dropdown-item" onclick="changeLanguage('qu', 'Quechua')"><span class="flag">🇵🇪</span><span class="lang-name">Quechua</span><span class="check">✓</span></div>
         <div class="language-dropdown-item" onclick="changeLanguage('ay', 'Aymara')"><span class="flag">🇧🇴</span><span class="lang-name">Aymara</span><span class="check">✓</span></div>
-        <div class="language-dropdown-item" onclick="changeLanguage('zh', '中文')"><span class="flag">🇨🇳</span><span class="lang-name">中文</span><span class="check">✓</span></div>
-        <div class="language-dropdown-item" onclick="changeLanguage('ja', '日本語')"><span class="flag">🇯🇵</span><span class="lang-name">日本語</span><span class="check">✓</span></div>
-        <div class="language-dropdown-item" onclick="changeLanguage('ko', '한국어')"><span class="flag">🇰🇷</span><span class="lang-name">한국어</span><span class="check">✓</span></div>
-        <div class="language-dropdown-item" onclick="changeLanguage('ar', 'العربية')"><span class="flag">🇸🇦</span><span class="lang-name">العربية</span><span class="check">✓</span></div>
-        <div class="language-dropdown-item" onclick="changeLanguage('hi', 'हिन्दी')"><span class="flag">🇮🇳</span><span class="lang-name">हिन्दी</span><span class="check">✓</span></div>
+        <div class="language-dropdown-item" onclick="changeLanguage('zh', '中文')"><span class="flag">🇨🇳</span><span class="lang-name">中文 (Chino)</span><span class="check">✓</span></div>
+        <div class="language-dropdown-item" onclick="changeLanguage('ja', '日本語')"><span class="flag">🇯🇵</span><span class="lang-name">日本語 (Japonés)</span><span class="check">✓</span></div>
+        <div class="language-dropdown-item" onclick="changeLanguage('ko', '한국어')"><span class="flag">🇰🇷</span><span class="lang-name">한국어 (Coreano)</span><span class="check">✓</span></div>
+        <div class="language-dropdown-item" onclick="changeLanguage('ar', 'العربية')"><span class="flag">🇸🇦</span><span class="lang-name">العربية (Árabe)</span><span class="check">✓</span></div>
+        <div class="language-dropdown-item" onclick="changeLanguage('hi', 'हिन्दी')"><span class="flag">🇮🇳</span><span class="lang-name">हिन्दी (Hindi)</span><span class="check">✓</span></div>
         <div class="language-dropdown-item" onclick="changeLanguage('nl', 'Nederlands')"><span class="flag">🇳🇱</span><span class="lang-name">Nederlands</span><span class="check">✓</span></div>
         <div class="language-dropdown-item" onclick="changeLanguage('tr', 'Türkçe')"><span class="flag">🇹🇷</span><span class="lang-name">Türkçe</span><span class="check">✓</span></div>
     </div>
@@ -90,7 +90,7 @@ tailwind.config = {
 <div class="assistant-box" id="assistantBox">
     <div class="ai-header">
         <span id="assistantHeaderTitle">🤖 Asistente IA</span>
-        <button class="minimize-btn" onclick="toggleAI()" data-ui-title="minimizar" title="Minimizar">➖</button>
+        <button class="minimize-btn" onclick="toggleAI()" title="Minimizar">➖</button>
     </div>
     <div class="ai-body" id="aiBody">
         <div class="assistant-response" id="assistantResponse">
@@ -155,7 +155,7 @@ tailwind.config = {
 <!-- ============================================ -->
 <div id="userPanelView" class="user-panel-view">
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="PanelUsuario.cerrarMenuMobile()"></div>
-<button class="hamburger-btn" id="hamburgerBtn" onclick="PanelUsuario.toggleMenuMobile()" data-ui-aria="menu" aria-label="Menú">☰</button>
+<button class="hamburger-btn" id="hamburgerBtn" onclick="PanelUsuario.toggleMenuMobile()" aria-label="Menú">☰</button>
 <div class="user-panel-layout">
 <aside class="user-panel-left" id="userPanelLeft">
 <nav class="user-menu" id="userMenu">
@@ -204,8 +204,8 @@ tailwind.config = {
     <div class="floating-chat-window-header">
         <strong>💬 Mensajes</strong>
         <div>
-            <button onclick="expandirChatFlotante()" data-ui-title="pantalla_completa" title="Abrir en pantalla completa">⤢</button>
-            <button onclick="cerrarChatFlotante()" data-ui-title="cerrar" title="Cerrar">✕</button>
+            <button onclick="expandirChatFlotante()" title="Abrir en pantalla completa">⤢</button>
+            <button onclick="cerrarChatFlotante()" title="Cerrar">✕</button>
         </div>
     </div>
     <div class="floating-chat-window-body" id="floatMsgBody"></div>
