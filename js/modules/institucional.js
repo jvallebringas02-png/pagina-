@@ -160,6 +160,9 @@ var Institucional = {
     // para no volver a pagar el costo la próxima vez que alguien lo pida en el mismo idioma.
     traducirTextoInstitucional: async function(id, textoOriginal, traducciones, idioma) {
         if (idioma === 'es' || !id) return textoOriginal;
+        // Quechua y aimara: se queda el español (aunque haya una traducción guardada de antes), porque
+        // la IA gratuita inventa palabras en estos idiomas. Misma lista que usan los documentos legales.
+        if (this.IDIOMAS_LEGAL_SOLO_ES.indexOf(idioma) !== -1) return textoOriginal;
         if (traducciones && traducciones[idioma] && traducciones[idioma].contenido) return traducciones[idioma].contenido;
         try {
             var res = await fetch(CONFIG.TRADUCCION_API_URL, {

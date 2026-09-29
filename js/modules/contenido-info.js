@@ -34,8 +34,14 @@ var ContenidoInfo = {
         }
     },
 
+    // Quechua y aimara: el artículo se queda en español (aunque haya una traducción guardada de antes),
+    // porque la IA gratuita inventa palabras en estos idiomas. Misma idea que TraduccionProductos
+    // (IDIOMAS_PRODUCTOS_SOLO_ES) y los documentos legales (IDIOMAS_LEGAL_SOLO_ES): si se cambia una
+    // de las tres listas, cambiar las otras dos.
+    IDIOMAS_SOLO_ES: ['qu', 'ay'],
+
     traducirSiHaceFalta: async function(articulo, idioma) {
-        if (idioma === 'es') return articulo;
+        if (idioma === 'es' || this.IDIOMAS_SOLO_ES.indexOf(idioma) !== -1) return articulo;
 
         // Respaldo fijo (sin id en la base de datos): no hay fila donde guardar una traducción,
         // así que se traduce al vuelo con el mismo traductor genérico que ya usan los mensajes de chat.
