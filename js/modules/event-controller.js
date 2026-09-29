@@ -46,8 +46,7 @@ var EventController = {
             var categorias = BuscadorMotor.obtenerCategoriasDisponibles();
             UIController.mostrarListaCategorias(categorias);
         } else if (accion === 'QUIENES_SOMOS') {
-            var textoQuienesSomos = await Institucional.obtenerTextoQuienesSomos();
-            UIController.mostrarQuienesSomosEnMuro(textoQuienesSomos);
+            await Institucional.mostrarQuienesSomos(); // pide el texto, lo traduce y lo muestra (antes se pasaba el registro entero y salía "[object Object]")
         } else if (accion === 'EXPLORAR_LOCALIDAD') {
             var matriz = BuscadorMotor.obtenerMatrizPorLocalidad();
             UIController.mostrarMatrizLocalidad(matriz);

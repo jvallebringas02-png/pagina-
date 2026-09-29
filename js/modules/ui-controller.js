@@ -142,13 +142,14 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         // repintarVistaActual llama a _repintarQuienesSomos, que vuelve a pedir el texto en el idioma nuevo.
         this._vistaActual = 'quienes_somos';
         this.elementos.searchBreadcrumb.style.display = 'flex';
-        this.elementos.searchQuery.textContent = 'Quiénes somos';
+        var tituloQS = (typeof Institucional !== 'undefined' && Institucional.t) ? Institucional.t('titulo_quienes_somos') : 'Quiénes somos';
+        this.elementos.searchQuery.textContent = tituloQS;
         this.elementos.resultCount.textContent = '';
         this.elementos.catalogContainer.style.display = 'none';
         this.elementos.searchResultsContainer.style.display = 'block';
         this.elementos.contentTitle.textContent = ' ' + obtenerTextoChrome('chrome_resultados_titulo');
         this.elementos.searchResultsContent.innerHTML =
-            '<div class="ai-context-banner">🌱 <strong>Sobre remarket-db</strong></div>' +
+            '<div class="ai-context-banner">🌱 <strong>' + escHtml(tituloQS) + '</strong> · remarket-db</div>' +
             '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + escHtml(texto) + '</div>';
     },
     // Muestra un formulario (Comunícate con el Administrador, Libro de Reclamaciones, etc.)
