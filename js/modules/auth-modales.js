@@ -29,79 +29,85 @@ function ejecutarAccionPendienteLogin() {
 // chateando, el campo de contraseña no existe en la página -- por eso el navegador ya no lo
 // asocia con otros campos de texto (como el mensaje del chat) y deja de ofrecer autocompletar
 // una contraseña ahí.
-var AUTH_MODAL_HTML = `
+// Nombres de los países del registro en el idioma actual (la lista de códigos no cambia).
+function construirOpcionesPaisAuth() {
+    var banderas = { PE: '🇵🇪', MX: '🇲🇽', CO: '🇨🇴', AR: '🇦🇷', CL: '🇨🇱', EC: '🇪🇨', BO: '🇧🇴', VE: '🇻🇪', ES: '🇪🇸', US: '🇺🇸', BR: '🇧🇷', BG: '🇧🇬' };
+    var html = '<option value="">' + tAuth('auth_pais_sel') + '</option>';
+    Object.keys(banderas).forEach(function(c) { html += '<option value="' + c + '">' + banderas[c] + ' ' + nombrePaisAuth(c) + '</option>'; });
+    html += '<option value="OT">🌍 ' + tAuth('auth_pais_otro') + '</option>';
+    return html;
+}
+
+// Texto legal del registro. El orden de las palabras cambia según el idioma, por eso es UNA sola
+// frase con marcadores [b]..[/b] (negrita) y [a]..[/a] (enlace), no varias partes pegadas.
+function construirTerminosAuth() {
+    return tAuth('auth_terminos')
+        .replace('[b]', '<strong>').replace('[/b]', '</strong>')
+        .replace('[a]', '<a href="#" onclick="alert(\'Términos y Condiciones: pendiente de implementación\'); return false;">').replace('[/a]', '</a>');
+}
+
+// El modal se arma con el idioma ACTUAL cada vez que se abre (antes era un texto fijo en español).
+function construirAuthModalHTML() {
+    return `
 <div class="modal-content" style="max-width: 480px; padding: 30px;">
 <button class="modal-close-btn" onclick="toggleAuthModal(false)">&times;</button>
-<h2 style="text-align: center; margin-bottom: 5px; color: var(--purpura-ia);">Bienvenido a remarket-db</h2>
-<p style="text-align: center; color: var(--texto-secundario); margin-bottom: 25px; font-size: 14px;">Tu portal de economía circular inteligente</p>
+<h2 style="text-align: center; margin-bottom: 5px; color: var(--purpura-ia);">${tAuth('auth_bienvenida')}</h2>
+<p style="text-align: center; color: var(--texto-secundario); margin-bottom: 25px; font-size: 14px;">${tAuth('auth_subtitulo')}</p>
 <div id="authAlert" class="alert"></div>
 
 <div class="auth-tabs">
-    <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">Iniciar Sesión</button>
-    <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">Registrarse</button>
+    <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">${textoUI('login_tab', 'Iniciar Sesión')}</button>
+    <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">${textoUI('register_tab', 'Registrarse')}</button>
 </div>
 
 <div id="loginForm" class="auth-form active">
 <button class="btn-auth btn-google" onclick="loginWithSocial('google')">
 <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M18.1713 8.36791H17.5001V8.33325H10.0001V11.6666H14.7096C14.0225 13.6072 12.1771 15 10.0001 15C7.23867 15 5.00012 12.7614 5.00012 10C5.00012 7.23858 7.23867 5 10.0001 5C11.2746 5 12.4346 5.47858 13.3171 6.26291L15.6829 3.89708C14.1854 2.49958 12.1926 1.66658 10.0001 1.66658C5.39762 1.66658 1.66675 5.39741 1.66675 9.99991C1.66675 14.6024 5.39762 18.3332 10.0001 18.3332C14.6026 18.3332 18.3334 14.6024 18.3334 9.99991C18.3334 9.44158 18.2784 8.89575 18.1713 8.36791Z" fill="#EA4335"/></svg>
-Continuar con Google
+${tAuth('auth_google')}
 </button>
-<div class="divider"><span>o usa tu correo</span></div>
+<div class="divider"><span>${tAuth('auth_o_correo')}</span></div>
 <div class="form-group">
-<label>Correo Electrónico</label>
+<label>${tAuth('auth_email')}</label>
 <input type="email" id="loginEmail" placeholder="tu@email.com">
 </div>
 <div class="form-group">
-<label>Contraseña</label>
+<label>${tAuth('auth_password')}</label>
 <input type="password" id="loginPassword" placeholder="••••••••">
 </div>
-<button class="btn-auth btn-auth-primary" onclick="loginWithEmail()">Iniciar Sesión</button>
+<button class="btn-auth btn-auth-primary" onclick="loginWithEmail()">${tAuth('auth_btn_login')}</button>
 <div class="magic-link-option">
-<a onclick="showMagicLinkForm()">¿Olvidaste tu contraseña? Entra sin ella</a>
+<a onclick="showMagicLinkForm()">${tAuth('auth_olvide')}</a>
 </div>
 </div>
 
 <div id="registerForm" class="auth-form">
 <div class="form-group">
-<label>Nombre Completo *</label>
+<label>${tAuth('auth_nombre')}</label>
 <input type="text" id="registerName" placeholder="Juan Pérez" required>
 </div>
 <div class="form-group">
-<label>Correo Electrónico *</label>
+<label>${tAuth('auth_email_req')}</label>
 <input type="email" id="registerEmail" placeholder="tu@email.com" required>
 </div>
 <div class="form-group">
-<label>Contraseña (mínimo 8 caracteres) *</label>
+<label>${tAuth('auth_password_min')}</label>
 <input type="password" id="registerPassword" placeholder="••••••••" required minlength="8">
 <div class="password-strength"><div class="password-strength-bar" id="passwordStrengthBar"></div></div>
-<div class="password-hint" id="passwordHint">Usa mayúsculas, números y símbolos para mayor seguridad</div>
+<div class="password-hint" id="passwordHint">${tAuth('auth_pw_hint')}</div>
 </div>
 <div class="form-group">
-<label>Fecha de Nacimiento *</label>
+<label>${tAuth('auth_dob')}</label>
 <input type="date" id="registerDob" required>
-<div class="age-error" id="ageError">⚠️ Debes ser mayor de 18 años para registrarte.</div>
+<div class="age-error" id="ageError">${tAuth('auth_edad_error')}</div>
 </div>
 <div class="form-group">
-<label>País *</label>
+<label>${tAuth('auth_pais')}</label>
 <select id="registerCountry" required>
-<option value="">Selecciona tu país</option>
-<option value="PE">🇵🇪 Perú</option>
-<option value="MX">🇲🇽 México</option>
-<option value="CO">🇨🇴 Colombia</option>
-<option value="AR">🇦🇷 Argentina</option>
-<option value="CL">🇨🇱 Chile</option>
-<option value="EC">🇪🇨 Ecuador</option>
-<option value="BO">🇧🇴 Bolivia</option>
-<option value="VE">🇻🇪 Venezuela</option>
-<option value="ES">🇪🇸 España</option>
-<option value="US">🇺🇸 Estados Unidos</option>
-<option value="BR">🇧🇷 Brasil</option>
-<option value="BG">🇧🇬 Bulgaria</option>
-<option value="OT">🌍 Otro país</option>
+${construirOpcionesPaisAuth()}
 </select>
 </div>
 <div class="form-group">
-<label>Celular (opcional)</label>
+<label>${tAuth('auth_celular')}</label>
 <div class="phone-wrapper">
 <select id="phoneCode" class="country-select">
 <option value="+51">🇵🇪 +51</option>
@@ -123,34 +129,36 @@ Continuar con Google
 <div class="checkbox-group">
 <input type="checkbox" id="registerTerms" required>
 <label for="registerTerms">
-Declaro ser <strong>mayor de 18 años</strong> y acepto la <a href="#" onclick="alert('Términos y Condiciones: pendiente de implementación'); return false;">Declaración Jurada y Términos de Uso</a>. Autorizo el tratamiento de mis datos conforme a la Ley de Protección de Datos Personales.
+${construirTerminosAuth()}
 </label>
 </div>
-<button class="btn-auth btn-auth-primary" onclick="registerUser()">Crear Cuenta</button>
+<button class="btn-auth btn-auth-primary" onclick="registerUser()">${tAuth('auth_btn_registro')}</button>
 <div class="magic-link-option">
-<a onclick="showMagicLinkForm()">📧 Registrarme con Link Mágico (sin contraseña)</a>
+<a onclick="showMagicLinkForm()">${tAuth('auth_magic_registro')}</a>
 </div>
 </div>
 
 <div id="magicLinkForm" class="auth-form">
 <div class="form-group">
-<label>Correo Electrónico</label>
+<label>${tAuth('auth_email')}</label>
 <input type="email" id="magicEmail" placeholder="tu@email.com">
 </div>
-<button class="btn-auth btn-auth-primary" onclick="sendMagicLink()">Enviar Link Mágico</button>
+<button class="btn-auth btn-auth-primary" onclick="sendMagicLink()">${tAuth('auth_magic_enviar')}</button>
 <div class="magic-link-option">
-<a onclick="switchAuthTab('login')">← Volver al inicio de sesión</a>
+<a onclick="switchAuthTab('login')">${tAuth('auth_volver_login')}</a>
 </div>
 </div>
 </div>
 `;
+}
+
 function toggleAuthModal(show) {
     var modal = document.getElementById('authModal');
     if (show) {
         // Se crea recién ahora, la primera vez que hace falta -- el campo de contraseña no
         // existe en la página hasta este momento, ni siquiera oculto, así el navegador no lo
         // detecta antes de que alguien realmente abra el login.
-        if (!modal.innerHTML.trim()) { modal.innerHTML = AUTH_MODAL_HTML; }
+        if (!modal.innerHTML.trim()) { modal.innerHTML = construirAuthModalHTML(); }
         modal.style.display = 'flex';
         hideAuthAlert();
     } else {
@@ -160,11 +168,41 @@ function toggleAuthModal(show) {
     }
 }
 
+// Si el modal está abierto cuando la persona cambia de idioma, se vuelve a armar en el idioma
+// nuevo SIN perder lo que ya escribió ni la pestaña en la que estaba (mismo cuidado que
+// Institucional.retraducirFormularioAbierto con los formularios del muro).
+function retraducirAuthModalAbierto() {
+    var modal = document.getElementById('authModal');
+    if (!modal || !modal.innerHTML.trim()) return;
+    var ids = ['loginEmail', 'loginPassword', 'registerName', 'registerEmail', 'registerPassword', 'registerDob', 'registerCountry', 'phoneCode', 'registerPhone', 'magicEmail'];
+    var valores = {};
+    ids.forEach(function(id) { var el = document.getElementById(id); if (el) valores[id] = el.value; });
+    var terminos = document.getElementById('registerTerms');
+    var aceptado = terminos ? terminos.checked : false;
+    var activo = 'loginForm';
+    ['loginForm', 'registerForm', 'magicLinkForm'].forEach(function(id) {
+        var f = document.getElementById(id); if (f && f.classList.contains('active')) activo = id;
+    });
+    var barra = document.getElementById('passwordStrengthBar');
+    var anchoBarra = barra ? barra.style.width : '';
+    modal.innerHTML = construirAuthModalHTML();
+    ids.forEach(function(id) { var el = document.getElementById(id); if (el && valores[id] !== undefined) el.value = valores[id]; });
+    var t2 = document.getElementById('registerTerms'); if (t2) t2.checked = aceptado;
+    var b2 = document.getElementById('passwordStrengthBar'); if (b2 && anchoBarra) b2.style.width = anchoBarra;
+    // Volver a la pestaña en la que estaba (sin mostrar de nuevo el mensaje del asistente).
+    document.querySelectorAll('.auth-form').forEach(function(f) { f.classList.remove('active'); });
+    document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+    var form = document.getElementById(activo); if (form) form.classList.add('active');
+    var tab = document.getElementById(activo === 'registerForm' ? 'tabRegister' : 'tabLogin');
+    if (tab && activo !== 'magicLinkForm') tab.classList.add('active');
+    else { var tl = document.getElementById('tabLogin'); if (tl) tl.classList.add('active'); }
+}
+
 function switchAuthTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
     if (tab === 'login') { document.querySelectorAll('.auth-tab')[0].classList.add('active'); document.getElementById('loginForm').classList.add('active'); } 
-    else if (tab === 'register') { document.querySelectorAll('.auth-tab')[1].classList.add('active'); document.getElementById('registerForm').classList.add('active'); showAssistantProactive('📝 Para registrarte necesitas: Nombre, Correo, Contraseña, Fecha de Nacimiento (+18) y País. ¿Necesitas ayuda?'); }
+    else if (tab === 'register') { document.querySelectorAll('.auth-tab')[1].classList.add('active'); document.getElementById('registerForm').classList.add('active'); showAssistantProactive(tAuth('auth_guia_registro')); }
     hideAuthAlert();
 }
 
@@ -184,10 +222,10 @@ async function logAccess(accion, email, detalle) {
 async function loginWithEmail() {
     var email = document.getElementById('loginEmail').value.trim().toLowerCase();
     var password = document.getElementById('loginPassword').value;
-    if (!email || !password) { showAuthAlert('Ingresa tu correo y contraseña', 'error'); return; }
+    if (!email || !password) { showAuthAlert(tAuth('auth_err_login_vacio'), 'error'); return; }
     var btn = document.querySelector('#loginForm .btn-auth-primary');
     var textoOriginal = btn.textContent;
-    btn.textContent = '⏳ Verificando...';
+    btn.textContent = tAuth('auth_verificando');
     btn.disabled = true;
     try {
         var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
@@ -197,7 +235,7 @@ async function loginWithEmail() {
     } catch (e) {
         loginAttempts++;
         await logAccess('login_fallido', email, e.message || 'Credenciales inválidas');
-        showAuthAlert('Correo o contraseña incorrectos', 'error');
+        showAuthAlert(tAuth('auth_err_credenciales'), 'error');
     } finally {
         btn.textContent = textoOriginal;
         btn.disabled = false;
@@ -206,7 +244,7 @@ async function loginWithEmail() {
 
 async function loginWithSocial(provider) {
     var { error } = await supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: window.location.origin } });
-    if (error) { await logAccess('login_' + provider + '_fallido', null, error.message); showAuthAlert('Error al iniciar con ' + provider, 'error'); } else { await logAccess('login_' + provider + '_exitoso', null); }
+    if (error) { await logAccess('login_' + provider + '_fallido', null, error.message); showAuthAlert(tAuth('auth_err_social', { p: provider }), 'error'); } else { await logAccess('login_' + provider + '_exitoso', null); }
 }
 
 async function registerUser() {
@@ -218,14 +256,14 @@ async function registerUser() {
     var phoneCode = document.getElementById('phoneCode').value;
     var phone = document.getElementById('registerPhone').value.trim();
     var terms = document.getElementById('registerTerms').checked;
-    if (!name || !email || !password || !dob || !country) { showAuthAlert('Completa todos los campos obligatorios (*)', 'error'); return; }
-    if (password.length < 8) { showAuthAlert('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
-    if (!terms) { showAuthAlert('Debes aceptar la Declaración Jurada y Términos de Uso', 'error'); return; }
+    if (!name || !email || !password || !dob || !country) { showAuthAlert(tAuth('auth_err_obligatorios'), 'error'); return; }
+    if (password.length < 8) { showAuthAlert(tAuth('auth_err_pw_corta'), 'error'); return; }
+    if (!terms) { showAuthAlert(tAuth('auth_err_terminos'), 'error'); return; }
     var edad = calcularEdadDesdeFecha(dob);
-    if (edad < 18) { showAuthAlert('Debes ser mayor de 18 años para registrarte', 'error'); return; }
+    if (edad < 18) { showAuthAlert(tAuth('auth_err_edad'), 'error'); return; }
     var btn = document.querySelector('#registerForm .btn-auth-primary');
     var textoOriginal = btn.textContent;
-    btn.textContent = '⏳ Creando cuenta...';
+    btn.textContent = tAuth('auth_creando');
     btn.disabled = true;
     try {
         // Nota de seguridad: ya no se consulta antes si el correo existe (evita enumeración
@@ -256,11 +294,11 @@ async function registerUser() {
         await logAccess('registro_exitoso', email, 'IP: ' + geoInfo.ip + ' | ' + geoInfo.ciudad + ', ' + geoInfo.pais);
 
         if (signUpData.session) {
-            showAuthAlert('✅ Cuenta creada. ¡Bienvenido!', 'success');
+            showAuthAlert(tAuth('auth_ok_creada'), 'success');
             limpiarFormularioRegistro();
             await procesarSesionSupabaseAuth(signUpData.user);
         } else {
-            showAuthAlert('✅ Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión', 'success');
+            showAuthAlert(tAuth('auth_ok_confirmar'), 'success');
             limpiarFormularioRegistro();
             setTimeout(function() {
                 switchAuthTab('login');
@@ -270,7 +308,7 @@ async function registerUser() {
         }
     } catch (e) {
         await logAccess('registro_fallido', email, e.message);
-        showAuthAlert('Error al registrar: ' + (e.message || 'Intenta de nuevo'), 'error');
+        showAuthAlert(tAuth('auth_err_registro', { m: e.message || tAuth('auth_err_reintenta') }), 'error');
     } finally {
         btn.textContent = textoOriginal;
         btn.disabled = false;
@@ -278,9 +316,9 @@ async function registerUser() {
 }
 
 async function sendMagicLink() {
-    var email = document.getElementById('magicEmail').value.trim(); if (!email) { showAuthAlert('Ingresa tu correo', 'error'); return; }
+    var email = document.getElementById('magicEmail').value.trim(); if (!email) { showAuthAlert(tAuth('auth_err_sin_correo'), 'error'); return; }
     var { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) { await logAccess('link_magico_fallido', email, error.message); showAuthAlert('Error al enviar el link: ' + error.message, 'error'); } else { await logAccess('link_magico_enviado', email); showAuthAlert('✅ Link mágico enviado. Revisa tu correo (y la carpeta de Spam).', 'success'); }
+    if (error) { await logAccess('link_magico_fallido', email, error.message); showAuthAlert(tAuth('auth_err_link', { m: error.message }), 'error'); } else { await logAccess('link_magico_enviado', email); showAuthAlert(tAuth('auth_ok_link'), 'success'); }
 }
 
 function updateUIForUser(usuario) {
