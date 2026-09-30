@@ -4,7 +4,7 @@
 
 Para retomar el trabajo en cualquier conversación: traer este archivo y seguir desde la sección 5.
 
-**Última actualización:** 29/09/2026
+**Última actualización:** 30/09/2026
 
 ---
 
@@ -15,6 +15,7 @@ Cada tipo de contenido se traduce de una forma distinta:
 | Tipo de contenido | Cómo se traduce | Dónde vive |
 |---|---|---|
 | Textos fijos y cortos (menú, botones, footer, banners y etiquetas de resultados, categorías, modalidades, mensajes de guía, formularios) | Diccionario fijo escrito a mano, 17 idiomas | `js/i18n.js`, `js/i18n-institucional.js` |
+| Modal de login / registro / link mágico (textos, placeholders, alertas, nombres de país) | Diccionario fijo `AUTH_I18N` (15 idiomas; quechua y aimara en español a propósito) que se mezcla en `UI_TRANSLATIONS`; se lee con `tAuth()` | `js/i18n-auth.js`, `js/modules/auth-modales.js` |
 | Contenido largo o legal (Términos, Privacidad, "Quiénes somos", artículo del muro) | Texto en español en Supabase (`contenido_administrable`). Se traduce con IA la primera vez que alguien lo pide en un idioma y se guarda en la columna `traducciones` | `js/modules/institucional.js`, `js/modules/contenido-info.js` |
 | Contenido de usuarios (título y descripción de productos) | Igual: se traduce con IA al mostrarse y se guarda en `productos.traducciones` | `js/modules/buscador.js` → `TraduccionProductos` |
 
@@ -69,6 +70,7 @@ Cada tipo de contenido se traduce de una forma distinta:
 - ✅ Artículo central del muro traducido con el endpoint nuevo
 - ✅ Separación de cuenta de Groq: chat en una cuenta, traducciones en otra
 - ✅ Limpieza en Supabase (28/09/2026) de las traducciones `ru`, `bg`, `qu`, `ay` guardadas por error en inglés
+- ✅ **Modal de login, registro y link mágico (30/09/2026):** ver sección 10.
 - ⚠️ **Página principal, textos sueltos — intentado y REVERTIDO (29/09/2026):** se probó un sistema `UI_EXTRA` (con `data-ui-text` en el HTML) para "¿Otro idioma? Traduce aquí", los botones del chat, `<html lang>` dinámico y `dir="rtl"` para árabe. Falló: en inglés, el texto volvía solo a español. Se revirtió por completo; el código actual no tiene nada de esto. Sigue pendiente, sin empezar de nuevo. Si se retoma, revisar primero por qué volvía a español antes de repetir el mismo enfoque.
 - ✅ **"Quiénes somos" (29/09/2026):** desde el chat ya no muestra `[object Object]`; el título y el banner se traducen (usan `titulo_quienes_somos`; el banner dice "<título> · remarket-db")
 - ✅ **Decisión sobre quechua y aimara (29/09/2026):** contenido en español, interfaz traducida (ver sección 4). Productos ya lo hacían; se completó con "Quiénes somos" y el artículo del muro
@@ -106,6 +108,9 @@ Pesa más por la idea de destacar quechua y aimara ante patrocinadores públicos
 
 ## 5. Pendientes (en orden sugerido)
 
+- [ ] **Quechua y aimara en el modal de login (30/09/2026):** las 41 claves `auth_*` no existen en `qu` ni `ay`, así que el modal muestra español (solo las pestañas `Yaykuy` / `Mantaña` ya estaban traducidas). Cuando un hablante nativo revise, agregar `qu:` y `ay:` a `AUTH_I18N` en `js/i18n-auth.js`; no hace falta tocar nada más.
+- [ ] **Revisión nativa del resto de idiomas del modal** (especialmente `ar`, `hi`, `ja`, `ko`, `zh`, `bg`, `tr`): los textos jurídicos ("Declaración Jurada", "Ley de Protección de Datos Personales") se tradujeron de forma general, sin revisión legal.
+- [ ] **`alert('Términos y Condiciones: pendiente de implementación')`** en el enlace de la Declaración Jurada del registro: sigue en español y sin implementar. Conviene enlazarlo a los Términos reales que ya existen en Supabase.
 - [ ] **Limpiar en Supabase las traducciones `qu` y `ay` ya guardadas** en `productos.traducciones` y en `contenido_administrable.traducciones` (la prueba del 28/09 guardó aimara). Hacer respaldo antes. Ya no se muestran, pero siguen ocupando la columna y volverían a verse si algún día se vacían las listas.
 - [ ] **Que un hablante nativo revise los textos fijos de quechua y aimara** (`i18n.js` e `i18n-institucional.js`): son lo único que se traduce en esos idiomas y se ve en toda la página.
 - [ ] **"Volver al inicio" pierde el contexto (encontrado 29/09/2026):** al tocar "Reportar" en un producto (o abrir cualquier formulario en el muro), se borra lo que la persona estaba viendo (búsqueda, "Ver mi zona", etc.). El enlace "← Volver al inicio" no regresa a esa vista anterior, sino siempre al catálogo/artículo de inicio — la persona pierde su lugar y tiene que volver a buscar todo de nuevo. Arreglo propuesto: guardar la vista anterior antes de abrir el formulario (reutilizando `_vistaActual` y los datos que ya guarda `repintarVistaActual`) y que "Volver al inicio" la restaure en vez de ir siempre al inicio.
@@ -178,3 +183,39 @@ fetch(CONFIG.TRADUCCION_API_URL,{method:'POST',headers:{'Content-Type':'applicat
 2. Repetir con "Ver mi zona", la matriz mundial, buscar personas, videos y resultados web: cada pantalla se queda y se traduce.
 3. Abrir "Quiénes somos" y cambiar de idioma dos veces seguidas: debe quedar el texto del último idioma elegido (la primera vez en un idioma tarda por la traducción con IA).
 4. Abrir "Comunícate con el Administrador", escribir algo en el mensaje y cambiar de idioma: el texto escrito debe seguir ahí.
+
+---
+
+## 10. Cambio del 30/09/2026 — Modal de login traducido
+
+### Problema
+- El modal de login estaba escrito en español dentro de `AUTH_MODAL_HTML` (`auth-modales.js`). Además, se **vacía** (`innerHTML = ''`) al cerrarse y se vuelve a llenar al abrirse, así que cualquier traducción puesta sobre el modal abierto se perdía.
+- Solo las pestañas "Iniciar Sesión" / "Registrarse" (`login_tab`, `register_tab`) tenían traducción; `aplicarTraduccionUI` las traducía únicamente si el modal estaba abierto en ese momento.
+- Los mensajes de error y éxito (`showAuthAlert`, "⏳ Verificando...", etc.) y el mensaje del Asistente al abrir "Registrarse" estaban fijos en español.
+
+### Qué se hizo
+| Archivo | Cambio |
+|---|---|
+| `js/i18n-auth.js` (**nuevo**) | `AUTH_I18N`: 41 claves `auth_*` en 15 idiomas (`es en pt fr de it ru zh ja ko ar hi nl tr bg`). Se mezclan dentro de `UI_TRANSLATIONS`, así `textoUI()` las lee igual que el resto. Define `tAuth(clave, vars)` y `nombrePaisAuth(codigo)`. |
+| `js/modules/auth-modales.js` | `AUTH_MODAL_HTML` (texto fijo) → `construirAuthModalHTML()` (se arma con el idioma actual cada vez que se abre). Nuevas `construirOpcionesPaisAuth()`, `construirTerminosAuth()` y `retraducirAuthModalAbierto()`. Los 15 mensajes fijos de `loginWithEmail`, `loginWithSocial`, `registerUser`, `sendMagicLink` y `switchAuthTab` usan `tAuth()`. |
+| `js/sesion-auth.js` | El mensaje "¡Bienvenido! Completa tu perfil…" usa `tAuth('auth_ok_perfil')`. |
+| `js/i18n.js` | Una línea al final de `aplicarTraduccionUI`: llama a `retraducirAuthModalAbierto()` si existe. Cubre `changeLanguage` y `aplicarIdiomaSilencioso`. |
+| `index.html` | `<script src="js/i18n-auth.js">` justo después de `i18n.js` (el orden importa: usa `UI_TRANSLATIONS` y `textoUI`). |
+
+### Cómo funciona
+- **Orden de carga:** `i18n.js` → `i18n-auth.js` → … → `auth-modales.js`.
+- **Marcadores en los textos:** `{p}` (proveedor, ej. Google) y `{m}` (mensaje de error) se reemplazan desde el código. `[b]..[/b]` es negrita y `[a]..[/a]` el enlace, ambos solo en `auth_terminos`. La declaración jurada es **una sola frase** porque el orden de las palabras cambia entre idiomas (ja, ko, hi, tr, ar); no se puede armar pegando trozos.
+- **Países:** los nombres salen de `Intl.DisplayNames` del navegador (no se escribieron 12 × 15 nombres). Quechua y aimara usan el español. La lista de códigos (`PE`, `MX`, …) y los prefijos telefónicos no cambiaron.
+- **Cambio de idioma con el modal abierto:** se guardan los valores escritos (correo, contraseña, nombre, fecha, país, teléfono, casilla de términos, barra de fuerza de contraseña) y la pestaña activa, se vuelve a armar el modal y se restauran. No se vuelve a mostrar el mensaje del Asistente.
+- **Quechua y aimara:** a propósito sin claves nuevas. Por la decisión del 29/09/2026 (sección 4) no se inventan textos sin un hablante nativo; `textoUI` devuelve el español.
+- **Sin tocar:** `placeholder` de correo y contraseña (`tu@email.com`, `••••••••`), ids de los campos, lógica de Supabase, `logAccess` (los textos que van a `logs_acceso` siguen en español a propósito).
+
+### Prueba (30/09/2026)
+Navegador de prueba (Chromium sin red, Supabase simulado; **no** contra Supabase real ni Vercel):
+- Modal abierto en `es`, `en`, `ja`, `ar` y `qu`: título, pestañas, botón, países y declaración jurada en cada idioma; `qu` muestra pestañas en quechua y el resto en español, como se esperaba.
+- Con el modal abierto en la pestaña "Registrarse" (nombre, casilla y país `MX` llenos) se cambió a francés: se conservó todo, siguió en "Registrarse" y el país pasó a "Mexique".
+- Alerta de campos vacíos en alemán.
+- Sin errores propios; los únicos errores de consola fueron Tailwind y Supabase por no haber red.
+
+### Para volver atrás
+Quitar el `<script>` de `i18n-auth.js`, restaurar `auth-modales.js`, `sesion-auth.js` e `i18n.js` a sus versiones anteriores. No hay cambios en Supabase ni en funciones Edge.
