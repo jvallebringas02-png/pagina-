@@ -1,11 +1,13 @@
 document.addEventListener("DOMContentLoaded", async function() {
     var idioma = obtenerIdiomaPreferido();
-    var nombresIdiomas = { 'es': 'Español', 'en': 'English', 'pt': 'Português', 'fr': 'Français', 'de': 'Deutsch', 'it': 'Italiano', 'bg': 'Български', 'qu': 'Quechua', 'ay': 'Aymara', 'zh': '中文', 'ja': '日本語', 'ko': '한국어', 'ar': 'العربية', 'hi': 'हिन्दी', 'nl': 'Nederlands', 'tr': 'Türkçe' };
+    // Antes de acá, este archivo tenía sus propias copias cortas de estos 2 diccionarios (con
+    // 16/17 y 7/17 idiomas nada más). Ahora usa las mismas variables globales que ya define
+    // i18n.js -- las que se cargan antes que este archivo -- para no tener 2 fuentes de verdad
+    // que se puedan desincronizar. Ver BITACORA-SESION-COLISION-SESIONES.md.
     var textoIdioma = document.getElementById('selectedLanguage');
-    if (textoIdioma) { textoIdioma.textContent = nombresIdiomas[idioma] || idioma.toUpperCase(); }
-    
-    var saludos = { 'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?', 'en': 'Hello! I am your global circular economy assistant. What do you need today?', 'pt': 'Olá! Sou seu assistente de economia circular global.', 'fr': 'Bonjour! Je suis votre assistant mondial d\'économie circulaire.', 'bg': 'Здравейте! Аз съм вашият асистент за кръгова икономика.', 'qu': 'Allin p\'unchaw! Qamta yanapayta munani.', 'ay': 'Aspakiruski! Qamta yanapt\'añataki.' };
-    var saludoInicial = saludos[idioma] || saludos['es'];
+    if (textoIdioma) { textoIdioma.textContent = NOMBRES_IDIOMA_DISPLAY[idioma] || idioma.toUpperCase(); }
+
+    var saludoInicial = SALUDOS_IA[idioma] || SALUDOS_IA['es'];
     var chat = document.getElementById('assistantResponse');
     if (chat) {
         // Los accesos rápidos (zona, últimos, categorías, mundial, buscar, etc.) ya no van

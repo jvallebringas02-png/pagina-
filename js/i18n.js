@@ -283,6 +283,31 @@ function aplicarTraduccionUI(lang) {
 // ============================================
 function toggleLanguageDropdown() { document.getElementById('languageDropdown').classList.toggle('show'); }
 
+// Saludo inicial del asistente, en los 17 idiomas. Única fuente -- antes main.js tenía su propia
+// copia (incompleta, solo 7 idiomas) para el primer saludo al cargar la página, y esta copia de
+// aquí se usaba solo al cambiar de idioma con el selector. Si alguien recargaba la página con un
+// idioma guardado que no estuviera en esa copia corta, el saludo salía en español aunque el resto
+// de la interfaz sí estuviera en su idioma. Ver BITACORA-SESION-COLISION-SESIONES.md.
+var SALUDOS_IA = {
+    'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?',
+    'en': 'Hello! I am your global circular economy assistant. What do you need today?',
+    'pt': 'Olá! Sou seu assistente de economia circular global. O que você precisa hoje?',
+    'fr': 'Bonjour! Je suis votre assistant mondial d\'économie circulaire. De quoi avez-vous besoin aujourd\'hui?',
+    'bg': 'Здравейте! Аз съм вашият асистент за кръгова икономика.',
+    'qu': 'Allin p\'unchaw! Qamta yanapayta munani. ¿Imatataq munanki?',
+    'ay': 'Aspakiruski! Qamta yanapt\'añataki. ¿Kunsa muntaxa?',
+    "de": "Hallo! Ich bin dein globaler Assistent für Kreislaufwirtschaft. Was brauchst du heute?",
+    "it": "Ciao! Sono il tuo assistente globale per l'economia circolare. Di cosa hai bisogno oggi?",
+    "ru": "Здравствуйте! Я ваш глобальный помощник по циркулярной экономике. Что вам нужно сегодня?",
+    "zh": "你好！我是你的全球循环经济助手。今天需要什么帮助？",
+    "ja": "こんにちは！私はあなたのグローバル循環経済アシスタントです。今日は何をお手伝いしましょうか？",
+    "ko": "안녕하세요! 저는 글로벌 순환 경제 도우미입니다. 오늘 무엇이 필요하세요?",
+    "ar": "مرحبًا! أنا مساعدك العالمي للاقتصاد الدائري. ماذا تحتاج اليوم؟",
+    "hi": "नमस्ते! मैं आपका वैश्विक सर्कुलर इकॉनमी सहायक हूँ। आज आपको क्या चाहिए?",
+    "nl": "Hallo! Ik ben je wereldwijde assistent voor circulaire economie. Wat heb je vandaag nodig?",
+    "tr": "Merhaba! Ben küresel döngüsel ekonomi asistanınızım. Bugün neye ihtiyacınız var?"
+};
+
 function changeLanguage(lang, nombre, elementoClic) {
     idiomaDetectado = lang;
     try { localStorage.setItem('idioma_preferido', lang); } catch (e) { console.warn('No se pudo guardar idioma_preferido:', e); }
@@ -292,27 +317,8 @@ function changeLanguage(lang, nombre, elementoClic) {
     if (origenClic && origenClic.classList) origenClic.classList.add('active');
     var dropdownEl = document.getElementById('languageDropdown');
     if (dropdownEl) dropdownEl.classList.remove('show');
-    
-    var saludos = {
-        'es': '¡Hola! Soy tu asistente de economía circular global. ¿Qué necesitas hoy?',
-        'en': 'Hello! I am your global circular economy assistant. What do you need today?',
-        'pt': 'Olá! Sou seu assistente de economia circular global. O que você precisa hoje?',
-        'fr': 'Bonjour! Je suis votre assistant mondial d\'économie circulaire. De quoi avez-vous besoin aujourd\'hui?',
-        'bg': 'Здравейте! Аз съм вашият асистент за кръгова икономика.',
-        'qu': 'Allin p\'unchaw! Qamta yanapayta munani. ¿Imatataq munanki?',
-        'ay': 'Aspakiruski! Qamta yanapt\'añataki. ¿Kunsa muntaxa?',
-        "de": "Hallo! Ich bin dein globaler Assistent für Kreislaufwirtschaft. Was brauchst du heute?",
-        "it": "Ciao! Sono il tuo assistente globale per l'economia circolare. Di cosa hai bisogno oggi?",
-        "ru": "Здравствуйте! Я ваш глобальный помощник по циркулярной экономике. Что вам нужно сегодня?",
-        "zh": "你好！我是你的全球循环经济助手。今天需要什么帮助？",
-        "ja": "こんにちは！私はあなたのグローバル循環経済アシスタントです。今日は何をお手伝いしましょうか？",
-        "ko": "안녕하세요! 저는 글로벌 순환 경제 도우미입니다. 오늘 무엇이 필요하세요?",
-        "ar": "مرحبًا! أنا مساعدك العالمي للاقتصاد الدائري. ماذا تحتاج اليوم؟",
-        "hi": "नमस्ते! मैं आपका वैश्विक सर्कुलर इकॉनमी सहायक हूँ। आज आपको क्या चाहिए?",
-        "nl": "Hallo! Ik ben je wereldwijde assistent voor circulaire economie. Wat heb je vandaag nodig?",
-        "tr": "Merhaba! Ben küresel döngüsel ekonomi asistanınızım. Bugün neye ihtiyacınız var?"
-    };
-    document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">' + (saludos[lang] || saludos['es']) + '</div>';
+
+    document.getElementById('assistantResponse').innerHTML = '<div class="chat-message assistant">' + (SALUDOS_IA[lang] || SALUDOS_IA['es']) + '</div>';
     AIService.limpiarHistorial();
 
     aplicarTraduccionUI(lang);
