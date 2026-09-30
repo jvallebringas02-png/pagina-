@@ -43,7 +43,7 @@ function construirOpcionesPaisAuth() {
 function construirTerminosAuth() {
     return tAuth('auth_terminos')
         .replace('[b]', '<strong>').replace('[/b]', '</strong>')
-        .replace('[a]', '<a href="#" onclick="alert(\'Términos y Condiciones: pendiente de implementación\'); return false;">').replace('[/a]', '</a>');
+        .replace('[a]', '<a href="#" onclick="Institucional.mostrarTerminos(); return false;">').replace('[/a]', '</a>');
 }
 
 // El modal se arma con el idioma ACTUAL cada vez que se abre (antes era un texto fijo en español).
