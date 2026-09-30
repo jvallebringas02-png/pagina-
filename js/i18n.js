@@ -274,6 +274,8 @@ function aplicarTraduccionUI(lang) {
         var el = document.getElementById(elId);
         if (el && t[mapaMenu[elId]]) el.textContent = t[mapaMenu[elId]];
     });
+    // Si el modal de login está abierto, se vuelve a armar en el idioma nuevo (auth-modales.js).
+    if (typeof retraducirAuthModalAbierto === 'function') retraducirAuthModalAbierto();
 }
 
 // ============================================

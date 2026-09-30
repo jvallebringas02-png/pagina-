@@ -144,7 +144,7 @@ async function procesarSesionSupabaseAuth(authUser) {
             if (crearError) throw crearError;
             usuarioFinal = usuarioCreado;
             await logAccess('registro_social_exitoso', authUser.email, 'Cuenta creada automáticamente vía proveedor externo');
-            showAuthAlert('✅ ¡Bienvenido! Completa tu perfil (edad, ciudad) en Configuración cuando puedas.', 'info');
+            showAuthAlert(tAuth('auth_ok_perfil'), 'info');
         }
 
         guardarSesionUsuario(usuarioFinal);
