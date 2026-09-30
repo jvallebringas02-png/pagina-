@@ -34,7 +34,7 @@ Para retomar el trabajo en cualquier conversación: traer este archivo junto con
 
 ## 3. Qué se propone hacer, en orden
 
-- [ ] **Paso 1. Cerrar las tablas que la página no usa** (quitar 15 políticas abiertas). No afecta nada visible, porque el código no consulta esas tablas. Es el paso más seguro y urgente.
+- [x] **Paso 1. Cerrar las tablas que la página no usa** (quitar 15 políticas abiertas). Aplicado el 29/09/2026 ("Success"). Pendiente confirmar navegando la página que nada se rompió.
 - [ ] **Paso 2. Crear una vista de perfiles públicos** con solo id, nombre, foto, país y categoría, y cambiar el feed, el buscador de personas y los perfiles para que lean esa vista.
 - [ ] **Paso 3. Cerrar `usuarios`:** cada persona solo ve y edita su propia fila, y un trigger impide cambiar rol, estado y estatus desde el navegador.
 - [ ] **Paso 4. Ajustar `productos`:** quitar la lectura abierta y agregar un trigger que impida cambiar `estado` y patrocinio al editar.
@@ -171,4 +171,4 @@ El nombre y las condiciones de cada política original están en el CSV de polí
 
 | Fecha | Paso | Resultado | Notas |
 |---|---|---|---|
-| | | | |
+| 29/09/2026 | Paso 1 | Success. No rows returned | Falta confirmar navegando la página que nada se rompió |
