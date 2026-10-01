@@ -117,6 +117,10 @@ commit;
 
 > **Antes del paso 3:** el código lee `usuarios` en unos 14 sitios (feed, buscador de personas, perfiles, chat). Hay que cambiar esas consultas para que usen la vista de perfiles públicos del paso 2, o esas pantallas saldrán vacías.
 
+## 3-bis. Hallazgo aparte (no es de seguridad): columnas que el código pide y no existen
+
+Al armar la vista del Paso 2, se confirmaron las columnas reales de `usuarios` con `information_schema.columns`. El código (`panel-usuario-1.js`, `panel-usuario-2.js`) lee `usuario.foto_perfil`, `usuario.foto_portada` y `usuario.ciudad` -- ninguna de las 3 existe en la tabla. Llegan siempre como `undefined`, ya desde antes del Paso 2. Posible explicación de por qué las fotos de perfil/portada se han visto vacías en varias pruebas durante el proyecto. Sin investigar la causa (columna renombrada, feature sin terminar, u otra cosa). Columnas reales confirmadas: `id, nombres, apellidos, correo_electronico, celular, edad, localidad_id, idioma_preferido, categoria, estado, ip_registro, created_at, updated_at, id_estatus, rol_id, ultima_gps_latitud, ultima_gps_longitud, ultima_zona_horaria, ultima_fuente_ubicacion, pais, ultima_conexion, nombre_usuario, sitio_web, red_social, notif_mensajes, notif_comentarios, notif_likes, privacidad_mensajes`.
+
 ## 4. Riesgos y cómo volver atrás
 
 - No se pierden datos: las políticas y los triggers solo controlan accesos.
@@ -172,3 +176,4 @@ El nombre y las condiciones de cada política original están en el CSV de polí
 | Fecha | Paso | Resultado | Notas |
 |---|---|---|---|
 | 29/09/2026 | Paso 1 | Success. No rows returned | Falta confirmar navegando la página que nada se rompió |
+| 30/09/2026 | Paso 2 (vista) | Error 42703: columna "foto_perfil" no existe | Columnas reales confirmadas con information_schema (ver hallazgo abajo); vista corregida sin foto_perfil/foto_portada/ciudad |
