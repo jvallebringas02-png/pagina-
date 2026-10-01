@@ -224,7 +224,7 @@ var PanelUsuario = {
         if (!uid) return null;
         if (this.autoresCacheGlobal[uid]) return this.autoresCacheGlobal[uid];
         if (usuarioActual && usuarioActual.id === uid) { this.autoresCacheGlobal[uid] = usuarioActual; return usuarioActual; }
-        var { data: u } = await supabase.from('usuarios').select('nombres, apellidos, correo_electronico, idioma_preferido, foto_perfil, ultima_conexion').eq('id', uid).maybeSingle();
+        var { data: u } = await supabase.from('perfiles_publicos').select('nombres, apellidos').eq('id', uid).maybeSingle();
         if (u) this.autoresCacheGlobal[uid] = u;
         return u;
     },
@@ -651,7 +651,7 @@ var PanelUsuario = {
             '</div>';
         modal.style.display = 'flex';
         try {
-            var { data: u, error } = await supabase.from('usuarios').select('id, nombres, apellidos, foto_perfil, localidad_id, categoria').eq('id', id).maybeSingle();
+            var { data: u, error } = await supabase.from('perfiles_publicos').select('id, nombres, apellidos, localidad_id, categoria').eq('id', id).maybeSingle();
             if (error || !u) throw error || new Error('Usuario no encontrado');
             var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';

@@ -1260,8 +1260,8 @@ Object.assign(PanelUsuario, {
         var bloqueados = await this.obtenerBloqueados();
         try {
             var query = supabase
-                .from('usuarios')
-                .select('id, nombres, apellidos, correo_electronico, foto_perfil, localidad_id')
+                .from('perfiles_publicos')
+                .select('id, nombres, apellidos, localidad_id')
                 .neq('id', usuarioActual.id)
                 .limit(60);
 
@@ -1570,8 +1570,8 @@ Object.assign(PanelUsuario, {
         try {
             var bloqueados = await this.obtenerBloqueados();
             var query = supabase
-                .from('usuarios')
-                .select('id, nombres, apellidos, foto_perfil, categoria, localidad_id')
+                .from('perfiles_publicos')
+                .select('id, nombres, apellidos, categoria, localidad_id')
                 .neq('id', usuarioActual.id)
                 .limit(8);
             if (categoria) query = query.ilike('categoria', '%' + categoria + '%');

@@ -13,8 +13,11 @@ Object.assign(PanelUsuario, {
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando perfil...</p></div>';
 
         try {
+            // Perfil propio: se lee la tabla completa (hace falta correo, config. de notificaciones, etc.).
+            // Perfil de otra persona: solo los campos públicos, vía la vista perfiles_publicos.
+            var tablaPerfil = esMiPerfil ? 'usuarios' : 'perfiles_publicos';
             var { data: usuario, error } = await supabase
-                .from('usuarios')
+                .from(tablaPerfil)
                 .select('*')
                 .eq('id', usuarioId)
                 .single();
@@ -458,8 +461,8 @@ Object.assign(PanelUsuario, {
             if (categoria) {
                 var bloqueados = await this.obtenerBloqueados();
                 var { data, error } = await supabase
-                    .from('usuarios')
-                    .select('id, nombres, apellidos, foto_perfil, categoria')
+                    .from('perfiles_publicos')
+                    .select('id, nombres, apellidos, categoria')
                     .ilike('categoria', '%' + categoria + '%')
                     .neq('id', usuarioActual.id)
                     .limit(5);
@@ -725,8 +728,8 @@ Object.assign(PanelUsuario, {
                         foto = autoresCache[c.usuario_id].foto;
                     } else {
                         var { data: u } = await supabase
-                            .from('usuarios')
-                            .select('nombres, apellidos, foto_perfil')
+                            .from('perfiles_publicos')
+                            .select('nombres, apellidos')
                             .eq('id', c.usuario_id)
                             .maybeSingle();
                         if (u) { 
