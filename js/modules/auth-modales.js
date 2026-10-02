@@ -208,7 +208,17 @@ function switchAuthTab(tab) {
 
 function showMagicLinkForm() { document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active')); document.getElementById('magicLinkForm').classList.add('active'); hideAuthAlert(); }
 
-function showAuthAlert(message, type) { var alert = document.getElementById('authAlert'); alert.textContent = message; alert.className = 'alert alert-' + type + ' show'; setTimeout(() => { alert.classList.remove('show'); }, 5000); }
+var _authAlertTimer = null;
+function showAuthAlert(message, type) {
+    var alert = document.getElementById('authAlert');
+    if (!alert) return;
+    alert.textContent = message;
+    alert.className = 'alert alert-' + type + ' show';
+    // El aviso está arriba del modal: se desplaza hasta él para que se vea aunque el formulario esté bajado
+    try { alert.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+    if (_authAlertTimer) clearTimeout(_authAlertTimer);
+    _authAlertTimer = setTimeout(function() { alert.classList.remove('show'); }, type === 'error' ? 8000 : 5000);
+}
 
 function hideAuthAlert() { var el = document.getElementById('authAlert'); if (el) el.classList.remove('show'); }
 
@@ -308,7 +318,12 @@ async function registerUser() {
         }
     } catch (e) {
         await logAccess('registro_fallido', email, e.message);
-        showAuthAlert(tAuth('auth_err_registro', { m: e.message || tAuth('auth_err_reintenta') }), 'error');
+        var msgReg = String((e && e.message) || '');
+        if (/already registered|already exists|user_already_exists/i.test(msgReg) || (e && e.code === 'user_already_exists')) {
+            showAuthAlert(tAuth('auth_err_correo_existe'), 'error');
+        } else {
+            showAuthAlert(tAuth('auth_err_registro', { m: msgReg || tAuth('auth_err_reintenta') }), 'error');
+        }
     } finally {
         btn.textContent = textoOriginal;
         btn.disabled = false;
