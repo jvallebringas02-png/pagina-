@@ -269,6 +269,12 @@ Object.assign(PanelUsuario, {
 
     // Revisa que el archivo sea una imagen real y que no pese de más, antes de
     // gastar tiempo subiéndolo. tamanoMaxMB por defecto 5 MB.
+    // Extensión real según el tipo de imagen (antes siempre se guardaba como .jpg).
+    _extensionImagen: function(file) {
+        var mapa = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+        return mapa[file.type] || 'jpg';
+    },
+
     _validarImagen: function(file, tamanoMaxMB) {
         var tiposValidos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         if (tiposValidos.indexOf(file.type) === -1) {
@@ -286,7 +292,7 @@ Object.assign(PanelUsuario, {
         var errorValidacion = this._validarImagen(file, 5);
         if (errorValidacion) { this.mostrarToast(errorValidacion); return; }
         try {
-            var path = 'perfiles/' + usuarioActual.id + '/foto_perfil_' + Date.now() + '.jpg';
+            var path = 'perfiles/' + usuarioActual.id + '/foto_perfil_' + Date.now() + '.' + this._extensionImagen(file);
             var { data, error } = await supabase.storage
                 .from('avatars')
                 .upload(path, file);
@@ -314,7 +320,7 @@ Object.assign(PanelUsuario, {
         var errorValidacion = this._validarImagen(file, 5);
         if (errorValidacion) { this.mostrarToast(errorValidacion); return; }
         try {
-            var path = 'portadas/' + usuarioActual.id + '/portada_' + Date.now() + '.jpg';
+            var path = 'portadas/' + usuarioActual.id + '/portada_' + Date.now() + '.' + this._extensionImagen(file);
             var { data, error } = await supabase.storage
                 .from('portadas')
                 .upload(path, file);
@@ -378,13 +384,15 @@ Object.assign(PanelUsuario, {
         try {
             var { data: producto, error } = await supabase
                 .from('productos')
-                .select('*, usuarios!productos_usuario_id_fkey(nombres, apellidos)')
+                .select('*')
                 .eq('id', productoId)
                 .maybeSingle();
                 
             if (error || !producto) return;
             
-            var autor = producto.usuarios || {};
+            // El autor se lee de la vista pública (obtenerAutor): como `usuarios` ahora solo deja ver la fila propia,
+            // el join directo devolvería vacío para productos de otras personas.
+            var autor = (await this.obtenerAutor(producto.usuario_id)) || {};
             var nombreAutor = ((autor.nombres || '') + ' ' + (autor.apellidos || '')).trim() || 'Usuario';
             var titulo = producto.titulo || 'Sin título';
             var desc = producto.descripcion || '';

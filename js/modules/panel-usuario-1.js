@@ -224,7 +224,7 @@ var PanelUsuario = {
         if (!uid) return null;
         if (this.autoresCacheGlobal[uid]) return this.autoresCacheGlobal[uid];
         if (usuarioActual && usuarioActual.id === uid) { this.autoresCacheGlobal[uid] = usuarioActual; return usuarioActual; }
-        var { data: u } = await supabase.from('perfiles_publicos').select('nombres, apellidos').eq('id', uid).maybeSingle();
+        var { data: u } = await supabase.from('perfiles_publicos').select('nombres, apellidos, foto_perfil').eq('id', uid).maybeSingle();
         if (u) this.autoresCacheGlobal[uid] = u;
         return u;
     },
