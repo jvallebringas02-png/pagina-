@@ -1,6 +1,6 @@
 # Bitácora — Correo de Supabase, avisos del registro y plan del panel de usuario
 
-**Fecha:** 02/10/2026
+**Fecha:** 02/10/2026 (actualizada el 04/10/2026)
 **Proyecto:** remarket-db (`pueba02.vercel.app`)
 **Para retomar en cualquier conversación:** traer este archivo junto con `BITACORA-SEGURIDAD.md` y seguir desde la sección 4.
 
@@ -31,6 +31,36 @@
 - **Probado en la página:** español y francés. Pendiente probar árabe, chino y ruso.
 - Las traducciones fuera del español son de la IA; conviene que un hablante las revise.
 
+### 1.5 Avances del 04/10/2026 (fotos de perfil)
+
+**Problema:** las fotos de perfil y portada no se guardaban ni se veían. Las columnas `foto_perfil` y `foto_portada` **nunca existieron** en la tabla `usuarios`; el código subía el archivo al almacenamiento, pero fallaba en silencio al guardar la dirección en el perfil.
+
+**Datos (Supabase) -- ejecutado y confirmado "Success":**
+- Se agregaron las columnas `foto_perfil` y `foto_portada` (texto) a `usuarios`.
+- Se recreó la vista `perfiles_publicos` con las dos columnas nuevas, para que la foto se vea también en el perfil de otra persona.
+- **Error que apareció al principio (`42P16: cannot change name of view column "localidad_id" to "foto_perfil"`):** con `create or replace view` las columnas nuevas solo se pueden agregar **al final** de la lista; no se pueden poner en medio. Orden final de la vista: `id, nombres, apellidos, localidad_id, categoria, pais, nombre_usuario, created_at, foto_perfil, foto_portada`.
+- Archivo del SQL: `fotos-perfil-columnas.sql` (versión corregida con las columnas al final, dentro de `begin; ... commit;`).
+
+**Funciones (código) -- preparado, pendiente de subir y probar:**
+- `js/modules/panel-usuario-2.js`:
+  - Nueva `_validarImagen`: acepta solo JPG, PNG, WEBP o GIF y máximo 5 MB; si no cumple, muestra aviso y no sube.
+  - `subirFotoPerfil` y `subirPortada` ahora revisan el error al guardar la URL. Antes lo ignoraban y igual decían "actualizada".
+  - Consultas a `perfiles_publicos` en la lista de compartir y en comentarios ahora piden `foto_perfil`.
+- `js/modules/panel-usuario-1.js`: la vista previa de una persona pide `foto_perfil`.
+- `js/modules/panel-usuario-3.js`: buscar personas y compartir piden `foto_perfil`.
+- Total: son cambios de una línea en cada consulta (se agregó `, foto_perfil` al final de la lista de columnas); no se tocó nada más. El perfil de otra persona usa `select('*')` sobre la vista, así que recibe la foto sin cambios.
+
+**Probar tras subir los 3 archivos:**
+1. Subir foto de perfil propia; recargar y comprobar que sigue.
+2. Entrar con otra cuenta, abrir ese perfil y ver la foto.
+3. Buscar a la persona y ver su foto en los resultados.
+4. Comentar en una publicación y ver la foto junto al comentario.
+5. Subir un archivo que no sea imagen (por ejemplo un PDF): debe salir el aviso.
+
+**Pendiente de verificar:**
+- Feed y chat obtienen al autor con otra consulta (`usuarios!productos_usuario_id_fkey(nombres, apellidos)`). Como `usuarios` ahora solo deja ver la fila propia, revisar que ese caso no dependa de leer a otras personas y que las fotos aparezcan ahí.
+- Reglas del bucket `avatars` (quién puede subir y dónde).
+
 ---
 
 ## 2. Qué se encontró del panel de usuario (revisión parcial)
@@ -43,11 +73,11 @@ Revisión por lista de funciones y lectura detallada de configuración, subida d
 - El buscador de arriba es un solo elemento; si el panel está activo, la búsqueda se pinta en el feed del panel (`PanelUsuario.ejecutarBusquedaConIA`).
 - El Asistente IA es un solo bloque (`assistantBox`) que `moverWidgetsAlPanel` / `moverWidgetsAPublico` cambian de lugar; conserva historial y servicio.
 
-**Por corregir**
+**Por corregir** (estado al 02/10; ver sección 1.5 para lo avanzado el 04/10)
 - Seguridad de `usuarios` (ver `BITACORA-SEGURIDAD.md`): lectura y edición abiertas. El panel lee esa tabla, por eso el orden de los pasos importa.
 - Contraseña mínima: 8 en el registro, **6** en Configuración (`cambiarPasswordCuenta`).
 - Textos fijos en español en Configuración (no pasan por el sistema de traducción).
-- `subirFotoPerfil` / `subirPortada`: sin validar tipo ni tamaño; el nombre siempre termina en `.jpg`.
+- `subirFotoPerfil` / `subirPortada`: sin validar tipo ni tamaño; el nombre siempre termina en `.jpg`. *(Validación hecha el 04/10; el nombre `.jpg` sigue igual.)*
 - Los 7 botones de acceso rápido del asistente están solo en la página pública, no en el panel.
 - Panel de administrador no funciona (falta la columna `es_admin`).
 - "Cambiar correo" depende de correos; con 2 por hora puede fallar al probarlo.
@@ -86,23 +116,32 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 ## 4. Plan en orden
 
 ### Antes de empezar
-- [ ] 1. Confirmar que `auth-modales.js` e `i18n-auth.js` de hoy están subidos a GitHub y desplegados.
-- [ ] 2. Ejecutar en el SQL Editor: `select policyname, cmd from pg_policies where tablename='usuarios';` para saber qué del plan de seguridad ya está aplicado (solo consta el paso 1 aplicado el 29/09).
-- [ ] 3. Guardar copia de las políticas actuales en un archivo.
+- [x] 1. Confirmado: `auth-modales.js` e `i18n-auth.js` subidos a GitHub y desplegados.
+- [x] 2. Confirmado con `select policyname, cmd from pg_policies where tablename='usuarios';` (04/10): ya mostraba "ver propio" / "crear propio" / "editar propio" -- la Fase 1 y 2 ya estaban aplicadas de una sesión anterior.
+- [x] 3. Copia de las políticas actuales guardada en archivo (04/10).
 
 ### Fase 1 — Seguridad de `usuarios`
-- [ ] 4. Crear la vista de perfiles públicos (id, nombre, foto, país, categoría) y cambiar feed, buscar personas y perfiles para que lean esa vista (Paso 2 de `BITACORA-SEGURIDAD.md`).
-- [ ] 5. Probar con las 3 cuentas.
-- [ ] 6. Cerrar `usuarios`: cada persona ve y edita solo su fila, con trigger que protege rol y estado (Paso 3). **Siempre después del punto 4.**
+- [x] 4. Vista de perfiles públicos creada (`perfiles_publicos`: id, nombres, apellidos, localidad_id, categoria, pais, nombre_usuario, created_at; el 04/10 se le agregaron `foto_perfil` y `foto_portada` al final, ver 11a). Feed, buscar personas y perfiles ajenos ya la usan; perfil propio sigue leyendo la tabla completa.
+- [x] 5. Probado con cuentas reales.
+- [x] 6. `usuarios` cerrada: cada persona ve y edita solo su fila, con trigger que protege rol y estado.
 
 ### Fase 2 — Seguridad de productos y registro
-- [ ] 7. Impedir que el dueño se apruebe productos o active patrocinio (Paso 4).
-- [ ] 8. Crear la ficha del usuario con un trigger sobre `auth.users`, para que no queden cuentas a medias (Paso 5).
-- [ ] 9. Política de `comentarios_likes` y límites a las inserciones anónimas (Paso 6).
+- [x] 7. `productos`: regla redundante quitada, trigger que impide auto-aprobarse o auto-patrocinarse.
+- [x] 8. Trigger `trg_crear_perfil_usuario` sobre `auth.users`: crea la ficha del usuario automáticamente al registrarse, sin depender del navegador.
+- [x] 9. `comentarios_likes`: estaba cerrada sin ninguna política (por eso el "me gusta" en comentarios no funcionaba); agregadas las 3 reglas (ver todos, dar/quitar like propio).
+
+**Detalle de las Fases 1 y 2:** todo esto está documentado paso a paso, con el SQL exacto usado y cada prueba, en `BITACORA-SEGURIDAD.md` (los 6 pasos de esa bitácora quedaron completos el 03/10/2026).
 
 ### Fase 3 — Arreglos del panel
-- [ ] 10. Contraseña mínima de 8 también en Configuración.
-- [ ] 11. Validar tipo y tamaño en fotos de perfil y portada; revisar reglas del bucket `avatars`.
+- [x] 10. Contraseña mínima de 8 también en Configuración (`panel-usuario-2.js`, función `cambiarPasswordCuenta`). Aplicado el 04/10/2026.
+- [ ] 11. Validar tipo y tamaño en fotos de perfil y portada; revisar reglas del bucket `avatars`. **En curso (04/10):**
+  - [x] 11a. Columnas `foto_perfil` y `foto_portada` creadas en `usuarios` y en la vista `perfiles_publicos` (ejecutado en Supabase).
+  - [x] 11b. Validación de tipo y tamaño (5 MB) y aviso de error al guardar, en `panel-usuario-2.js` (código listo).
+  - [x] 11c. `foto_perfil` agregada a las consultas de `perfiles_publicos` en `panel-usuario-1.js`, `-2.js` y `-3.js` (código listo).
+  - [ ] 11d. **Subir los 3 archivos a GitHub y probar** con la lista de la sección 1.5.
+  - [ ] 11e. Revisar reglas del bucket `avatars`.
+  - [ ] 11f. (Opcional) Que el nombre del archivo use la extensión real en vez de `.jpg` siempre.
+  - [ ] 11g. Verificar que feed y chat muestren las fotos (consulta con `usuarios!productos_usuario_id_fkey`).
 - [ ] 12. Pasar los textos fijos de Configuración al sistema de traducción.
 
 ### Fase 4 — Funciones pendientes
@@ -123,3 +162,10 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 - Datos para Resend en Supabase: host `smtp.resend.com`, usuario `resend`, contraseña = API key (`re_...`), remitente de un dominio verificado.
 - Alternativas si no hay dominio propio: Brevo (permite verificar solo un correo remitente) o Gmail con contraseña de aplicación (para pruebas). Lo más sólido: comprar un dominio y verificarlo.
 - Al activar el SMTP real: subir el límite por hora en Supabase, traducir las plantillas al español y reactivar "Confirm email".
+
+---
+
+## 6. Lecciones
+
+- En Postgres, `create or replace view` solo permite agregar columnas **al final**. Para cambiar el orden o el nombre de una columna hay que borrar y recrear la vista (cuidando los permisos) o usar `alter view ... rename column`.
+- Si el código "sube pero no se ve", revisar primero que la columna exista en la tabla: un `update` a una columna inexistente falla y, si no se revisa el error, parece que todo salió bien.
