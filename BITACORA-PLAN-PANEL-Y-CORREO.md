@@ -2,7 +2,7 @@
 
 **Fecha:** 02/10/2026 (actualizada el 04/10/2026)
 **Proyecto:** remarket-db (`pueba02.vercel.app`)
-**Para retomar en cualquier conversación:** traer este archivo junto con `BITACORA-SEGURIDAD.md` y seguir desde la sección 4.
+**Para retomar en cualquier conversación:** traer este archivo junto con `BITACORA-SEGURIDAD.md` y, si se trabaja la búsqueda de personas, `BITACORA-BUSQUEDA-PERSONAS.md`. Seguir desde la sección 4.
 
 ---
 
@@ -158,13 +158,14 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
   - [x] 11d. Los 3 archivos subidos a GitHub y probados el 04/10 con la lista de la sección 1.5: funcionó.
   - [x] 11e. Reglas de almacenamiento de `avatars` y `portadas` revisadas y ajustadas el 04/10 (ver sección 1.6). Probado: foto de perfil y portada suben bien.
   - [ ] 11f. (Opcional) Que el nombre del archivo use la extensión real en vez de `.jpg` siempre.
-  - [ ] 11g. Verificar que feed y chat muestren las fotos (consulta con `usuarios!productos_usuario_id_fkey`).
+  - [ ] 11g. Verificar que feed y chat muestren las fotos (consulta con `usuarios!productos_usuario_id_fkey`). Prueba con dos cuentas explicada el 04/10 (feed, buscar personas, perfil ajeno, mensajes, comentarios); **resultado aún sin confirmar**. Lo único reportado: "buscar personas no es tan funcional" (ver `BITACORA-BUSQUEDA-PERSONAS.md`).
 - [ ] 12. Pasar los textos fijos de Configuración al sistema de traducción.
 
 ### Fase 4 — Funciones pendientes
 - [ ] 13. Botón "Reportar" en cada tarjeta que abra el Libro de Reclamaciones con los datos de la publicación.
 - [ ] 14. Panel de administrador: crear/corregir `es_admin`.
 - [ ] 15. Decidir si los 7 botones del asistente van también en el panel.
+- [ ] 15a. Búsqueda avanzada de personas (nombre o @usuario, zona incluida "mundial", categoría y lo que ofrece). Diseño y estado en `BITACORA-BUSQUEDA-PERSONAS.md`. Propuesta hecha el 04/10; falta ver las columnas de `productos` y `localidades`.
 
 ### Antes de publicar
 - [ ] 16. SMTP real y volver a activar "Confirm email" (ver sección 5).
@@ -186,3 +187,13 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 
 - En Postgres, `create or replace view` solo permite agregar columnas **al final**. Para cambiar el orden o el nombre de una columna hay que borrar y recrear la vista (cuidando los permisos) o usar `alter view ... rename column`.
 - Si el código "sube pero no se ve", revisar primero que la columna exista en la tabla: un `update` a una columna inexistente falla y, si no se revisa el error, parece que todo salió bien.
+
+---
+
+## 7. Ideas pendientes por corregir (sin ordenar)
+
+Lista abierta. Cuando llegue el turno de una idea, se convierte en un paso numerado con su prueba.
+
+- Búsqueda de personas: ver `BITACORA-BUSQUEDA-PERSONAS.md` (ya tiene paso 15a).
+- Otras correcciones puntuales y visuales: **por completar**. Se trabajan después de cerrar las bitácoras.
+- `publicaciones` (almacenamiento): reglas de subida sin carpeta propia ni límite de tamaño; revisar primero cómo se arma el nombre del archivo en `panel-usuario-3.js`.
