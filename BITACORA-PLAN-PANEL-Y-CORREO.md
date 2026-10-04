@@ -41,7 +41,7 @@
 - **Error que apareció al principio (`42P16: cannot change name of view column "localidad_id" to "foto_perfil"`):** con `create or replace view` las columnas nuevas solo se pueden agregar **al final** de la lista; no se pueden poner en medio. Orden final de la vista: `id, nombres, apellidos, localidad_id, categoria, pais, nombre_usuario, created_at, foto_perfil, foto_portada`.
 - Archivo del SQL: `fotos-perfil-columnas.sql` (versión corregida con las columnas al final, dentro de `begin; ... commit;`).
 
-**Funciones (código) -- preparado, pendiente de subir y probar:**
+**Funciones (código) -- subido a GitHub y probado el 04/10 (funcionó):**
 - `js/modules/panel-usuario-2.js`:
   - Nueva `_validarImagen`: acepta solo JPG, PNG, WEBP o GIF y máximo 5 MB; si no cumple, muestra aviso y no sube.
   - `subirFotoPerfil` y `subirPortada` ahora revisan el error al guardar la URL. Antes lo ignoraban y igual decían "actualizada".
@@ -50,12 +50,29 @@
 - `js/modules/panel-usuario-3.js`: buscar personas y compartir piden `foto_perfil`.
 - Total: son cambios de una línea en cada consulta (se agregó `, foto_perfil` al final de la lista de columnas); no se tocó nada más. El perfil de otra persona usa `select('*')` sobre la vista, así que recibe la foto sin cambios.
 
-**Probar tras subir los 3 archivos:**
+**Pruebas hechas tras subir los 3 archivos (todas bien):**
 1. Subir foto de perfil propia; recargar y comprobar que sigue.
 2. Entrar con otra cuenta, abrir ese perfil y ver la foto.
 3. Buscar a la persona y ver su foto en los resultados.
 4. Comentar en una publicación y ver la foto junto al comentario.
 5. Subir un archivo que no sea imagen (por ejemplo un PDF): debe salir el aviso.
+
+### 1.6 Reglas del almacenamiento (Storage), 04/10/2026
+
+**Lo que se encontró** (consulta a `pg_policies` de `storage.objects` y a `storage.buckets`):
+- `avatars` es público (correcto) pero sin límite de tamaño ni de tipo de archivo; los 5 MB y el filtro de imagen solo existían en la página.
+- Las reglas de subir a `avatars`, `portadas` y `publicaciones` solo comprobaban el nombre del bucket: no exigían sesión iniciada ni carpeta propia (las del chat y de productos sí exigían sesión).
+- Bien: ver archivos es público, solo el dueño puede borrar (`owner = auth.uid()`), y no hay regla de reemplazar archivos en esos buckets, así que nadie puede pisar el de otra persona.
+
+**Cambio aplicado (dentro de `begin; ... commit;`, "Success"):**
+- `avatars` y `portadas`: límite de 5 MB (`5242880`) y solo `image/jpeg`, `image/png`, `image/webp`, `image/gif`.
+- Reglas de subir a `avatars` y `portadas` recreadas `to authenticated`, con `(storage.foldername(name))[2] = auth.uid()::text`. Coincide con las rutas del código: `perfiles/<id>/...` y `portadas/<id>/...`.
+- **Volver atrás:** poner `file_size_limit` y `allowed_mime_types` en `null` y recrear las dos reglas con solo `with check (bucket_id = '...'::text)`.
+- Copia de las reglas anteriores: archivo CSV exportado el 04/10 (guardarlo).
+
+**Probado:** después del cambio se subieron foto de perfil y portada desde la página, y funcionaron.
+
+**Pendiente:** `publicaciones` no se tocó (sus rutas son distintas; revisar primero cómo se arma el nombre antes de exigir carpeta propia).
 
 **Pendiente de verificar:**
 - Feed y chat obtienen al autor con otra consulta (`usuarios!productos_usuario_id_fkey(nombres, apellidos)`). Como `usuarios` ahora solo deja ver la fila propia, revisar que ese caso no dependa de leer a otras personas y que las fotos aparezcan ahí.
@@ -134,12 +151,12 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 
 ### Fase 3 — Arreglos del panel
 - [x] 10. Contraseña mínima de 8 también en Configuración (`panel-usuario-2.js`, función `cambiarPasswordCuenta`). Aplicado el 04/10/2026.
-- [ ] 11. Validar tipo y tamaño en fotos de perfil y portada; revisar reglas del bucket `avatars`. **En curso (04/10):**
+- [ ] 11. Validar tipo y tamaño en fotos de perfil y portada; revisar reglas del bucket `avatars`. **En curso (04/10); siguiente: 11e.**
   - [x] 11a. Columnas `foto_perfil` y `foto_portada` creadas en `usuarios` y en la vista `perfiles_publicos` (ejecutado en Supabase).
   - [x] 11b. Validación de tipo y tamaño (5 MB) y aviso de error al guardar, en `panel-usuario-2.js` (código listo).
   - [x] 11c. `foto_perfil` agregada a las consultas de `perfiles_publicos` en `panel-usuario-1.js`, `-2.js` y `-3.js` (código listo).
-  - [ ] 11d. **Subir los 3 archivos a GitHub y probar** con la lista de la sección 1.5.
-  - [ ] 11e. Revisar reglas del bucket `avatars`.
+  - [x] 11d. Los 3 archivos subidos a GitHub y probados el 04/10 con la lista de la sección 1.5: funcionó.
+  - [x] 11e. Reglas de almacenamiento de `avatars` y `portadas` revisadas y ajustadas el 04/10 (ver sección 1.6). Probado: foto de perfil y portada suben bien.
   - [ ] 11f. (Opcional) Que el nombre del archivo use la extensión real en vez de `.jpg` siempre.
   - [ ] 11g. Verificar que feed y chat muestren las fotos (consulta con `usuarios!productos_usuario_id_fkey`).
 - [ ] 12. Pasar los textos fijos de Configuración al sistema de traducción.
