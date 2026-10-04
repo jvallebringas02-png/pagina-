@@ -613,9 +613,9 @@ Object.assign(PanelUsuario, {
     cambiarPasswordCuenta: async function() {
         var alertEl = document.getElementById('configPasswordAlert');
         var nueva = document.getElementById('configNuevaPassword').value;
-        if (!nueva || nueva.length < 6) {
+        if (!nueva || nueva.length < 8) {
             alertEl.className = 'alert alert-error';
-            alertEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+            alertEl.textContent = 'La contraseña debe tener al menos 8 caracteres';
             alertEl.style.display = 'block';
             return;
         }
