@@ -651,7 +651,7 @@ var PanelUsuario = {
             '</div>';
         modal.style.display = 'flex';
         try {
-            var { data: u, error } = await supabase.from('perfiles_publicos').select('id, nombres, apellidos, localidad_id, categoria').eq('id', id).maybeSingle();
+            var { data: u, error } = await supabase.from('perfiles_publicos').select('id, nombres, apellidos, localidad_id, categoria, foto_perfil').eq('id', id).maybeSingle();
             if (error || !u) throw error || new Error('Usuario no encontrado');
             var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';

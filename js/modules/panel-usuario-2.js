@@ -267,8 +267,24 @@ Object.assign(PanelUsuario, {
         alert('✏️ Editar perfil - Próximamente: podrás cambiar biografía, ciudad y más');
     },
 
+    // Revisa que el archivo sea una imagen real y que no pese de más, antes de
+    // gastar tiempo subiéndolo. tamanoMaxMB por defecto 5 MB.
+    _validarImagen: function(file, tamanoMaxMB) {
+        var tiposValidos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (tiposValidos.indexOf(file.type) === -1) {
+            return 'Ese archivo no es una imagen válida (solo JPG, PNG, WEBP o GIF).';
+        }
+        var limite = (tamanoMaxMB || 5) * 1024 * 1024;
+        if (file.size > limite) {
+            return 'La imagen pesa demasiado (máximo ' + (tamanoMaxMB || 5) + ' MB).';
+        }
+        return null; // sin error
+    },
+
     subirFotoPerfil: async function(file) {
         if (!file) return;
+        var errorValidacion = this._validarImagen(file, 5);
+        if (errorValidacion) { this.mostrarToast(errorValidacion); return; }
         try {
             var path = 'perfiles/' + usuarioActual.id + '/foto_perfil_' + Date.now() + '.jpg';
             var { data, error } = await supabase.storage
@@ -280,10 +296,11 @@ Object.assign(PanelUsuario, {
                 .from('avatars')
                 .getPublicUrl(path);
                 
-            await supabase
+            var { error: errorGuardar } = await supabase
                 .from('usuarios')
                 .update({ foto_perfil: urlData.publicUrl })
                 .eq('id', usuarioActual.id);
+            if (errorGuardar) throw errorGuardar; // antes este error se ignoraba y igual decía "actualizada"
                 
             this.mostrarToast('✅ Foto de perfil actualizada');
             this.cargarMiPerfilFB();
@@ -294,6 +311,8 @@ Object.assign(PanelUsuario, {
 
     subirPortada: async function(file) {
         if (!file) return;
+        var errorValidacion = this._validarImagen(file, 5);
+        if (errorValidacion) { this.mostrarToast(errorValidacion); return; }
         try {
             var path = 'portadas/' + usuarioActual.id + '/portada_' + Date.now() + '.jpg';
             var { data, error } = await supabase.storage
@@ -305,10 +324,11 @@ Object.assign(PanelUsuario, {
                 .from('portadas')
                 .getPublicUrl(path);
                 
-            await supabase
+            var { error: errorGuardar } = await supabase
                 .from('usuarios')
                 .update({ foto_portada: urlData.publicUrl })
                 .eq('id', usuarioActual.id);
+            if (errorGuardar) throw errorGuardar;
                 
             this.mostrarToast('✅ Portada actualizada');
             this.cargarMiPerfilFB();
@@ -462,7 +482,7 @@ Object.assign(PanelUsuario, {
                 var bloqueados = await this.obtenerBloqueados();
                 var { data, error } = await supabase
                     .from('perfiles_publicos')
-                    .select('id, nombres, apellidos, categoria')
+                    .select('id, nombres, apellidos, categoria, foto_perfil')
                     .ilike('categoria', '%' + categoria + '%')
                     .neq('id', usuarioActual.id)
                     .limit(5);
@@ -729,7 +749,7 @@ Object.assign(PanelUsuario, {
                     } else {
                         var { data: u } = await supabase
                             .from('perfiles_publicos')
-                            .select('nombres, apellidos')
+                            .select('nombres, apellidos, foto_perfil')
                             .eq('id', c.usuario_id)
                             .maybeSingle();
                         if (u) { 
