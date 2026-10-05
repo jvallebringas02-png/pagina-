@@ -115,6 +115,8 @@ No se puede simular la página (no hay acceso a Supabase ni a Vercel), pero se s
 
 **Pendiente en Supabase:** Authentication → URL Configuration. La captura del 05/10 muestra Site URL `https://pueba02.vercel.app` y 4 Redirect URLs (`remarket-db-6.vercel.app`, `remarket-db2.vercel.app`, `remarket-db2.vercel.app/auth/callback`, `pueba02.vercel.app`). Agregar **`https://pueba02.vercel.app/**`** para que acepte `/?nueva-clave=1`. Si no se agrega, Supabase manda a la Site URL sin la señal y solo funciona la marca del navegador (mismo navegador donde se pidió el link).
 
+**Resultado de la prueba (05/10/2026):** tras subir los archivos, al entrar con el link se abrió Configuración con el aviso amarillo y el cursor en "Nueva contraseña" (visto en captura). **Falta confirmar:** guardar la contraseña nueva, cerrar sesión y entrar con ella; el mensaje de link vencido; y que entrar con contraseña no abra Configuración sola.
+
 **Probar tras subir:**
 1. Sin sesión, "Olvidé mi contraseña" → escribir el correo → abrir el correo y pulsar "Sign in" **enseguida, una sola vez** (solo vale el último correo; vencen en cerca de 1 hora).
 2. Debe entrar al panel y abrirse Configuración con el aviso amarillo, bajando hasta "Nueva contraseña".
@@ -220,7 +222,7 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 ### Fase 4 — Funciones pendientes
 - [ ] 13. Botón "Reportar" en cada tarjeta que abra el Libro de Reclamaciones con los datos de la publicación.
 - [ ] 14. Panel de administrador: crear/corregir `es_admin`.
-- [ ] 14a. Recuperación de contraseña **sin salir del panel** (decisión del usuario, 05/10): "Olvidé mi contraseña" envía el link mágico, la persona entra directo y la página abre sola Configuración → Cuenta con un aviso y el cursor en "Nueva contraseña" (mínimo 8). Además, mensaje claro si el link venció o ya se usó. Código listo el 05/10 (ver 1.11); **falta subir, agregar la dirección en Supabase y probar**.
+- [ ] 14a. Recuperación de contraseña **sin salir del panel** (decisión del usuario, 05/10): "Olvidé mi contraseña" envía el link mágico, la persona entra directo y la página abre sola Configuración → Cuenta con un aviso y el cursor en "Nueva contraseña" (mínimo 8). Además, mensaje claro si el link venció o ya se usó. Código listo el 05/10 (ver 1.11); subido el 05/10 y la primera parte probada (se abre Configuración con el aviso); **falta confirmar que la contraseña nueva se guarda y entra, y agregar `https://pueba02.vercel.app/**` en Supabase si no se hizo**.
 - [ ] 14b. Teléfono en Configuración → Cuenta: visible y editable solo para la propia persona (hoy se guarda como `celular` al registrarse pero ninguna pantalla lo muestra). Un cambio a la vez: va después de probar 14a.
 - [ ] 15. Decidir si los 7 botones del asistente van también en el panel.
 - [ ] 15a. Búsqueda avanzada de personas (nombre o @usuario, zona incluida "mundial", categoría y lo que ofrece). Diseño y estado en `BITACORA-BUSQUEDA-PERSONAS.md`. Propuesta hecha el 04/10; falta ver las columnas de `productos` y `localidades`.
