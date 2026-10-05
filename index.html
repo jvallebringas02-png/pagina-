@@ -528,6 +528,7 @@ tailwind.config = {
 
         <div style="border-top:1px solid var(--borde-suave);margin:22px 0 16px;padding-top:16px;">
             <label class="form-label">👤 Cuenta</label>
+            <p style="margin:6px 0 0;font-size:13px;color:var(--texto-secundario);">Correo actual: <strong id="configCorreoActual" style="color:var(--texto-primario,inherit);word-break:break-all;"></strong></p>
             <div style="display:flex;gap:8px;margin-top:8px;">
                 <input type="password" id="configNuevaPassword" class="form-input" placeholder="Nueva contraseña">
                 <button class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.cambiarPasswordCuenta()">Cambiar</button>

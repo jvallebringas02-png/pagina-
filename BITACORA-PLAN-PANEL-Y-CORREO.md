@@ -1,6 +1,6 @@
 # Bitácora — Correo de Supabase, avisos del registro y plan del panel de usuario
 
-**Fecha:** 02/10/2026 (actualizada el 04/10/2026)
+**Fecha:** 02/10/2026 (actualizada el 04/10/2026, versión 2)
 **Proyecto:** remarket-db (`pueba02.vercel.app`)
 **Para retomar en cualquier conversación:** traer este archivo junto con `BITACORA-SEGURIDAD.md` y, si se trabaja la búsqueda de personas, `BITACORA-BUSQUEDA-PERSONAS.md`. Seguir desde la sección 4.
 
@@ -74,9 +74,41 @@
 
 **Pendiente:** `publicaciones` no se tocó (sus rutas son distintas; revisar primero cómo se arma el nombre antes de exigir carpeta propia).
 
-**Pendiente de verificar:**
-- Feed y chat obtienen al autor con otra consulta (`usuarios!productos_usuario_id_fkey(nombres, apellidos)`). Como `usuarios` ahora solo deja ver la fila propia, revisar que ese caso no dependa de leer a otras personas y que las fotos aparezcan ahí.
-- Reglas del bucket `avatars` (quién puede subir y dónde).
+### 1.7 Recorrido del código de feed y chat (11g), 04/10/2026
+
+No se puede simular la página (no hay acceso a Supabase ni a Vercel), pero se siguió el código para ver de dónde salen nombre y foto de otras personas. Se encontraron **dos errores reales**:
+
+1. **`obtenerAutor`** (`panel-usuario-1.js`) pedía solo `nombres, apellidos` a `perfiles_publicos`. Esa función alimenta el feed, la lista de mensajes y el chat, y el código del feed usa `autor.foto_perfil`, así que nunca llegaba la foto de otras personas. Corregido: ahora pide `nombres, apellidos, foto_perfil`. (Se había omitido en el cambio de 1.5.)
+2. **`cargarVistaPreviaCompartir`** (`panel-usuario-2.js`) leía al autor con un join directo a `usuarios` (`usuarios!productos_usuario_id_fkey`). Desde que `usuarios` solo deja ver la fila propia, el join devuelve vacío para publicaciones de otras personas y salía "Usuario". Corregido: lee el producto con `select('*')` y al autor con `obtenerAutor`.
+
+**Estado:** código listo y con sintaxis revisada; **sin probar en la página**.
+
+### 1.8 Otros cambios del 04/10/2026
+
+- **11f, extensión real del archivo** (`panel-usuario-2.js`): nueva función `_extensionImagen`. Foto de perfil y portada se guardan como `.jpg`, `.png`, `.webp` o `.gif` según el tipo, en vez de siempre `.jpg`. Código listo; sin probar.
+- **Correo actual en Configuración** (`index.html` y `panel-usuario-2.js`): en Configuración → Cuenta no se veía con qué correo se estaba entrando (solo había campos para escribir uno nuevo). Se agregó la línea "Correo actual: …", que se llena al abrir Configuración (del perfil o, si falta, de la sesión de Supabase). El texto "Correo actual" quedó fijo en español; pasarlo al sistema de traducción en el paso 12. Código listo; sin probar.
+
+### 1.9 Hallazgos sobre "olvidé mi contraseña" y el link mágico (04/10/2026)
+
+- **El botón "¿Olvidé mi contraseña?" no recupera la contraseña.** En `auth-modales.js` abre el formulario del link mágico y llama a `signInWithOtp` (línea ~335). El correo que llega es "Your sign-in link" (iniciar sesión), idéntico al del login. Al abrirlo, la persona entra de frente a la página principal y nunca se le pide una contraseña nueva. No existe `resetPasswordForEmail` ni pantalla para escribir una contraseña nueva.
+- **Solución provisional:** entrar con el link mágico y cambiar la contraseña en Configuración → Cuenta (mínimo 8).
+- **Error `otp_expired`** ("Email link is invalid or has expired") al abrir un link: los links son de un solo uso, solo vale el último que se pidió (cada correo nuevo anula el anterior; se vieron dos correos, 18:38 y 18:40), y ciertos correos abren los enlaces por su cuenta antes que la persona. La página no muestra mensaje claro: el error queda en la dirección (`#error=...`) y solo se reabre el cuadro de inicio de sesión.
+- **Cuentas de prueba:** el correo `jdvallebringas@proton.me` corresponde a una cuenta creada el 30/09/2026 con nombre "america" y apellido "amerrica" (con doble r; corregible en Editar perfil) y `nombre_usuario` vacío (NULL). Es distinta de la del `@jvallebringas06` que aparece en el perfil con foto y portada ("Miembro desde julio de 2026"): hay al menos dos cuentas de prueba.
+- Con el correo integrado de Supabase siguen los límites del punto 1.1 (2 correos por hora, textos en inglés).
+
+- **Dónde se ve el correo y el teléfono (04/10):** el correo solo aparece en Mi Perfil → pestaña "Acerca de" (únicamente en el perfil propio) y, desde 1.8, en Configuración → Cuenta. El teléfono se guarda como `celular` al registrarse, pero **ninguna pantalla lo muestra**; idea: mostrarlo solo al propio usuario en Configuración, no a terceros (el chat ya bloquea compartir teléfonos).
+- **Prueba del link mágico (04/10):** el correo llegó, pero en el segundo o tercer intento el ingreso no ocurría o tardaba. Causas probables: límite de 2 correos por hora del correo integrado, abrir un link viejo (cada correo nuevo anula al anterior) o demora del correo. Para confirmar: Supabase → Authentication → Logs (buscar `over_email_send_rate_limit`) y ver si la página mostró un mensaje rojo. Solución de fondo: pasos 14a y 16.
+
+### 1.10 Resumen de archivos tocados el 04/10/2026
+
+| Archivo | Qué cambió | Estado |
+|---|---|---|
+| `js/modules/panel-usuario-1.js` | `foto_perfil` en la vista previa de persona y en `obtenerAutor` | listo; confirmar que está subido y probar |
+| `js/modules/panel-usuario-2.js` | validación de imagen, error al guardar foto, `foto_perfil` en consultas, extensión real, vista previa de compartir, correo actual en Configuración | listo; confirmar que está subido y probar |
+| `js/modules/panel-usuario-3.js` | `foto_perfil` en buscar personas y compartir | subido y probado en la prueba de fotos |
+| `index.html` | línea "Correo actual" en Configuración | entregado con nombre correcto el 04/10 (el repo tenía la nueva como `index (29).html`); subir con el nombre exacto y probar |
+| Supabase (SQL) | columnas `foto_perfil`/`foto_portada`; vista `perfiles_publicos`; límites y reglas de `avatars` y `portadas` | ejecutado y probado |
+| `BITACORA-PLAN-PANEL-Y-CORREO.md`, `BITACORA-BUSQUEDA-PERSONAS.md` | bitácoras | subir esta versión |
 
 ---
 
@@ -157,13 +189,14 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
   - [x] 11c. `foto_perfil` agregada a las consultas de `perfiles_publicos` en `panel-usuario-1.js`, `-2.js` y `-3.js` (código listo).
   - [x] 11d. Los 3 archivos subidos a GitHub y probados el 04/10 con la lista de la sección 1.5: funcionó.
   - [x] 11e. Reglas de almacenamiento de `avatars` y `portadas` revisadas y ajustadas el 04/10 (ver sección 1.6). Probado: foto de perfil y portada suben bien.
-  - [ ] 11f. (Opcional) Que el nombre del archivo use la extensión real en vez de `.jpg` siempre.
-  - [ ] 11g. Verificar que feed y chat muestren las fotos (consulta con `usuarios!productos_usuario_id_fkey`). Prueba con dos cuentas explicada el 04/10 (feed, buscar personas, perfil ajeno, mensajes, comentarios); **resultado aún sin confirmar**. Lo único reportado: "buscar personas no es tan funcional" (ver `BITACORA-BUSQUEDA-PERSONAS.md`).
+  - [ ] 11f. Extensión real del archivo en vez de `.jpg` siempre: código listo (ver 1.8); falta subir y probar con un PNG.
+  - [ ] 11g. Feed y chat muestran nombre y foto de otras personas: se corrigieron dos errores en el código (ver 1.7); falta subir y probar con dos cuentas (feed, buscar personas, perfil ajeno, mensajes, comentarios, vista previa al compartir). Único reporte hasta ahora: "buscar personas no es tan funcional" (ver `BITACORA-BUSQUEDA-PERSONAS.md`).
 - [ ] 12. Pasar los textos fijos de Configuración al sistema de traducción.
 
 ### Fase 4 — Funciones pendientes
 - [ ] 13. Botón "Reportar" en cada tarjeta que abra el Libro de Reclamaciones con los datos de la publicación.
 - [ ] 14. Panel de administrador: crear/corregir `es_admin`.
+- [ ] 14a. Recuperación real de contraseña (ver 1.9): botón que envíe el correo de restablecer (`resetPasswordForEmail`), pantalla para escribir la contraseña nueva (mínimo 8) y mensaje claro cuando el link venció o ya se usó (`otp_expired`). Revisar en Supabase las direcciones de redirección permitidas. **Propuesto el 04/10; el usuario aún no confirmó si quiere solo el mensaje claro o la recuperación completa.**
 - [ ] 15. Decidir si los 7 botones del asistente van también en el panel.
 - [ ] 15a. Búsqueda avanzada de personas (nombre o @usuario, zona incluida "mundial", categoría y lo que ofrece). Diseño y estado en `BITACORA-BUSQUEDA-PERSONAS.md`. Propuesta hecha el 04/10; falta ver las columnas de `productos` y `localidades`.
 
@@ -185,6 +218,10 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 
 ## 6. Lecciones
 
+- **Nombres de archivos descargados:** al bajar un archivo que ya existe, el navegador le agrega un número o un espacio (`panel-usuario-2 .js`, `index (29).html`). Esas copias no se cargan en la página y los cambios no se ven. Antes de subir a GitHub, renombrar el archivo al nombre exacto, y después de subir comprobar que no queden copias con espacios o números. (Pasó el 04/10: el repo tenía las versiones nuevas con nombre equivocado, y `panel-usuario-3.js` e `index.html` seguían viejos.)
+- Al cerrar una tabla con reglas (RLS), buscar también los **joins** (`tabla!llave(...)`) y las consultas que ya no pueden leer a otras personas, no solo los `select` directos. Aquí aparecieron dos: `obtenerAutor` y la vista previa de compartir.
+- No afirmar cómo se ve una pantalla sin comprobarlo: se dijo que Configuración mostraba el correo y no era así.
+
 - En Postgres, `create or replace view` solo permite agregar columnas **al final**. Para cambiar el orden o el nombre de una columna hay que borrar y recrear la vista (cuidando los permisos) o usar `alter view ... rename column`.
 - Si el código "sube pero no se ve", revisar primero que la columna exista en la tabla: un `update` a una columna inexistente falla y, si no se revisa el error, parece que todo salió bien.
 
@@ -195,5 +232,7 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 Lista abierta. Cuando llegue el turno de una idea, se convierte en un paso numerado con su prueba.
 
 - Búsqueda de personas: ver `BITACORA-BUSQUEDA-PERSONAS.md` (ya tiene paso 15a).
+- `nombre_usuario` vacío en cuentas como la de `jdvallebringas@proton.me`: decidir cómo se asigna (hoy el `@` cae al inicio del correo).
+- Apellido con error de escritura en una cuenta de prueba ("amerrica"): corregir desde Editar perfil.
 - Otras correcciones puntuales y visuales: **por completar**. Se trabajan después de cerrar las bitácoras.
 - `publicaciones` (almacenamiento): reglas de subida sin carpeta propia ni límite de tamaño; revisar primero cómo se arma el nombre del archivo en `panel-usuario-3.js`.
