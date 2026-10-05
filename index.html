@@ -522,23 +522,25 @@ tailwind.config = {
         <div class="modal-fb-botones" style="margin-top:10px;">
             <button class="btn-cancelar" onclick="PanelUsuario.cerrarModalConfiguracion()">Cancelar</button>
             <button class="btn-compartir" onclick="PanelUsuario.guardarConfiguracion()">
-                <i class="fas fa-save"></i> Guardar
+                <i class="fas fa-save"></i> Guardar preferencias
             </button>
         </div>
 
         <div style="border-top:1px solid var(--borde-suave);margin:22px 0 16px;padding-top:16px;">
             <label class="form-label">👤 Cuenta</label>
             <p style="margin:6px 0 0;font-size:13px;color:var(--texto-secundario);">Correo actual: <strong id="configCorreoActual" style="color:var(--texto-primario,inherit);word-break:break-all;"></strong></p>
-            <div id="configAvisoClave" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px;">Entraste con un enlace. Crea aquí tu contraseña nueva (mínimo 8 caracteres) y pulsa Cambiar.</div>
-            <div style="display:flex;gap:8px;margin-top:8px;">
+            <div id="configAvisoClave" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px;">Entraste con un enlace. Crea aquí tu contraseña nueva (mínimo 8 caracteres) y pulsa Guardar contraseña.</div>
+            <label class="form-label" style="margin-top:14px;display:block;">🔑 Contraseña</label>
+            <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
                 <input type="password" id="configNuevaPassword" class="form-input" placeholder="Nueva contraseña">
-                <button class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.cambiarPasswordCuenta()">Cambiar</button>
+                <button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 14px;font-size:13px;margin-bottom:0;white-space:nowrap;" onclick="PanelUsuario.cambiarPasswordCuenta()">Guardar contraseña</button>
             </div>
             <div id="configPasswordAlert" class="alert" style="display:none;margin-top:8px;"></div>
 
-            <div style="display:flex;gap:8px;margin-top:14px;">
+            <label class="form-label" style="margin-top:18px;display:block;">✉️ Correo electrónico</label>
+            <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
                 <input type="email" id="configNuevoCorreo" class="form-input" placeholder="Nuevo correo electrónico">
-                <button class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.cambiarCorreoCuenta()">Cambiar</button>
+                <button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 14px;font-size:13px;margin-bottom:0;white-space:nowrap;" onclick="PanelUsuario.cambiarCorreoCuenta()">Cambiar correo</button>
             </div>
             <div id="configCorreoAlert" class="alert" style="display:none;margin-top:8px;"></div>
         </div>
