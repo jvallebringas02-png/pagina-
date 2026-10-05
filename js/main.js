@@ -86,6 +86,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     });
 
+    // Enlace vencido o ya usado: explicarlo en vez de dejar la página principal sin aviso.
+    try { avisarEnlaceVencido(!!(sesionSupabaseInicial && sesionSupabaseInicial.user) || !!sesionLocalRestaurada); } catch (e) {}
+
     
     // Agregar modal de nuevo mensaje (solo el HTML falta en el DOM)
     if (!document.getElementById('modalNuevoMensaje')) {
