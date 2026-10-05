@@ -567,7 +567,7 @@ Object.assign(PanelUsuario, {
         }
     },
 
-    abrirModalConfiguracion: function() {
+    abrirModalConfiguracion: function(modo) {
         if (!usuarioActual) { toggleAuthModal(true); return; }
         var actuales = usuarioActual.categoria ? usuarioActual.categoria.split(',').map(function(c) { return c.trim(); }) : [];
         document.querySelectorAll('#configInteresesGrid input[type=checkbox]').forEach(function(chk) {
@@ -597,7 +597,16 @@ Object.assign(PanelUsuario, {
         document.getElementById('configAlert').style.display = 'none';
         document.getElementById('configPasswordAlert').style.display = 'none';
         document.getElementById('configCorreoAlert').style.display = 'none';
+        // modo 'clave': la persona entró con el enlace de "Olvidé mi contraseña"; se la lleva a crear la nueva.
+        var avisoClave = document.getElementById('configAvisoClave');
+        if (avisoClave) avisoClave.style.display = (modo === 'clave') ? 'block' : 'none';
         document.getElementById('modalConfiguracion').style.display = 'flex';
+        if (modo === 'clave') {
+            setTimeout(function() {
+                var campo = document.getElementById('configNuevaPassword');
+                if (campo) { campo.scrollIntoView({ behavior: 'smooth', block: 'center' }); campo.focus(); }
+            }, 200);
+        }
     },
 
     cerrarModalConfiguracion: function() {
@@ -661,6 +670,8 @@ Object.assign(PanelUsuario, {
         try {
             var { error } = await supabase.auth.updateUser({ password: nueva });
             if (error) throw error;
+            var avisoOk = document.getElementById('configAvisoClave');
+            if (avisoOk) avisoOk.style.display = 'none';
             document.getElementById('configNuevaPassword').value = '';
             alertEl.className = 'alert alert-success';
             alertEl.textContent = '✅ Contraseña actualizada';
