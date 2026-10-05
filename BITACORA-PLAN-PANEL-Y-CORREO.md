@@ -124,6 +124,15 @@ No se puede simular la página (no hay acceso a Supabase ni a Vercel), pero se s
 4. Abrir un link viejo: debe salir el cuadro de acceso con el mensaje de enlace vencido.
 5. Entrar con contraseña (sin link) no debe abrir Configuración sola.
 
+### 1.12 Error al guardar Configuración: falta la columna `ciudad` (05/10/2026)
+
+- **Síntoma:** en Configuración, el botón morado **Guardar** muestra "Error al guardar: Could not find the 'ciudad' column of 'usuarios' in the schema cache".
+- **Causa:** `guardarConfiguracion` (`panel-usuario-2.js`) hace un solo `update` a `usuarios` con `categoria, ciudad, pais, notif_mensajes, notif_comentarios, notif_likes, privacidad_mensajes`. Según las columnas reales confirmadas en `BITACORA-SEGURIDAD.md` (sección 3-bis), todas existen **menos `ciudad`** (ya se había anotado que no existía). Como es un solo `update`, al faltar una columna no se guarda ninguno de los cambios (intereses, notificaciones, privacidad).
+- **Efecto secundario:** la ciudad escrita (por ejemplo "Lima") solo vive en la sesión del navegador; por eso "Tu Alcance" sigue diciendo "Define tu localidad en Configuración".
+- **Arreglo propuesto (SQL):** `alter table usuarios add column if not exists ciudad text;` y `notify pgrst, 'reload schema';`. Sin cambios de código. Probar: Guardar en Configuración debe mostrar "Configuración guardada".
+- **Pendiente aparte:** `biografia` tampoco existe en `usuarios` y el perfil la lee (`usuario.biografia`); no hay código que la escriba. Decidir si se crea con la función de editar perfil.
+- **Pendiente aparte:** Configuración guarda `ciudad` como texto; los filtros de zona de buscar personas usan `localidad_id`. Ver `BITACORA-BUSQUEDA-PERSONAS.md`.
+
 ### 1.10 Resumen de archivos tocados el 04/10/2026
 
 | Archivo | Qué cambió | Estado |
@@ -261,5 +270,6 @@ Lista abierta. Cuando llegue el turno de una idea, se convierte en un paso numer
 - Búsqueda de personas: ver `BITACORA-BUSQUEDA-PERSONAS.md` (ya tiene paso 15a).
 - `nombre_usuario` vacío en cuentas como la de `jdvallebringas@proton.me`: decidir cómo se asigna (hoy el `@` cae al inicio del correo).
 - Apellido con error de escritura en una cuenta de prueba ("amerrica"): corregir desde Editar perfil.
+- **Cambiar correo no sincroniza el perfil (hallado el 05/10):** `cambiarCorreoCuenta` solo llama a `supabase.auth.updateUser({ email })`; no actualiza `usuarios.correo_electronico`. Tras confirmar el cambio, el correo de acceso es el nuevo, pero la tabla `usuarios` conserva el viejo (se ve en Mi Perfil → Acerca de y en la línea "Correo actual" de Configuración, que lee primero el perfil). Arreglo propuesto: que "Correo actual" lea primero el correo de la sesión y que, al iniciar sesión, si `authUser.email` difiere del perfil, se actualice `usuarios.correo_electronico`. Aún sin hacer; confirmar con una cuenta de prueba cuando se haga. Recordar el límite de 2 correos por hora al probarlo.
 - Otras correcciones puntuales y visuales: **por completar**. Se trabajan después de cerrar las bitácoras.
 - `publicaciones` (almacenamiento): reglas de subida sin carpeta propia ni límite de tamaño; revisar primero cómo se arma el nombre del archivo en `panel-usuario-3.js`.
