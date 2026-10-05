@@ -155,7 +155,51 @@ async function procesarSesionSupabaseAuth(authUser) {
         showAssistantProactive('¡Bienvenido ' + (usuarioFinal.nombres || (authUser.email ? authUser.email.split('@')[0] : 'Usuario')) + '! 🎉 Tu sesión está activa. ¿En qué puedo ayudarte hoy?');
         irAlFeed();
         ejecutarAccionPendienteLogin();
+        // Si entró con el enlace pedido desde "Olvidé mi contraseña", se abre Configuración para que cree la nueva.
+        if (consumirSenalNuevaClave()) {
+            setTimeout(function() {
+                try { PanelUsuario.abrirModalConfiguracion('clave'); } catch (e2) { console.warn('No se pudo abrir Configuración:', e2); }
+            }, 800);
+        }
     } catch (e) {
         console.warn('No se pudo procesar la sesión de autenticación:', e);
     }
+}
+
+// ¿La persona entró con un enlace pedido desde "Olvidé mi contraseña"? Se sabe por dos señales:
+// A) la dirección trae ?nueva-clave=1 (viaja dentro del enlace, sirve aunque lo abra en otro dispositivo);
+// B) una marca guardada en este navegador al pedir el enlace (respaldo, vale 1 hora).
+// Se consume una sola vez: la lee, la borra y limpia la dirección.
+function consumirSenalNuevaClave() {
+    var senal = false;
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('nueva-clave') === '1') {
+            senal = true;
+            params.delete('nueva-clave');
+            var resto = params.toString();
+            history.replaceState(null, '', window.location.pathname + (resto ? '?' + resto : '') + window.location.hash);
+        }
+    } catch (e) {}
+    try {
+        var t = parseInt(localStorage.getItem('remarket_nueva_clave') || '0', 10);
+        if (t) {
+            localStorage.removeItem('remarket_nueva_clave');
+            if (Date.now() - t < 60 * 60 * 1000) senal = true;
+        }
+    } catch (e) {}
+    return senal;
+}
+
+// Si la persona abre un enlace vencido o ya usado, la dirección trae #error=...otp_expired.
+// Antes solo volvía al muro sin explicación; ahora se le dice qué pasó y puede pedir otro enlace.
+function avisarEnlaceVencido(haySesion) {
+    var h = window.location.hash || '';
+    if (h.indexOf('error_code=') === -1 && h.indexOf('error=access_denied') === -1) return;
+    var vencido = h.indexOf('otp_expired') !== -1;
+    try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+    if (haySesion || !vencido) return;
+    toggleAuthModal(true);
+    showMagicLinkForm('olvido');
+    showAuthAlert(tAuth('auth_err_link_vencido'), 'error');
 }
