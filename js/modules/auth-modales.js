@@ -76,7 +76,7 @@ ${tAuth('auth_google')}
 </div>
 <button class="btn-auth btn-auth-primary" onclick="loginWithEmail()">${tAuth('auth_btn_login')}</button>
 <div class="magic-link-option">
-<a onclick="showMagicLinkForm()">${tAuth('auth_olvide')}</a>
+<a onclick="showMagicLinkForm('olvido')">${tAuth('auth_olvide')}</a>
 </div>
 </div>
 
@@ -206,7 +206,7 @@ function switchAuthTab(tab) {
     hideAuthAlert();
 }
 
-function showMagicLinkForm() { document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active')); document.getElementById('magicLinkForm').classList.add('active'); hideAuthAlert(); }
+function showMagicLinkForm(modo) { window._magicModo = modo || ''; document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active')); document.getElementById('magicLinkForm').classList.add('active'); hideAuthAlert(); }
 
 var _authAlertTimer = null;
 function showAuthAlert(message, type) {
@@ -241,6 +241,8 @@ async function loginWithEmail() {
         var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
         if (error) throw error;
         loginAttempts = 0;
+        // Entró con contraseña: ya no hace falta abrirle Configuración por un enlace pedido antes.
+        try { localStorage.removeItem('remarket_nueva_clave'); } catch (e) {}
         await procesarSesionSupabaseAuth(data.user);
     } catch (e) {
         loginAttempts++;
@@ -332,8 +334,16 @@ async function registerUser() {
 
 async function sendMagicLink() {
     var email = document.getElementById('magicEmail').value.trim(); if (!email) { showAuthAlert(tAuth('auth_err_sin_correo'), 'error'); return; }
-    var { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) { await logAccess('link_magico_fallido', email, error.message); showAuthAlert(tAuth('auth_err_link', { m: error.message }), 'error'); } else { await logAccess('link_magico_enviado', email); showAuthAlert(tAuth('auth_ok_link'), 'success'); }
+    // Si el enlace se pidió desde "Olvidé mi contraseña", se marca para que al entrar se abra Configuración
+    // y la persona pueda crear su contraseña nueva sin salir de su panel (ver consumirSenalNuevaClave).
+    var esOlvido = (window._magicModo === 'olvido');
+    var opciones = { email: email };
+    if (esOlvido) opciones.options = { emailRedirectTo: window.location.origin + '/?nueva-clave=1' };
+    var { error } = await supabase.auth.signInWithOtp(opciones);
+    if (error) { await logAccess('link_magico_fallido', email, error.message); showAuthAlert(tAuth('auth_err_link', { m: error.message }), 'error'); } else {
+        if (esOlvido) { try { localStorage.setItem('remarket_nueva_clave', String(Date.now())); } catch (e) {} }
+        await logAccess('link_magico_enviado', email); showAuthAlert(tAuth('auth_ok_link'), 'success');
+    }
 }
 
 function updateUIForUser(usuario) {
