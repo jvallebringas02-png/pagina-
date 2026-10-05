@@ -86,7 +86,7 @@ No se puede simular la página (no hay acceso a Supabase ni a Vercel), pero se s
 ### 1.8 Otros cambios del 04/10/2026
 
 - **11f, extensión real del archivo** (`panel-usuario-2.js`): nueva función `_extensionImagen`. Foto de perfil y portada se guardan como `.jpg`, `.png`, `.webp` o `.gif` según el tipo, en vez de siempre `.jpg`. Código listo; sin probar.
-- **Correo actual en Configuración** (`index.html` y `panel-usuario-2.js`): en Configuración → Cuenta no se veía con qué correo se estaba entrando (solo había campos para escribir uno nuevo). Se agregó la línea "Correo actual: …", que se llena al abrir Configuración (del perfil o, si falta, de la sesión de Supabase). El texto "Correo actual" quedó fijo en español; pasarlo al sistema de traducción en el paso 12. Código listo; sin probar.
+- **Correo actual en Configuración** (`index.html` y `panel-usuario-2.js`): en Configuración → Cuenta no se veía con qué correo se estaba entrando (solo había campos para escribir uno nuevo). Se agregó la línea "Correo actual: …", que se llena al abrir Configuración (del perfil o, si falta, de la sesión de Supabase). El texto "Correo actual" quedó fijo en español; pasarlo al sistema de traducción en el paso 12. **Probado el 04/10: en Configuración → Cuenta se ve "Correo actual: jdvallebringas@proton.me".**
 
 ### 1.9 Hallazgos sobre "olvidé mi contraseña" y el link mágico (04/10/2026)
 
@@ -99,6 +99,29 @@ No se puede simular la página (no hay acceso a Supabase ni a Vercel), pero se s
 - **Dónde se ve el correo y el teléfono (04/10):** el correo solo aparece en Mi Perfil → pestaña "Acerca de" (únicamente en el perfil propio) y, desde 1.8, en Configuración → Cuenta. El teléfono se guarda como `celular` al registrarse, pero **ninguna pantalla lo muestra**; idea: mostrarlo solo al propio usuario en Configuración, no a terceros (el chat ya bloquea compartir teléfonos).
 - **Prueba del link mágico (04/10):** el correo llegó, pero en el segundo o tercer intento el ingreso no ocurría o tardaba. Causas probables: límite de 2 correos por hora del correo integrado, abrir un link viejo (cada correo nuevo anula al anterior) o demora del correo. Para confirmar: Supabase → Authentication → Logs (buscar `over_email_send_rate_limit`) y ver si la página mostró un mensaje rojo. Solución de fondo: pasos 14a y 16.
 
+### 1.11 Contraseña nueva tras el link mágico (05/10/2026)
+
+**Decisión del usuario:** en vez de una pantalla aparte, que al entrar con el link la persona vea Configuración y cambie la contraseña sin salir de su panel. Configuración **no muestra** la contraseña actual: se guarda cifrada y nadie puede verla (ni la página, ni Supabase); solo se puede escribir una nueva.
+
+**Cómo funciona (código listo, sin probar):**
+1. `auth-modales.js`: el enlace "Olvidé mi contraseña" abre el formulario del link con `showMagicLinkForm('olvido')`. `sendMagicLink` pide el link con `emailRedirectTo = <origen>/?nueva-clave=1` y guarda en el navegador la marca `remarket_nueva_clave` (hora). El otro acceso al link (desde el registro) no marca nada. Al iniciar sesión con contraseña se borra la marca.
+2. `sesion-auth.js`: nueva `consumirSenalNuevaClave()`. Detecta la señal A (`?nueva-clave=1` en la dirección, funciona aunque se abra en otro dispositivo) o la B (marca del navegador, vale 1 hora), la usa una sola vez y limpia la dirección. Al final de `procesarSesionSupabaseAuth`, si hay señal, abre Configuración con `PanelUsuario.abrirModalConfiguracion('clave')`.
+3. `panel-usuario-2.js`: `abrirModalConfiguracion(modo)`; con `'clave'` muestra el aviso `configAvisoClave`, baja hasta "Nueva contraseña" y pone el cursor ahí. El aviso se oculta al cambiar la contraseña.
+4. `index.html`: aviso amarillo "Entraste con un enlace. Crea aquí tu contraseña nueva (mínimo 8 caracteres) y pulsa Cambiar." sobre el campo de contraseña.
+5. **Link vencido o ya usado:** `avisarEnlaceVencido()` (en `sesion-auth.js`, llamada desde `main.js`). Si la dirección trae `otp_expired` y no hay sesión, abre el cuadro de acceso con el formulario del link y el mensaje nuevo `auth_err_link_vencido`; limpia el `#error=...` de la dirección.
+6. `i18n-auth.js`: clave `auth_err_link_vencido` solo en español e inglés; los otros idiomas muestran el español hasta que se traduzca (paso 12, con revisión de hablante nativo). El aviso de Configuración también queda fijo en español (paso 12).
+
+**Prueba de la lógica con un navegador simulado (solo la lógica, no la página real):** señal A, marca de 10 min, marca de 3 h (no vale), link normal sin marca (no abre nada) y el aviso de link vencido con y sin sesión: todo respondió como se esperaba.
+
+**Pendiente en Supabase:** Authentication → URL Configuration. La captura del 05/10 muestra Site URL `https://pueba02.vercel.app` y 4 Redirect URLs (`remarket-db-6.vercel.app`, `remarket-db2.vercel.app`, `remarket-db2.vercel.app/auth/callback`, `pueba02.vercel.app`). Agregar **`https://pueba02.vercel.app/**`** para que acepte `/?nueva-clave=1`. Si no se agrega, Supabase manda a la Site URL sin la señal y solo funciona la marca del navegador (mismo navegador donde se pidió el link).
+
+**Probar tras subir:**
+1. Sin sesión, "Olvidé mi contraseña" → escribir el correo → abrir el correo y pulsar "Sign in" **enseguida, una sola vez** (solo vale el último correo; vencen en cerca de 1 hora).
+2. Debe entrar al panel y abrirse Configuración con el aviso amarillo, bajando hasta "Nueva contraseña".
+3. Escribir 8 o más caracteres y Cambiar. Cerrar sesión y entrar con correo y contraseña nueva.
+4. Abrir un link viejo: debe salir el cuadro de acceso con el mensaje de enlace vencido.
+5. Entrar con contraseña (sin link) no debe abrir Configuración sola.
+
 ### 1.10 Resumen de archivos tocados el 04/10/2026
 
 | Archivo | Qué cambió | Estado |
@@ -106,7 +129,8 @@ No se puede simular la página (no hay acceso a Supabase ni a Vercel), pero se s
 | `js/modules/panel-usuario-1.js` | `foto_perfil` en la vista previa de persona y en `obtenerAutor` | listo; confirmar que está subido y probar |
 | `js/modules/panel-usuario-2.js` | validación de imagen, error al guardar foto, `foto_perfil` en consultas, extensión real, vista previa de compartir, correo actual en Configuración | listo; confirmar que está subido y probar |
 | `js/modules/panel-usuario-3.js` | `foto_perfil` en buscar personas y compartir | subido y probado en la prueba de fotos |
-| `index.html` | línea "Correo actual" en Configuración | entregado con nombre correcto el 04/10 (el repo tenía la nueva como `index (29).html`); subir con el nombre exacto y probar |
+| `index.html` | línea "Correo actual" en Configuración (probada el 04/10); aviso `configAvisoClave` (05/10, sin probar) | subir de nuevo |
+| `js/modules/auth-modales.js`, `js/sesion-auth.js`, `js/main.js`, `js/i18n-auth.js` | contraseña nueva tras el link mágico y aviso de link vencido (1.11) | listo; subir, agregar URL en Supabase y probar |
 | Supabase (SQL) | columnas `foto_perfil`/`foto_portada`; vista `perfiles_publicos`; límites y reglas de `avatars` y `portadas` | ejecutado y probado |
 | `BITACORA-PLAN-PANEL-Y-CORREO.md`, `BITACORA-BUSQUEDA-PERSONAS.md` | bitácoras | subir esta versión |
 
@@ -196,7 +220,8 @@ Orden habitual de un cambio que toca varias capas: **datos → funciones → vis
 ### Fase 4 — Funciones pendientes
 - [ ] 13. Botón "Reportar" en cada tarjeta que abra el Libro de Reclamaciones con los datos de la publicación.
 - [ ] 14. Panel de administrador: crear/corregir `es_admin`.
-- [ ] 14a. Recuperación real de contraseña (ver 1.9): botón que envíe el correo de restablecer (`resetPasswordForEmail`), pantalla para escribir la contraseña nueva (mínimo 8) y mensaje claro cuando el link venció o ya se usó (`otp_expired`). Revisar en Supabase las direcciones de redirección permitidas. **Propuesto el 04/10; el usuario aún no confirmó si quiere solo el mensaje claro o la recuperación completa.**
+- [ ] 14a. Recuperación de contraseña **sin salir del panel** (decisión del usuario, 05/10): "Olvidé mi contraseña" envía el link mágico, la persona entra directo y la página abre sola Configuración → Cuenta con un aviso y el cursor en "Nueva contraseña" (mínimo 8). Además, mensaje claro si el link venció o ya se usó. Código listo el 05/10 (ver 1.11); **falta subir, agregar la dirección en Supabase y probar**.
+- [ ] 14b. Teléfono en Configuración → Cuenta: visible y editable solo para la propia persona (hoy se guarda como `celular` al registrarse pero ninguna pantalla lo muestra). Un cambio a la vez: va después de probar 14a.
 - [ ] 15. Decidir si los 7 botones del asistente van también en el panel.
 - [ ] 15a. Búsqueda avanzada de personas (nombre o @usuario, zona incluida "mundial", categoría y lo que ofrece). Diseño y estado en `BITACORA-BUSQUEDA-PERSONAS.md`. Propuesta hecha el 04/10; falta ver las columnas de `productos` y `localidades`.
 
