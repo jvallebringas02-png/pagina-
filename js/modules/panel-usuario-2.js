@@ -678,7 +678,11 @@ Object.assign(PanelUsuario, {
             alertEl.style.display = 'block';
         } catch (e) {
             alertEl.className = 'alert alert-error';
-            alertEl.textContent = 'No se pudo cambiar: ' + (e.message || 'intenta de nuevo');
+            var msgPw = (e && e.message) || '';
+            if (/different from the old/i.test(msgPw)) msgPw = 'Esa ya es tu contraseña actual. Escribe una diferente.';
+            else if (/session missing/i.test(msgPw)) msgPw = 'Tu sesión venció. Cierra sesión, vuelve a entrar e inténtalo de nuevo.';
+            else if (/at least|weak|short/i.test(msgPw)) msgPw = 'La contraseña es muy débil o corta. Usa más caracteres, con letras y números.';
+            alertEl.textContent = 'No se pudo cambiar: ' + (msgPw || 'intenta de nuevo');
             alertEl.style.display = 'block';
         }
     },
