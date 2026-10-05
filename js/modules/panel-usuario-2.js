@@ -583,6 +583,17 @@ Object.assign(PanelUsuario, {
         if (radioPriv) radioPriv.checked = true;
         document.getElementById('configNuevaPassword').value = '';
         document.getElementById('configNuevoCorreo').value = '';
+        // Muestra con qué correo se está entrando (si el perfil no lo trae, se lee de la sesión).
+        var elCorreoActual = document.getElementById('configCorreoActual');
+        if (elCorreoActual) {
+            elCorreoActual.textContent = usuarioActual.correo_electronico || '';
+            if (!usuarioActual.correo_electronico) {
+                supabase.auth.getUser().then(function(r) {
+                    var em = r && r.data && r.data.user && r.data.user.email;
+                    if (em) elCorreoActual.textContent = em;
+                });
+            }
+        }
         document.getElementById('configAlert').style.display = 'none';
         document.getElementById('configPasswordAlert').style.display = 'none';
         document.getElementById('configCorreoAlert').style.display = 'none';

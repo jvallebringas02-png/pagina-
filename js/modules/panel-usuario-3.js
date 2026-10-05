@@ -1261,7 +1261,7 @@ Object.assign(PanelUsuario, {
         try {
             var query = supabase
                 .from('perfiles_publicos')
-                .select('id, nombres, apellidos, localidad_id')
+                .select('id, nombres, apellidos, localidad_id, foto_perfil')
                 .neq('id', usuarioActual.id)
                 .limit(60);
 
@@ -1571,7 +1571,7 @@ Object.assign(PanelUsuario, {
             var bloqueados = await this.obtenerBloqueados();
             var query = supabase
                 .from('perfiles_publicos')
-                .select('id, nombres, apellidos, categoria, localidad_id')
+                .select('id, nombres, apellidos, categoria, localidad_id, foto_perfil')
                 .neq('id', usuarioActual.id)
                 .limit(8);
             if (categoria) query = query.ilike('categoria', '%' + categoria + '%');
