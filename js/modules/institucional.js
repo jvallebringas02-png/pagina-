@@ -371,7 +371,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
                 tipoSel.options[0].textContent = t('ph_tipo');
                 tipoSel.options[1].textContent = t('opt_reclamo');
                 tipoSel.options[2].textContent = t('opt_queja');
-                tipoSel.options[3].textContent = t('opt_reclamo');
+                tipoSel.options[3].textContent = t('opt_reporte');
             }
             var placeholdersReclamo = { reclamoNombre: 'ph_nombre_completo', reclamoDocumento: 'ph_documento', reclamoEmail: 'ph_correo', reclamoTelefono: 'ph_telefono', reclamoBien: 'ph_bien', reclamoMonto: 'ph_monto', reclamoDetalle: 'ph_detalle', reclamoPedido: 'ph_pedido' };
             Object.keys(placeholdersReclamo).forEach(function(id) { var el = document.getElementById(id); if (el) el.placeholder = t(placeholdersReclamo[id]); });
@@ -426,7 +426,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         function opt(valor, texto) { return '<option value="' + valor + '"' + (tipoSel === valor ? ' selected' : '') + '>' + texto + '</option>'; }
         UIController.mostrarFormularioEnMuro(t('titulo_reclamo'), '📋', '' +
             '<form id="formReclamo" onsubmit="Institucional.enviarReclamo(event)">' +
-            '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">' + t('ph_tipo') + '</option>' + opt('reclamo', t('opt_reclamo')) + opt('queja', t('opt_queja')) + opt('reporte', t('opt_reclamo')) + '</select>' +
+            '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">' + t('ph_tipo') + '</option>' + opt('reclamo', t('opt_reclamo')) + opt('queja', t('opt_queja')) + opt('reporte', t('opt_reporte')) + '</select>' +
             '<input type="text" id="reclamoNombre" placeholder="' + t('ph_nombre_completo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoDocumento" placeholder="' + t('ph_documento') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="email" id="reclamoEmail" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
