@@ -457,9 +457,8 @@ Object.assign(PanelUsuario, {
                 '<div class="compartir-contactos-row">' + candidatos.map(function(u) {
                     var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                     var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                    var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
                     var fotoHtml = PanelUsuario.avatarHtml(u.foto_perfil, nombre, { tam: 32 });
-                    return '<div class="compartir-contacto-circulo" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                    return '<div class="compartir-contacto-circulo" id="pickerItem-' + u.id + '" data-pu-accion="picker" data-id="' + self.escHtml(u.id) + '" data-nombre="' + self.escHtml(nombre) + '" data-contexto="compartir">' +
                         '<div class="compartir-contacto-avatar-wrap"><div class="compartir-contacto-avatar">' + fotoHtml + '</div><span class="compartir-contacto-check">✓</span></div>' +
                         '<div class="compartir-contacto-nombre">' + self.escHtml(nombre.split(' ')[0]) + '</div></div>';
                 }).join('') + '</div>';
@@ -471,9 +470,8 @@ Object.assign(PanelUsuario, {
                 candidatos.map(function(u) {
                     var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                     var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                    var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
                     var fotoHtml = PanelUsuario.avatarHtml(u.foto_perfil, nombre, { tam: 44, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
-                    return '<div class="user-picker-item" id="pickerItem-' + u.id + '" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+                    return '<div class="user-picker-item" id="pickerItem-' + u.id + '" data-pu-accion="picker" data-id="' + self.escHtml(u.id) + '" data-nombre="' + self.escHtml(nombre) + '" data-contexto="compartir">' +
                         '<div class="user-picker-avatar-wrap">' + fotoHtml + '<span class="check-seleccionado">✓</span></div>' +
                         '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div>' +
                         '<div class="user-picker-email">' + etiquetaFn(u) + '</div></div></div>';

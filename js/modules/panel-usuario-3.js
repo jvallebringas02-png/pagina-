@@ -887,7 +887,7 @@ Object.assign(PanelUsuario, {
                 '<div style="min-width:0;"><strong>' + this.escHtml(nombreOtro) + '</strong><div style="font-size:12px;color:var(--texto-terciario);" id="' + ctx.chatPanel + '_estadoLinea">' + estadoConexionHtml + ' · ' + this.escHtml(producto ? producto.titulo : 'Mensaje directo') + '</div></div></div>' +
                 '<button type="button" title="Buscar en la conversación" onclick="PanelUsuario.toggleBuscarEnChat(\'' + modo + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🔍</button>' +
                 '<button type="button" title="' + (traduccionActiva ? 'Desactivar traducción automática' : 'Activar traducción automática') + '" onclick="PanelUsuario.toggleTraduccionChat(\'' + convId + '\', \'' + otroId + '\')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;opacity:' + (traduccionActiva ? '1' : '0.4') + ';" >🌐</button>' +
-                '<button type="button" title="Reportar usuario" onclick="PanelUsuario.abrirModalReportarUsuario(\'' + otroId + '\', \'' + this.escHtml(nombreOtro) + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚩</button>' +
+                '<button type="button" title="Reportar usuario" data-pu-accion="reportar-usuario" data-id="' + this.escHtml(otroId) + '" data-nombre="' + this.escHtml(nombreOtro) + '" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚩</button>' +
                 '<button type="button" title="Bloquear usuario" onclick="PanelUsuario.toggleBloqueado(\'' + otroId + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚫</button>' +
                 '</div>' +
                 '<div id="' + ctx.buscarRow + '" style="display:none;padding:8px 12px;border-bottom:1px solid var(--borde);"><input type="text" id="' + ctx.buscarInput + '" class="form-input" placeholder="Buscar en esta conversación..." oninput="PanelUsuario.buscarEnChatAbierto(this.value, \'' + modo + '\')"></div>' +
@@ -1364,9 +1364,8 @@ Object.assign(PanelUsuario, {
         el.innerHTML = candidatos.map(function(u) {
             var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
             var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 36, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
-            return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'compartir\')">' +
+            return '<div class="user-picker-item" data-pu-accion="picker" data-id="' + self.escHtml(u.id) + '" data-nombre="' + self.escHtml(nombre) + '" data-contexto="compartir">' +
                 fotoHtml + '<div style="flex:1;"><div class="user-picker-name">' + self.escHtml(nombre) + '</div></div></div>';
         }).join('');
     },
@@ -1406,9 +1405,8 @@ Object.assign(PanelUsuario, {
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
             var email = u.correo_electronico || '';
             var foto = u.foto_perfil || '';
-            var nombreEscapado = self.escHtml(nombre).replace(/'/g, "\\'");
             var fotoHtml = self.avatarHtml(foto, nombre, { tam: 40, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
-            return `<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker('${u.id}', '${nombreEscapado}', '${contexto}')">
+            return `<div class="user-picker-item" data-pu-accion="picker" data-id="${self.escHtml(u.id)}" data-nombre="${self.escHtml(nombre)}" data-contexto="${self.escHtml(contexto)}">
                 ${fotoHtml}
                 <div style="flex:1;">
                     <div class="user-picker-name">${self.escHtml(nombre)}</div>
@@ -1467,9 +1465,8 @@ Object.assign(PanelUsuario, {
                     candidatos.map(function(u) {
                         var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                         var inicial = nombre.charAt(0).toUpperCase() || 'U';
-                        var nombreEscapado = self2.escHtml(nombre).replace(/'/g, "\\'");
                         var fotoHtml = self2.avatarHtml(u.foto_perfil, nombre, { tam: 40, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
-                        return '<div class="user-picker-item" onclick="PanelUsuario.seleccionarPersonaPicker(\'' + u.id + '\', \'' + nombreEscapado + '\', \'' + contexto + '\')">' +
+                        return '<div class="user-picker-item" data-pu-accion="picker" data-id="' + self2.escHtml(u.id) + '" data-nombre="' + self2.escHtml(nombre) + '" data-contexto="' + self2.escHtml(contexto) + '">' +
                             fotoHtml +
                             '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
                             '<div class="user-picker-email">✨ ' + (categoriaDetectada ? 'Interesado en ' + self2.escHtml(categoriaDetectada) : 'De ' + etiquetaZona) + '</div></div></div>';
@@ -1886,7 +1883,7 @@ Object.assign(PanelUsuario, {
         var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">📂 Categorías disponibles</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 4px;">' + categorias.map(function(c) {
             var nombreSeguro = self.escHtml(c.nombre);
-            return '<button class="badge badge-modalidad" style="cursor:pointer;font-size:14px;padding:10px 16px;" onclick="PanelUsuario.ejecutarBusquedaConIA(\'' + nombreSeguro.replace(/'/g, "\\'") + '\')">' + nombreSeguro + ' (' + c.cantidad + ')</button>';
+            return '<button class="badge badge-modalidad" style="cursor:pointer;font-size:14px;padding:10px 16px;" data-pu-accion="busqueda-ia" data-q="' + nombreSeguro + '">' + nombreSeguro + ' (' + (c.cantidad == null ? '' : self.escHtml(String(c.cantidad))) + ')</button>';
         }).join('') + '</div>';
         container.innerHTML = html;
     },
@@ -1904,7 +1901,7 @@ Object.assign(PanelUsuario, {
         } else {
             html += '<div style="background:#fff;border-radius:12px;overflow:hidden;">' + items.map(function(it) {
                 var miniatura = it.miniatura ? '<img src="' + self.escHtml(it.miniatura) + '" style="width:100%;aspect-ratio:16/9;object-fit:cover;">' : '';
-                return '<div style="padding:12px;border-bottom:1px solid var(--borde);cursor:pointer;" onclick="window.open(\'' + self.escHtml(it.link) + '\', \'_blank\')">' + miniatura + '<div style="font-weight:600;margin-top:6px;">' + self.escHtml(it.titulo) + '</div><div style="font-size:13px;color:var(--texto-secundario);">' + self.escHtml(it.resumen || it.canal || '') + '</div></div>';
+                return '<div style="padding:12px;border-bottom:1px solid var(--borde);cursor:pointer;" data-pu-accion="abrirlink" data-url="' + self.escHtml(it.link) + '">' + miniatura + '<div style="font-weight:600;margin-top:6px;">' + self.escHtml(it.titulo) + '</div><div style="font-size:13px;color:var(--texto-secundario);">' + self.escHtml(it.resumen || it.canal || '') + '</div></div>';
             }).join('') + '</div>';
         }
         if (agregar) container.innerHTML += html; else container.innerHTML = html;
@@ -1984,4 +1981,30 @@ Object.assign(PanelUsuario, {
         await supabase.from('reglas_asistente').delete().eq('id', id);
         this.cargarPanelAdmin();
     },
+});
+
+// ============================================================
+// Clics del panel con texto de usuarios o enlaces externos (listener delegado)
+// ------------------------------------------------------------
+// Antes los nombres de usuario, las categorías y los enlaces de búsqueda se pegaban dentro de un
+// onclick="...('TEXTO')". Un nombre con comilla (que cada persona elige para sí misma) podía salirse
+// de ese texto y ejecutar código en el navegador de quien viera la lista. Ahora el texto va en
+// atributos data-* y se lee con dataset, que lo entrega como texto puro. Los clics de los botones
+// que solo llevan un id (UUID de la base) siguen como estaban.
+// ============================================================
+document.addEventListener('click', function(ev) {
+    var el = ev.target && ev.target.closest ? ev.target.closest('[data-pu-accion]') : null;
+    if (!el) return;
+    var accion = el.getAttribute('data-pu-accion');
+    var d = el.dataset;
+    if (accion === 'picker') {
+        PanelUsuario.seleccionarPersonaPicker(d.id, d.nombre, d.contexto);
+    } else if (accion === 'reportar-usuario') {
+        PanelUsuario.abrirModalReportarUsuario(d.id, d.nombre);
+    } else if (accion === 'busqueda-ia') {
+        PanelUsuario.ejecutarBusquedaConIA(d.q || '');
+    } else if (accion === 'abrirlink') {
+        // Solo http(s): un enlace "javascript:..." que llegue de una búsqueda externa no se abre.
+        if (/^https?:\/\//i.test(d.url || '')) window.open(d.url, '_blank', 'noopener');
+    }
 });

@@ -233,7 +233,7 @@ var EventController = {
             catch (e) {
                 console.error('remarket-db: error en ejecutarBusquedaConIA', e);
                 var cont = document.getElementById('userFeedContainer');
-                if (cont) cont.innerHTML = '<div class="feed-empty"><p>Ocurrió un error al buscar: ' + (e.message || 'motivo desconocido') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+                if (cont) cont.innerHTML = '<div class="feed-empty"><p>Ocurrió un error al buscar: ' + escHtml(e.message || 'motivo desconocido') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
             }
             return;
         }
@@ -248,7 +248,7 @@ var EventController = {
             await EventController.procesarAccionIA(datos, query);
         } catch (e) {
             console.error('remarket-db: error en manejarBusquedaPrincipal', e);
-            content.innerHTML = '<div style="text-align:center;padding:40px;"><p>Ocurrió un error al buscar: ' + (e.message || 'motivo desconocido') + '</p></div>';
+            content.innerHTML = '<div style="text-align:center;padding:40px;"><p>Ocurrió un error al buscar: ' + escHtml(e.message || 'motivo desconocido') + '</p></div>';
         }
     },
 

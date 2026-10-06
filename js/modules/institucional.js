@@ -76,7 +76,7 @@ var Institucional = {
 
         contenedor.innerHTML = lista.map(function(p) {
             return '<div class="sponsor-card"><div class="sponsor-name">' + escHtml(p.titulo) + '</div>' +
-                '<button class="btn-sponsor" onclick="window.open(\'' + escHtml(p.enlace || '#') + '\', \'_blank\')">' + Institucional.t('btn_visitar') + '</button></div>';
+                '<button class="btn-sponsor" data-ui-accion="abrirlink" data-url="' + escHtml(p.enlace || '#') + '">' + Institucional.t('btn_visitar') + '</button></div>';
         }).join('');
     },
 
