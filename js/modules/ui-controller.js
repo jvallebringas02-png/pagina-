@@ -5,7 +5,12 @@
 // (justo el bug que pasó: aparecía el banner y el conteo, pero ninguna tarjeta).
 function escHtml(str) {
     if (!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Igual que escHtml, pero también escapa números (escHtml(0) devuelve '') y deja '' si no hay valor.
+// Úsala para precio, id, icono y cualquier dato de la base que se pegue dentro de HTML.
+function escVal(v) {
+    return (v === null || v === undefined) ? '' : escHtml(String(v));
 }
 
 var UIController = {
@@ -56,21 +61,23 @@ var UIController = {
         var _tradCache = obtenerTraduccionCacheada(art.id);
         var _tituloMostrar = (_tradCache && _tradCache.titulo) || art.titulo;
         var _descMostrar = (_tradCache && _tradCache.descripcion) || art.descripcion;
-        var tituloSeguro = escHtml(_tituloMostrar), descSeguro = escHtml(_descMostrar), imgSeguro = escHtml(art.imagen_url);
-        var imagenHTML = art.imagen_url ? '<img src="' + imgSeguro + '" class="card-img-real" alt="' + tituloSeguro + '">' : '<div class="card-img-top">' + (art.icono || '') + '</div>';
-        return '<div class="card">' + imagenHTML + '<h3 class="card-title" data-id="' + (art.id || '') + '" data-campo="titulo">' + tituloSeguro + '</h3>' +
-            '<p class="card-text" data-id="' + (art.id || '') + '" data-campo="descripcion">' + descSeguro + '</p>' +
+        var tituloSeguro = escHtml(_tituloMostrar), descSeguro = escHtml(_descMostrar), imgSeguro = escHtml(art.imagen_url), iconoSeguro = escVal(art.icono || '📦');
+        var imagenHTML = art.imagen_url ? '<img src="' + imgSeguro + '" class="card-img-real" alt="' + tituloSeguro + '">' : '<div class="card-img-top">' + escVal(art.icono) + '</div>';
+        // Los textos viajan en atributos data-* (ya escapados) y los clics los atiende el listener
+        // delegado del final del archivo. Ya no se arma JavaScript dentro de un onclick="...".
+        return '<div class="card">' + imagenHTML + '<h3 class="card-title" data-id="' + escVal(art.id) + '" data-campo="titulo">' + tituloSeguro + '</h3>' +
+            '<p class="card-text" data-id="' + escVal(art.id) + '" data-campo="descripcion">' + descSeguro + '</p>' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' +
-            '<span style="font-size:20px;font-weight:bold;color:var(--verde-esmeralda);">S/ ' + art.precio + '</span>' +
+            '<span style="font-size:20px;font-weight:bold;color:var(--verde-esmeralda);">S/ ' + escVal(art.precio) + '</span>' +
             '<span class="badge badge-disponible">🟢 ' + escHtml(traducirModalidad(art.modalidad)) + '</span></div>' +
-            '<button class="btn-read-more" onclick="UIController.abrirModal(\'' + tituloSeguro.replace(/'/g, "\\'") + '\',\'' + descSeguro.replace(/'/g, "\\'") + '\',\'' + imgSeguro.replace(/'/g, "\\'") + '\',\'' + (art.icono || '📦') + '\')">' + escHtml(obtenerTextoChrome('chrome_ver_detalles')) + '</button>' +
-            '<button class="btn-contactar" style="margin-top:8px;width:100%;" onclick="event.stopPropagation(); UIController.contactarProducto(' + (art.usuario_id ? "'" + art.usuario_id + "'" : 'null') + ', \'' + tituloSeguro.replace(/'/g, "\\'") + '\')">📞 ' + escHtml(obtenerTextoChrome('chrome_contactar')) + '</button>' +
-            '<button class="btn-reportar" style="margin-top:6px;width:100%;" onclick="event.stopPropagation(); Institucional.reportarPublicacion(\'' + tituloSeguro.replace(/'/g, "\\'") + '\')">🚩 ' + escHtml(obtenerTextoChrome('chrome_reportar')) + '</button></div>';
+            '<button class="btn-read-more" data-ui-accion="detalles" data-titulo="' + tituloSeguro + '" data-desc="' + descSeguro + '" data-img="' + imgSeguro + '" data-icono="' + iconoSeguro + '">' + escHtml(obtenerTextoChrome('chrome_ver_detalles')) + '</button>' +
+            '<button class="btn-contactar" style="margin-top:8px;width:100%;" data-ui-accion="contactar" data-usuario="' + escVal(art.usuario_id) + '" data-titulo="' + tituloSeguro + '">📞 ' + escHtml(obtenerTextoChrome('chrome_contactar')) + '</button>' +
+            '<button class="btn-reportar" style="margin-top:6px;width:100%;" data-ui-accion="reportar" data-titulo="' + tituloSeguro + '">🚩 ' + escHtml(obtenerTextoChrome('chrome_reportar')) + '</button></div>';
     },
     renderizarArticulos: function(lista) { Paginador.inicializar('articulosContainer', 'paginacionCatalogo', lista, 9, this.renderizarTarjetaArticulo); if (typeof TraduccionProductos !== 'undefined') TraduccionProductos.traducirEnSegundoPlano(lista, obtenerIdiomaPreferido()); },
-    renderizarItemResultado: function(art) { var icono = art.icono || ''; var _tradCache = obtenerTraduccionCacheada(art.id); var _tituloMostrar = (_tradCache && _tradCache.titulo) || art.titulo; var _descMostrar = (_tradCache && _tradCache.descripcion) || art.descripcion; var tituloSeguro = escHtml(_tituloMostrar), descSeguro = escHtml(_descMostrar), imgSeguro = escHtml(art.imagen_url), catSeguro = escHtml(traducirCategoria(art.categoria)), paisSeguro = escHtml(art.pais), modSeguro = escHtml(traducirModalidad(art.modalidad)); var imagenHTML = art.imagen_url ? '<img src="' + imgSeguro + '" class="result-img" alt="' + tituloSeguro + '">' : '<div class="result-icon-fallback">' + icono + '</div>'; var exp = art._es_externo ? '<span class="badge badge-externo">🌐 ' + escHtml(obtenerTextoChrome('chrome_referencia_global')) + '</span>' : (art._es_expandido ? '<span class="badge badge-expandido">🌍 ' + escHtml(obtenerTextoChrome('chrome_zona_lejana')) + '</span>' : ''); var pais = art.pais ? '<span class="badge badge-pais">📍 ' + paisSeguro + '</span>' : ''; var modal = art.modalidad ? '<span class="badge badge-modalidad">' + modSeguro + '</span>' : ''; var patrocinado = art.es_patrocinado ? '<span class="badge" style="background:#F59E0B;color:#fff;">📢 ' + escHtml(obtenerTextoChrome('chrome_patrocinado')) + '</span>' : ''; var distanciaHTML = (typeof art.distancia_km === 'number' && !isNaN(art.distancia_km)) ? '<span class="badge badge-distancia"> ' + art.distancia_km + ' km</span>' : ''; return '<div class="result-item" onclick="UIController.abrirModal(\'' + tituloSeguro.replace(/'/g, "\\'") + '\',\'' + descSeguro.replace(/'/g, "\\'") + '\',\'' + imgSeguro.replace(/'/g, "\\'") + '\',\'' + icono + '\')">' + imagenHTML + '<div class="result-info"><div class="result-title" data-id="' + (art.id || '') + '" data-campo="titulo">' + tituloSeguro + '</div><div class="result-category">' + catSeguro + '</div><div class="result-desc" data-id="' + (art.id || '') + '" data-campo="descripcion" data-truncar="100">' + descSeguro.substring(0, 100) + '...</div>' + '<div class="result-badges"><span class="badge badge-disponible">🟢 ' + escHtml(obtenerTextoChrome('chrome_disponible')) + '</span>' + distanciaHTML + pais + modal + patrocinado + exp + '</div></div>' + '<div class="result-actions"><div class="result-price">S/ ' + art.precio + '</div><button class="btn-contactar" onclick="event.stopPropagation(); UIController.contactarProducto(' + (art.usuario_id ? "'" + art.usuario_id + "'" : 'null') + ', \'' + tituloSeguro.replace(/'/g, "\\'") + '\')">📞 ' + escHtml(obtenerTextoChrome('chrome_contactar')) + '</button><button class="btn-reportar" onclick="event.stopPropagation(); Institucional.reportarPublicacion(\'' + tituloSeguro.replace(/'/g, "\\'") + '\')">🚩 ' + escHtml(obtenerTextoChrome('chrome_reportar')) + '</button></div></div>'; },
+    renderizarItemResultado: function(art) { var icono = art.icono || ''; var _tradCache = obtenerTraduccionCacheada(art.id); var _tituloMostrar = (_tradCache && _tradCache.titulo) || art.titulo; var _descMostrar = (_tradCache && _tradCache.descripcion) || art.descripcion; var tituloSeguro = escHtml(_tituloMostrar), descSeguro = escHtml(_descMostrar), imgSeguro = escHtml(art.imagen_url), catSeguro = escHtml(traducirCategoria(art.categoria)), paisSeguro = escHtml(art.pais), modSeguro = escHtml(traducirModalidad(art.modalidad)), iconoSeguro = escVal(icono); var imagenHTML = art.imagen_url ? '<img src="' + imgSeguro + '" class="result-img" alt="' + tituloSeguro + '">' : '<div class="result-icon-fallback">' + iconoSeguro + '</div>'; var exp = art._es_externo ? '<span class="badge badge-externo">🌐 ' + escHtml(obtenerTextoChrome('chrome_referencia_global')) + '</span>' : (art._es_expandido ? '<span class="badge badge-expandido">🌍 ' + escHtml(obtenerTextoChrome('chrome_zona_lejana')) + '</span>' : ''); var pais = art.pais ? '<span class="badge badge-pais">📍 ' + paisSeguro + '</span>' : ''; var modal = art.modalidad ? '<span class="badge badge-modalidad">' + modSeguro + '</span>' : ''; var patrocinado = art.es_patrocinado ? '<span class="badge" style="background:#F59E0B;color:#fff;">📢 ' + escHtml(obtenerTextoChrome('chrome_patrocinado')) + '</span>' : ''; var distanciaHTML = (typeof art.distancia_km === 'number' && !isNaN(art.distancia_km)) ? '<span class="badge badge-distancia"> ' + art.distancia_km + ' km</span>' : ''; return '<div class="result-item" data-ui-accion="detalles" data-titulo="' + tituloSeguro + '" data-desc="' + descSeguro + '" data-img="' + imgSeguro + '" data-icono="' + iconoSeguro + '">' + imagenHTML + '<div class="result-info"><div class="result-title" data-id="' + escVal(art.id) + '" data-campo="titulo">' + tituloSeguro + '</div><div class="result-category">' + catSeguro + '</div><div class="result-desc" data-id="' + escVal(art.id) + '" data-campo="descripcion" data-truncar="100">' + escHtml(String(_descMostrar || '').substring(0, 100)) + '...</div>' + '<div class="result-badges"><span class="badge badge-disponible">🟢 ' + escHtml(obtenerTextoChrome('chrome_disponible')) + '</span>' + distanciaHTML + pais + modal + patrocinado + exp + '</div></div>' + '<div class="result-actions"><div class="result-price">S/ ' + escVal(art.precio) + '</div><button class="btn-contactar" data-ui-accion="contactar" data-usuario="' + escVal(art.usuario_id) + '" data-titulo="' + tituloSeguro + '">📞 ' + escHtml(obtenerTextoChrome('chrome_contactar')) + '</button><button class="btn-reportar" data-ui-accion="reportar" data-titulo="' + tituloSeguro + '">🚩 ' + escHtml(obtenerTextoChrome('chrome_reportar')) + '</button></div></div>'; },
     mostrarResultadosBusqueda: function(resultado) { this.formularioAbierto = false; this._vistaActual = 'busqueda'; this._ultimoResultadoBusqueda = resultado; this.elementos.searchBreadcrumb.style.display = 'flex'; this.elementos.searchQuery.textContent = resultado.query || ''; this.elementos.resultCount.textContent = resultado.coincidencias + ' ' + obtenerTextoChrome(resultado.coincidencias === 1 ? 'chrome_resultado_singular' : 'chrome_resultado_plural'); this.elementos.catalogContainer.style.display = 'none'; this.elementos.searchResultsContainer.style.display = 'block'; this.elementos.contentTitle.textContent = ' ' + obtenerTextoChrome('chrome_resultados_titulo'); var html = resultado._volverAMatriz ? '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverMatrizAnterior();">' + escHtml(obtenerTextoChrome('chrome_volver_matriz')) + '</a></div>' : ''; if (resultado.lugar_sin_resultados) { html += '<div class="ai-context-banner expandido">📍 ' + escHtml(obtenerTextoChrome('chrome_no_encontramos_en')) + ' <strong>' + escHtml(resultado.lugar_sin_resultados) + '</strong>' + escHtml(obtenerTextoChrome('chrome_pero_si_otras_zonas')) + '</div>'; } else if (resultado.lugar_aplicado) { html += '<div class="ai-context-banner">📍 ' + escHtml(obtenerTextoChrome('chrome_filtrado_por')) + ' <strong>' + escHtml(resultado.lugar_aplicado) + '</strong></div>'; } else if (resultado.es_hibrido) { html += '<div class="ai-context-banner hibrido">🌐 <strong>' + escHtml(obtenerTextoChrome('chrome_hibrida_titulo')) + '</strong> ' + escHtml(obtenerTextoChrome('chrome_hibrida_texto')) + '</div>'; } else if (resultado.es_expandido) { html += '<div class="ai-context-banner expandido"> <strong>' + escHtml(obtenerTextoChrome('chrome_global_titulo')) + '</strong> ' + escHtml(obtenerTextoChrome('chrome_global_texto')) + '</div>'; } else { html += '<div class="ai-context-banner">📍 ' + escHtml(obtenerTextoChrome('chrome_mostrando_resultados_de')) + ' ' + UbicacionUsuario.ciudad + ', ' + UbicacionUsuario.pais + '</div>'; } if (resultado.orden_aplicado === 'precio_asc') { html += '<div class="ai-context-banner">💰 ' + escHtml(obtenerTextoChrome('chrome_orden_barato_caro')) + '</div>'; } else if (resultado.orden_aplicado === 'precio_desc') { html += '<div class="ai-context-banner">💰 ' + escHtml(obtenerTextoChrome('chrome_orden_caro_barato')) + '</div>'; } var hayExterno = (resultado.resultados_web && resultado.resultados_web.length) || (resultado.resultados_videos && resultado.resultados_videos.length);
-if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-align:center;padding:20px;"><p>No tienes productos publicados para esto, pero encontramos lo siguiente:</p></div>'; } else if (resultado.coincidencias === 0) { var qSug = escHtml(resultado.query || '').replace(/'/g, "\\'"); html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos con "' + escHtml(resultado.query || '') + '". Intenta con sinónimos, o publica tú mismo lo que buscas para que otros lo vean.</p><button class="btn-publicar" onclick="PanelUsuario.iniciarPublicacionDesdeAsistente(\'' + qSug + '\')">📦 Publicar esto</button></div>'; } else { html += '<div id="resultadosProductosLista"></div>'; } var self = this; if (resultado.resultados_web && resultado.resultados_web.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🌐 <strong>Resultados de internet</strong></div>'; html += resultado.resultados_web.map(function(w) { return '<div class="result-item" onclick="window.open(\'' + escHtml(w.link) + '\', \'_blank\')"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>'; }).join(''); } if (resultado.resultados_videos && resultado.resultados_videos.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🎬 <strong>Videos de YouTube</strong></div>'; html += resultado.resultados_videos.map(function(v) { var miniatura = v.miniatura ? '<img src="' + escHtml(v.miniatura) + '" class="result-img" alt="' + escHtml(v.titulo) + '">' : '<div class="result-icon-fallback">🎬</div>'; return '<div class="result-item" onclick="window.open(\'' + escHtml(v.link) + '\', \'_blank\')">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; if (resultado.coincidencias > 0) { Paginador.inicializar('resultadosProductosLista', 'paginacionBusqueda', resultado.resultados, 9, this.renderizarItemResultado); if (typeof TraduccionProductos !== 'undefined') TraduccionProductos.traducirEnSegundoPlano(resultado.resultados, obtenerIdiomaPreferido()); } else { var pc = document.getElementById('paginacionBusqueda'); if (pc) pc.innerHTML = ''; } },
+if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-align:center;padding:20px;"><p>No tienes productos publicados para esto, pero encontramos lo siguiente:</p></div>'; } else if (resultado.coincidencias === 0) { var qSug = escHtml(resultado.query || ''); html += '<div style="text-align:center;padding:40px;"><p>No encontramos artículos con "' + escHtml(resultado.query || '') + '". Intenta con sinónimos, o publica tú mismo lo que buscas para que otros lo vean.</p><button class="btn-publicar" data-ui-accion="publicar-sugerido" data-q="' + qSug + '">📦 Publicar esto</button></div>'; } else { html += '<div id="resultadosProductosLista"></div>'; } var self = this; if (resultado.resultados_web && resultado.resultados_web.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🌐 <strong>Resultados de internet</strong></div>'; html += resultado.resultados_web.map(function(w) { return '<div class="result-item" data-ui-accion="abrirlink" data-url="' + escHtml(w.link) + '"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>'; }).join(''); } if (resultado.resultados_videos && resultado.resultados_videos.length) { html += '<div class="ai-context-banner" style="margin-top:20px;">🎬 <strong>Videos de YouTube</strong></div>'; html += resultado.resultados_videos.map(function(v) { var miniatura = v.miniatura ? '<img src="' + escHtml(v.miniatura) + '" class="result-img" alt="' + escHtml(v.titulo) + '">' : '<div class="result-icon-fallback">🎬</div>'; return '<div class="result-item" data-ui-accion="abrirlink" data-url="' + escHtml(v.link) + '">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>'; }).join(''); } this.elementos.searchResultsContent.innerHTML = html; if (resultado.coincidencias > 0) { Paginador.inicializar('resultadosProductosLista', 'paginacionBusqueda', resultado.resultados, 9, this.renderizarItemResultado); if (typeof TraduccionProductos !== 'undefined') TraduccionProductos.traducirEnSegundoPlano(resultado.resultados, obtenerIdiomaPreferido()); } else { var pc = document.getElementById('paginacionBusqueda'); if (pc) pc.innerHTML = ''; } },
     // etiqueta permite reusar esta misma vista para Música, cambiando solo el ícono/texto del banner
     mostrarResultadosVideo: function(tema, videos, etiqueta) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this._vistaActual = 'video'; this._ultimoVideo = { tema: tema, videos: videos, etiqueta: etiqueta };
@@ -88,7 +95,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             var self = this;
             html += videos.map(function(v) {
                 var miniatura = v.miniatura ? '<img src="' + escHtml(v.miniatura) + '" class="result-img" alt="' + escHtml(v.titulo) + '">' : '<div class="result-icon-fallback">' + etiqueta.icono + '</div>';
-                return '<div class="result-item" onclick="window.open(\'' + escHtml(v.link) + '\', \'_blank\')">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>';
+                return '<div class="result-item" data-ui-accion="abrirlink" data-url="' + escHtml(v.link) + '">' + miniatura + '<div class="result-info"><div class="result-title">' + escHtml(v.titulo) + '</div><div class="result-category">' + escHtml(v.canal) + '</div></div></div>';
             }).join('');
         }
         this.elementos.searchResultsContent.innerHTML = html;
@@ -107,7 +114,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         } else {
             var self = this;
             html += resultadosWeb.map(function(w) {
-                return '<div class="result-item" onclick="window.open(\'' + escHtml(w.link) + '\', \'_blank\')"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>';
+                return '<div class="result-item" data-ui-accion="abrirlink" data-url="' + escHtml(w.link) + '"><div class="result-icon-fallback">🌐</div><div class="result-info"><div class="result-title">' + escHtml(w.titulo) + '</div><div class="result-desc">' + escHtml(w.resumen || '') + '</div></div></div>';
             }).join('');
         }
         this.elementos.searchResultsContent.innerHTML = html;
@@ -193,7 +200,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
                 matriz.columnas.map(function(col) {
                     var n = (matriz.datos[fila] && matriz.datos[fila][col]) || 0;
                     if (!n) return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;color:#D1D5DB;">-</td>';
-                    return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;cursor:pointer;color:var(--purpura-ia);font-weight:700;" onclick="UIController.explorarCeldaMatriz(\'' + fila.replace(/'/g, "\\'") + '\',\'' + matriz.columnaTipo + '\',\'' + col.replace(/'/g, "\\'") + '\')">' + n + '</td>';
+                    return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;cursor:pointer;color:var(--purpura-ia);font-weight:700;" data-ui-accion="celda" data-fila="' + escVal(fila) + '" data-coltipo="' + escVal(matriz.columnaTipo) + '" data-col="' + escVal(col) + '">' + n + '</td>';
                 }).join('') + '</tr>';
         }).join('');
         html += '</table></div>';
@@ -229,7 +236,7 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
             var self = this;
             html += '<div style="display:flex;flex-wrap:wrap;gap:10px;padding:16px 0;">' + categorias.map(function(c) {
                 var nombreSeguro = escHtml(c.nombre);
-                return '<button class="badge badge-modalidad" style="cursor:pointer;font-size:14px;padding:10px 16px;" onclick="UIController.buscarPorCategoriaClic(\'' + nombreSeguro.replace(/'/g, "\\'") + '\')">' + nombreSeguro + ' (' + c.cantidad + ')</button>';
+                return '<button class="badge badge-modalidad" style="cursor:pointer;font-size:14px;padding:10px 16px;" data-ui-accion="categoria" data-nombre="' + nombreSeguro + '">' + nombreSeguro + ' (' + escVal(c.cantidad) + ')</button>';
             }).join('') + '</div>';
         }
         this.elementos.searchResultsContent.innerHTML = html;
@@ -277,11 +284,11 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
                 var nombreSeguro = escHtml(u.nombre_completo);
                 var iniciales = (u.nombre_completo || 'U').trim().charAt(0).toUpperCase();
                 var avatar = u.foto_perfil ? '<img src="' + escHtml(u.foto_perfil) + '" class="result-img" alt="' + nombreSeguro + '">' : '<div class="result-icon-fallback">' + iniciales + '</div>';
-                return '<div class="result-item" onclick="PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">' + avatar +
+                return '<div class="result-item" data-ui-accion="vistaprevia" data-id="' + escVal(u.id) + '">' + avatar +
                     '<div class="result-info"><div class="result-title">' + nombreSeguro + '</div><div class="result-category">Usuario de remarket-db</div></div>' +
                     '<div class="result-actions">' +
-                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.abrirVistaPreviaPersona(\'' + u.id + '\')">👁️ Vista previa</button>' +
-                    '<button class="btn-contactar" onclick="event.stopPropagation(); PanelUsuario.iniciarConversacionDirecta(\'' + u.id + '\')">💬 Mensaje</button>' +
+                    '<button class="btn-contactar" data-ui-accion="vistaprevia" data-id="' + escVal(u.id) + '">👁️ Vista previa</button>' +
+                    '<button class="btn-contactar" data-ui-accion="mensajepersona" data-id="' + escVal(u.id) + '">💬 Mensaje</button>' +
                     '</div></div>';
             }).join('');
         }
@@ -360,7 +367,44 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
         this.cerrarResultados();
     },
     cerrarResultados: function() { this.formularioAbierto = false; this._vistaActual = 'muro'; this.elementos.searchResultsContainer.style.display = 'none'; this.elementos.searchBreadcrumb.style.display = 'none'; this.elementos.catalogContainer.style.display = 'block'; var t = UI_TRANSLATIONS[obtenerIdiomaPreferido()] || UI_TRANSLATIONS['es']; this.elementos.contentTitle.textContent = ' ' + (t.content_title || 'Catálogo de Economía Circular'); },
-    abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + escHtml(imgUrl) + '" class="modal-img-real" alt="' + escHtml(titulo) + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + icono + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
+    abrirModal: function(titulo, desc, imgUrl, icono) { document.getElementById('modalTitle').innerText = titulo; document.getElementById('modalDesc').innerText = desc; var imgContainer = document.getElementById('modalImgContainer'); if (imgUrl) { imgContainer.innerHTML = '<img src="' + escHtml(imgUrl) + '" class="modal-img-real" alt="' + escHtml(titulo) + '">'; } else { imgContainer.innerHTML = '<div style="font-size:80px;">' + escHtml(icono) + '</div>'; } var btnQR = document.getElementById('btnVerQR'); btnQR.onclick = function() { var urlProducto = window.location.origin + '?producto=' + encodeURIComponent(titulo); var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(urlProducto) + '&bgcolor=ffffff&color=8B5CF6'; document.getElementById('qrImageContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR del producto">'; document.getElementById('qrModal').style.display = 'flex'; }; this.elementos.modal.style.display = 'flex'; },
     cerrarModal: function() { this.elementos.modal.style.display = 'none'; },
     cerrarQRModal: function() { document.getElementById('qrModal').style.display = 'none'; }
 };
+
+// ============================================================
+// Clics de tarjetas, resultados, categorías, matriz y personas (listener delegado)
+// ------------------------------------------------------------
+// Antes cada botón llevaba un onclick="UIController.abrirModal('TITULO', ...)" con el texto pegado
+// dentro del JavaScript, y un texto con comilla o barra invertida podía salirse de ahí y ejecutar
+// código. Ahora el texto va en atributos data-* y se lee con dataset, que lo devuelve como texto
+// puro: nunca se interpreta como código.
+// Un clic en un botón interior gana sobre su contenedor (closest busca de adentro hacia afuera),
+// así que ya no hace falta event.stopPropagation().
+// ============================================================
+document.addEventListener('click', function(ev) {
+    var el = ev.target && ev.target.closest ? ev.target.closest('[data-ui-accion]') : null;
+    if (!el) return;
+    var accion = el.getAttribute('data-ui-accion');
+    var d = el.dataset;
+    if (accion === 'detalles') {
+        UIController.abrirModal(d.titulo || '', d.desc || '', d.img || '', d.icono || '');
+    } else if (accion === 'contactar') {
+        UIController.contactarProducto(d.usuario || null, d.titulo || '');
+    } else if (accion === 'reportar') {
+        Institucional.reportarPublicacion(d.titulo || '');
+    } else if (accion === 'abrirlink') {
+        // Solo http(s): un enlace "javascript:..." que llegue de una búsqueda externa no se abre.
+        if (/^https?:\/\//i.test(d.url || '')) window.open(d.url, '_blank', 'noopener');
+    } else if (accion === 'publicar-sugerido') {
+        PanelUsuario.iniciarPublicacionDesdeAsistente(d.q || '');
+    } else if (accion === 'celda') {
+        UIController.explorarCeldaMatriz(d.fila || '', d.coltipo || '', d.col || '');
+    } else if (accion === 'categoria') {
+        UIController.buscarPorCategoriaClic(d.nombre || '');
+    } else if (accion === 'vistaprevia') {
+        PanelUsuario.abrirVistaPreviaPersona(d.id);
+    } else if (accion === 'mensajepersona') {
+        PanelUsuario.iniciarConversacionDirecta(d.id);
+    }
+});
