@@ -463,15 +463,19 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         estado.textContent = '';
         try {
             var { error } = await supabase.from('libro_reclamaciones').insert({
-                tipo: document.getElementById('reclamoTipo').value,
-                nombre_consumidor: document.getElementById('reclamoNombre').value,
-                documento_identidad: document.getElementById('reclamoDocumento').value,
-                email: document.getElementById('reclamoEmail').value,
+                // Los nombres de la izquierda son los de las columnas REALES de la tabla
+                // libro_reclamaciones en Supabase (confirmados con information_schema el 06/10/2026).
+                // bien_servicio y monto_reclamado son columnas nuevas (ver BITACORA-SEGURIDAD, Paso 7).
+                tipo_incidencia: document.getElementById('reclamoTipo').value,
+                nombre_completo: document.getElementById('reclamoNombre').value,
+                tipo_documento: 'No indicado',
+                numero_documento: document.getElementById('reclamoDocumento').value,
+                correo_electronico: document.getElementById('reclamoEmail').value,
                 telefono: document.getElementById('reclamoTelefono').value || null,
-                descripcion_bien_servicio: document.getElementById('reclamoBien').value,
+                bien_servicio: document.getElementById('reclamoBien').value,
                 monto_reclamado: monto,
-                detalle: document.getElementById('reclamoDetalle').value,
-                pedido_consumidor: document.getElementById('reclamoPedido').value
+                detalle_del_hecho: document.getElementById('reclamoDetalle').value,
+                pedido_concreto: document.getElementById('reclamoPedido').value
             });
             if (error) throw error;
             document.getElementById('formReclamo').innerHTML = '<p style="text-align:center;color:#059669;">' + t('exito_reclamo') + '</p>';
