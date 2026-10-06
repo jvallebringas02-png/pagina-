@@ -81,6 +81,20 @@ Columnas reales de `mensajes_contacto` (sin diferencias con el código): `id, no
 - `node --check` pasa sin errores.
 - No se tocó ninguna otra función ni el formulario visual.
 
+## 2-bis. Segundo cambio: la opción "Reporte" se veía como "Reclamo"
+
+**Qué pasaba:** el selector del formulario tiene 3 opciones (`reclamo`, `queja`, `reporte`), pero la tercera usaba el mismo texto que la primera (`opt_reclamo`), así que en todos los idiomas se veía "Reclamo" dos veces. El valor que se guarda en la base era correcto; solo el texto visible estaba repetido.
+
+**Archivos:**
+- `js/i18n-institucional.js`: se agregó la clave `opt_reporte` en los **17 idiomas**, justo después de `opt_queja`.
+- `js/modules/institucional.js`: la tercera opción usa ahora `t('opt_reporte')`, tanto al crear el formulario como al cambiar de idioma (2 sitios).
+
+**Textos agregados:** es "Reporte", en "Report", pt "Denúncia", fr "Signalement", de "Meldung", it "Segnalazione", ru "Сообщение о нарушении", zh "举报", ja "通報", ko "신고", ar "بلاغ", hi "रिपोर्ट", nl "Melding", tr "Bildirim", bg "Сигнал". **Quechua y aimara quedan en español ("Reporte")** a propósito, siguiendo la decisión de no inventar traducciones de esos idiomas.
+
+**Pruebas hechas:** `node --check` sin errores en los 2 archivos; los 17 idiomas tienen `opt_reporte`; la comparación con el zip original confirma que solo cambiaron esas líneas. **Falta:** revisión nativa de las traducciones y probar el selector en varios idiomas en la página real.
+
+Con este cambio, los archivos a subir a GitHub son **2**: `js/modules/institucional.js` y `js/i18n-institucional.js`.
+
 ---
 
 ## 3. SQL a ejecutar en Supabase (en este orden)
@@ -140,7 +154,7 @@ alter table libro_reclamaciones
 
 ## 4. Cómo comprobar que funcionó
 
-1. [ ] Subir `institucional.js` a GitHub, esperar Vercel, Ctrl+F5.
+1. [ ] Subir `institucional.js` e `i18n-institucional.js` a GitHub, esperar Vercel, Ctrl+F5.
 2. [ ] **Sin iniciar sesión**, enviar un reclamo de prueba desde el Libro de Reclamaciones: debe mostrar "enviado con éxito".
 3. [ ] En Supabase, verificar que la fila llegó, con `codigo_reclamo` tipo `LR-2026-000001`.
 4. [ ] Con una cuenta normal, comprobar que ya no puede leer la tabla: `supabase.from('libro_reclamaciones').select()` desde la consola debe devolver lista vacía o error.
@@ -165,7 +179,7 @@ create policy "Usuarios ven su propia geolocalización" on usuarios_geolocalizac
 ## 6. Pendientes
 
 - [ ] Ejecutar 3.1 y 3.2 en Supabase (mejor primero en una copia).
-- [ ] Subir `institucional.js` a GitHub y probar.
+- [ ] Subir `institucional.js` e `i18n-institucional.js` a GitHub y probar (incluye el selector con "Reporte" en varios idiomas).
 - [ ] Selector de tipo de documento en el formulario.
 - [ ] Límites de tamaño (3.3) y captcha (por ejemplo Cloudflare Turnstile) en "Comunícate con el Admin" y en el libro de reclamaciones.
 - [ ] Cuando exista el panel de administrador: mostrar estos textos **siempre con `escHtml`**, porque los escribe cualquier visitante anónimo.
@@ -180,3 +194,4 @@ create policy "Usuarios ven su propia geolocalización" on usuarios_geolocalizac
 | 06/10/2026 | Intento de límites de tamaño | Error 42703: columna `detalle` no existe (SQL no aplicado) |
 | 06/10/2026 | Consulta de columnas reales | Código y tabla no coinciden; formulario probablemente roto |
 | 06/10/2026 | `institucional.js` ajustado a las columnas reales | `node --check` OK; falta subirlo y probar |
+| 06/10/2026 | Opción "Reporte" con texto propio en 17 idiomas | `node --check` OK; falta subir y probar |
