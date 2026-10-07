@@ -350,6 +350,8 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     // Por eso acá se tocan solo las propiedades de texto (textContent, placeholder), nunca
     // .value ni .innerHTML del formulario.
     retraducirFormularioAbierto: function() {
+        // El enlace del pie ("Danos tu opinión") se traduce siempre, haya o no un formulario abierto.
+        this.retraducirPieOpinion();
         if (!UIController.formularioAbierto) return;
         var t = this.t.bind(this);
         var banner = UIController.elementos.searchResultsContent && UIController.elementos.searchResultsContent.querySelector('.ai-context-banner strong');
@@ -376,6 +378,96 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             var placeholdersReclamo = { reclamoNombre: 'ph_nombre_completo', reclamoDocumento: 'ph_documento', reclamoEmail: 'ph_correo', reclamoTelefono: 'ph_telefono', reclamoBien: 'ph_bien', reclamoMonto: 'ph_monto', reclamoDetalle: 'ph_detalle', reclamoPedido: 'ph_pedido' };
             Object.keys(placeholdersReclamo).forEach(function(id) { var el = document.getElementById(id); if (el) el.placeholder = t(placeholdersReclamo[id]); });
             var rBtn = document.getElementById('reclamoBtnEnviar'); if (rBtn && !rBtn.disabled) rBtn.textContent = t('btn_registrar');
+        } else if (document.getElementById('formOpinion')) {
+            var tituloO = t('titulo_opinion');
+            UIController.elementos.searchQuery.textContent = tituloO;
+            if (banner) banner.textContent = tituloO;
+            var oPreg = document.getElementById('opinionPregunta'); if (oPreg) oPreg.textContent = t('op_pregunta');
+            var oMin = document.getElementById('opinionMin'); if (oMin) oMin.textContent = t('op_min');
+            var oMax = document.getElementById('opinionMax'); if (oMax) oMax.textContent = t('op_max');
+            var oCom = document.getElementById('opinionComentario'); if (oCom) oCom.placeholder = t('ph_opinion');
+            var oBtn = document.getElementById('opinionBtnEnviar'); if (oBtn && !oBtn.disabled) oBtn.textContent = t('btn_enviar_opinion');
+        }
+    },
+
+    // ---------- Opinión sobre la página (buzón privado del administrador) ----------
+    // Una nota del 1 al 10 (obligatoria) y un comentario corto (opcional). NO se publica nada:
+    // la opinión entra por la función registrar_opinion (Supabase) a una tabla que nadie puede
+    // leer desde la página; solo la ve el administrador. Quién la escribió, si tenía sesión, lo
+    // anota el servidor con la sesión real (no se manda desde el navegador). Ver
+    // BITACORA-OPINIONES-PAGINA.md y opiniones-pagina.sql.
+    _notaOpinion: 0,
+
+    // Pone el texto del enlace del pie en el idioma actual (el pie vive en index.html).
+    retraducirPieOpinion: function() {
+        var el = document.getElementById('footerOpinion');
+        if (el) el.textContent = this.t('titulo_opinion');
+    },
+
+    mostrarOpinion: function() {
+        var t = this.t.bind(this);
+        this._notaOpinion = 0;
+        var botones = '';
+        for (var n = 1; n <= 10; n++) {
+            botones += '<button type="button" class="op-nota" data-nota="' + n + '" aria-pressed="false" aria-label="' + n + '" onclick="Institucional.elegirNota(' + n + ')" ' +
+                'style="padding:12px 0;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#111827;font-weight:600;font-size:16px;cursor:pointer;">' + n + '</button>';
+        }
+        UIController.mostrarFormularioEnMuro(t('titulo_opinion'), '⭐', '' +
+            '<form id="formOpinion" onsubmit="Institucional.enviarOpinion(event)">' +
+            '<p id="opinionPregunta" style="margin:0 0 10px;font-weight:600;">' + escHtml(t('op_pregunta')) + '</p>' +
+            // Los números van siempre de izquierda a derecha (1 → 10), también en idiomas de derecha a izquierda.
+            '<div style="direction:ltr;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">' + botones + '</div>' +
+            '<div style="display:flex;justify-content:space-between;gap:8px;margin:8px 0 12px;font-size:12px;color:#6B7280;">' +
+                '<span id="opinionMin">' + escHtml(t('op_min')) + '</span><span id="opinionMax" style="text-align:end;">' + escHtml(t('op_max')) + '</span></div>' +
+            '<textarea id="opinionComentario" placeholder="' + escHtml(t('ph_opinion')) + '" rows="3" minlength="5" maxlength="500" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<button type="submit" id="opinionBtnEnviar" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + escHtml(t('btn_enviar_opinion')) + '</button>' +
+            '<div id="opinionEstado" role="status" style="margin-top:10px;text-align:center;"></div>' +
+            '</form>');
+    },
+
+    // Marca el número elegido (solo cambia el aspecto de los botones y guarda la nota en memoria).
+    elegirNota: function(n) {
+        n = parseInt(n, 10);
+        if (!(n >= 1 && n <= 10)) return;
+        this._notaOpinion = n;
+        var botones = document.querySelectorAll('#formOpinion .op-nota');
+        for (var i = 0; i < botones.length; i++) {
+            var activo = (parseInt(botones[i].getAttribute('data-nota'), 10) === n);
+            botones[i].setAttribute('aria-pressed', activo ? 'true' : 'false');
+            botones[i].style.background = activo ? '#7C3AED' : '#fff';
+            botones[i].style.color = activo ? '#fff' : '#111827';
+            botones[i].style.borderColor = activo ? '#7C3AED' : '#D1D5DB';
+        }
+        var estado = document.getElementById('opinionEstado');
+        if (estado) estado.textContent = '';
+    },
+
+    enviarOpinion: async function(e) {
+        e.preventDefault();
+        var t = this.t.bind(this);
+        var estado = document.getElementById('opinionEstado');
+        var boton = document.getElementById('opinionBtnEnviar');
+        if (!this._notaOpinion) { estado.textContent = t('op_elige_nota'); return; }
+        // Se desactiva el botón mientras se envía (un doble clic no manda dos opiniones); si falla, se reactiva.
+        boton.disabled = true;
+        boton.textContent = t('enviando');
+        estado.textContent = '';
+        try {
+            var comentario = document.getElementById('opinionComentario').value.trim();
+            var { error } = await supabase.rpc('registrar_opinion', {
+                p_nota: this._notaOpinion,
+                p_comentario: comentario || null,
+                p_idioma: obtenerIdiomaPreferido()
+            });
+            if (error) throw error;
+            this._notaOpinion = 0;
+            var form = document.getElementById('formOpinion');
+            if (form) form.innerHTML = '<p style="text-align:center;color:#059669;">' + escHtml(t('exito_opinion')) + '</p>';
+        } catch (err) {
+            console.error('remarket-db: no se pudo registrar la opinión', err);
+            estado.textContent = t('error_opinion');
+            boton.disabled = false;
+            boton.textContent = t('btn_enviar_opinion');
         }
     },
 
