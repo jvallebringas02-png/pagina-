@@ -1,4 +1,4 @@
-> **Estado: PREPARADO, SIN CONFIRMAR. El código pasa `node --check` y una prueba simulada en un navegador de laboratorio (40 comprobaciones). El SQL pasó el analizador de sintaxis de PostgreSQL, pero NO se ejecutó en Supabase, y nada se probó en la página real. Marcar cada punto cuando se haga.**
+> **Estado: EN PRUEBA (07/10/2026). El SQL ya se ejecutó en Supabase, los tres archivos están subidos a la página de pruebas y el envío funciona de punta a punta (con y sin comentario). Faltan: confirmar que la tabla no tenga políticas, probar que nadie pueda leerla desde la página, el celular, los idiomas de derecha a izquierda y la sesión iniciada. Marcar cada punto cuando se haga.**
 
 # Bitácora — Opinión sobre la página: nota del 1 al 10 y comentario, en un buzón privado
 
@@ -46,18 +46,18 @@ El texto del enlace del pie se traduce desde `institucional.js` (no se tocó `i1
 
 ## 4. Orden para aplicarlo
 
-1. [ ] En Supabase, ejecutar el **PASO 1** de `opiniones-pagina.sql` y mirar que diga "Success". Después, en consulta nueva, el **PASO 2**.
-2. [ ] Comprobar (consultas "COMPROBACIONES" al final del SQL): la tabla existe con RLS activado; no tiene políticas; la función solo la ejecutan `anon` y `authenticated`.
-3. [ ] Subir a GitHub `js/modules/institucional.js`, `js/i18n-institucional.js` e `index.html`. Esperar a Vercel, Ctrl+F5.
-4. [ ] Probar (sección 5).
+1. [x] En Supabase, ejecutar el **PASO 1** de `opiniones-pagina.sql` y mirar que diga "Success". Después, en consulta nueva, el **PASO 2**.
+2. [~] Comprobar (consultas "COMPROBACIONES" al final del SQL): la tabla existe con RLS activado (**confirmado**: `relrowsecurity = true`); **falta** confirmar que no tiene políticas (consulta sola) y que la función solo la ejecutan `anon` y `authenticated`.
+3. [x] Subir a GitHub `js/modules/institucional.js`, `js/i18n-institucional.js` e `index.html`. Esperar a Vercel, Ctrl+F5.
+4. [~] Probar (sección 5): hecho lo marcado abajo.
 5. [ ] Anotar en `BITACORA-SEGURIDAD.md` la tabla nueva y su protección.
 
 ## 5. Pruebas en la página real
 
-- [ ] El enlace "Danos tu opinión" aparece en el pie y abre el formulario.
+- [x] El enlace "Danos tu opinión" aparece en el pie y abre el formulario (captura del 07/10: título, pregunta, dos filas de 5 números, etiquetas, comentario y botón).
 - [ ] Sin elegir número: aparece el aviso y no se envía nada.
-- [ ] Elegir un 8 y enviar **sin comentario**: sale "Gracias por tu opinión." En Supabase hay una fila con `nota = 8`, `comentario` vacío, `idioma` correcto y `usuario_id` vacío.
-- [ ] Elegir un 3 y escribir un comentario: la fila lleva el comentario sin espacios sobrantes.
+- [x] Enviar **sin comentario**: en Supabase hay filas con la nota, `comentario` vacío, `idioma = es`, `usuario_id` vacío y `estado = nuevo` (notas 3 y 4, 07/10 22:25 y 22:26 UTC).
+- [x] Enviar **con comentario**: las filas llevan el texto (nota 3 "me gusta" y nota 10 "danos tu opinion", 07/10 22:27 y 22:29 UTC). Falta revisar a mano que se recorten los espacios sobrantes.
 - [ ] Un comentario de 3 letras: el navegador avisa que es muy corto (mínimo 5).
 - [ ] **Con sesión iniciada** (si el formulario se ve; ver límite 6.1): la fila lleva el `usuario_id` de esa cuenta.
 - [ ] Cambiar de idioma con el formulario abierto y texto escrito: se traduce sin borrar el comentario ni la nota.
@@ -95,13 +95,16 @@ El texto del enlace del pie se traduce desde `institucional.js` (no se tocó `i1
 
 ## 9. Qué se probó y qué no
 
+**Probado en la página real (07/10/2026):** el formulario se ve bien en el escritorio; el envío con y sin comentario llega a Supabase con los valores esperados; la tabla tiene RLS activado.
 **Probado (navegador simulado, 40 comprobaciones):** 10 botones en orden; sin campos personales; comentario opcional de 5 a 500; aviso al enviar sin nota; marcado de un solo número; valores inválidos ignorados; envío con y sin comentario con los argumentos exactos (`p_nota`, `p_comentario`, `p_idioma`); mensaje de gracias; error y reintento (botón y nota conservados); doble clic; cambio de idioma sin perder lo escrito (italiano, alemán, árabe, quechua); traducción del pie con y sin formulario abierto; la escala va de izquierda a derecha en árabe; los formularios de contacto y reclamos siguen generando su constancia.
 **Probado solo en sintaxis:** el SQL (analizador de PostgreSQL: 11 sentencias y la función, sin errores). **No se ejecutó.**
-**No probado:** el SQL contra Supabase real; la función con `auth.uid()` en una sesión real; el aspecto en celular; la revisión nativa de los textos; el comportamiento con sesión iniciada.
+**No probado:** que la tabla no tenga políticas; que un `select` directo desde la página falle; la función con `auth.uid()` en una sesión real; el aspecto en celular; la revisión nativa de los textos; el comportamiento con sesión iniciada.
 
 ## 10. Registro
 
 | Fecha | Cambio | Resultado |
 |---|---|---|
 | 07/10/2026 | Diseño: nota 1-10 + comentario opcional, buzón privado, sin publicar | Aprobado en la conversación |
-| 07/10/2026 | SQL, código y 9 textos en 15 idiomas escritos | `node --check` OK; prueba simulada 40/40; SQL con sintaxis válida; falta ejecutar y subir |
+| 07/10/2026 | SQL, código y 9 textos en 15 idiomas escritos | `node --check` OK; prueba simulada 40/40; SQL con sintaxis válida |
+| 07/10/2026 | SQL ejecutado en Supabase; archivos subidos a `pueba02.vercel.app` | Formulario visible; 4 opiniones de prueba guardadas (2 sin comentario, 2 con comentario); RLS activado |
+| 07/10/2026 | **Pendiente de limpiar:** las 4 filas de prueba | Borrarlas antes de abrir al público: `delete from opiniones_pagina;` |
