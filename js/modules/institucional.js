@@ -402,14 +402,24 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         boton.textContent = t('enviando');
         estado.textContent = '';
         try {
-            var { error } = await supabase.from('mensajes_contacto').insert({
-                nombre: document.getElementById('contactoNombre').value,
-                email: document.getElementById('contactoEmail').value,
-                mensaje: document.getElementById('contactoMensaje').value
+            var datos = {
+                nombre: document.getElementById('contactoNombre').value.trim(),
+                email: document.getElementById('contactoEmail').value.trim(),
+                mensaje: document.getElementById('contactoMensaje').value.trim()
+            };
+            // Ya no se inserta directo en la tabla: la función registrar_contacto (Supabase) valida
+            // los tamaños, guarda y devuelve el código y la fecha del comprobante (fase1-constancia.sql).
+            var { data, error } = await supabase.rpc('registrar_contacto', {
+                p_nombre: datos.nombre,
+                p_email: datos.email,
+                p_mensaje: datos.mensaje
             });
             if (error) throw error;
-            document.getElementById('formContactoAdmin').innerHTML = '<p style="text-align:center;color:#059669;">' + t('exito_mensaje') + '</p>';
+            var res = Array.isArray(data) ? data[0] : data;
+            if (!res || !res.codigo) throw new Error('registrar_contacto no devolvió un código');
+            this.mostrarConstancia('formContactoAdmin', 'contacto', datos, res, t('exito_mensaje'));
         } catch (err) {
+            console.error('remarket-db: no se pudo enviar el mensaje al administrador', err);
             estado.textContent = t('error_mensaje');
             boton.disabled = false;
             boton.textContent = t('btn_enviar_mensaje');
@@ -462,27 +472,179 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         boton.textContent = t('enviando');
         estado.textContent = '';
         try {
-            var { error } = await supabase.from('libro_reclamaciones').insert({
-                // Los nombres de la izquierda son los de las columnas REALES de la tabla
-                // libro_reclamaciones en Supabase (confirmados con information_schema el 06/10/2026).
-                // bien_servicio y monto_reclamado son columnas nuevas (ver BITACORA-SEGURIDAD, Paso 7).
-                tipo_incidencia: document.getElementById('reclamoTipo').value,
-                nombre_completo: document.getElementById('reclamoNombre').value,
-                tipo_documento: 'No indicado',
-                numero_documento: document.getElementById('reclamoDocumento').value,
-                correo_electronico: document.getElementById('reclamoEmail').value,
-                telefono: document.getElementById('reclamoTelefono').value || null,
-                bien_servicio: document.getElementById('reclamoBien').value,
-                monto_reclamado: monto,
-                detalle_del_hecho: document.getElementById('reclamoDetalle').value,
-                pedido_concreto: document.getElementById('reclamoPedido').value
+            var datos = {
+                tipo: document.getElementById('reclamoTipo').value,
+                nombre: document.getElementById('reclamoNombre').value.trim(),
+                documento: document.getElementById('reclamoDocumento').value.trim(),
+                email: document.getElementById('reclamoEmail').value.trim(),
+                telefono: document.getElementById('reclamoTelefono').value.trim(),
+                bien: document.getElementById('reclamoBien').value.trim(),
+                monto: monto,
+                detalle: document.getElementById('reclamoDetalle').value.trim(),
+                pedido: document.getElementById('reclamoPedido').value.trim()
+            };
+            // Ya no se inserta directo en la tabla: la función registrar_reclamo (Supabase) valida
+            // los tamaños, escribe en las columnas reales de libro_reclamaciones y devuelve el código
+            // y la fecha del comprobante (ver fase1-constancia.sql).
+            var { data, error } = await supabase.rpc('registrar_reclamo', {
+                p_tipo: datos.tipo,
+                p_nombre: datos.nombre,
+                p_documento: datos.documento,
+                p_email: datos.email,
+                p_telefono: datos.telefono || null,
+                p_bien: datos.bien,
+                p_monto: datos.monto,
+                p_detalle: datos.detalle,
+                p_pedido: datos.pedido
             });
             if (error) throw error;
-            document.getElementById('formReclamo').innerHTML = '<p style="text-align:center;color:#059669;">' + t('exito_reclamo') + '</p>';
+            var res = Array.isArray(data) ? data[0] : data;
+            if (!res || !res.codigo) throw new Error('registrar_reclamo no devolvió un código');
+            this.mostrarConstancia('formReclamo', 'reclamo', datos, res, t('exito_reclamo'));
         } catch (err) {
+            console.error('remarket-db: no se pudo registrar el reclamo', err);
             estado.textContent = t('error_reclamo');
             boton.disabled = false;
             boton.textContent = t('btn_registrar');
         }
+    },
+
+    // ---------- Constancia (comprobante) del reclamo y del mensaje al administrador ----------
+    // DECISIÓN (07/10/2026): el comprobante va SIEMPRE en inglés, sin importar el idioma de la
+    // pantalla (la página es de alcance mundial y el documento debe leerse igual en todas partes).
+    // Lo que la persona escribió se imprime tal cual, sin traducir. Para añadir el español junto a
+    // cada etiqueta (por si lo debe leer INDECOPI o un abogado), poner esto en true.
+    CONSTANCIA_CON_ESPANOL: false,
+    _constanciaActual: null,
+
+    CONSTANCIA_CSS:
+        '.cns{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:14px;line-height:1.5;text-align:left;direction:ltr;}' +
+        '.cns h2{font-size:18px;margin:0 0 4px 0;}' +
+        '.cns .cns-sitio{color:#555;font-size:12px;margin-bottom:12px;}' +
+        '.cns .cns-codigo{font-size:20px;font-weight:700;letter-spacing:1px;margin:8px 0 12px 0;padding:8px 10px;background:#F3F4F6;border-radius:6px;word-break:break-all;}' +
+        '.cns table{width:100%;border-collapse:collapse;}' +
+        '.cns th,.cns td{border:1px solid #D1D5DB;padding:6px 8px;vertical-align:top;font-size:13px;}' +
+        '.cns th{width:34%;background:#F9FAFB;text-align:left;font-weight:600;}' +
+        '.cns td{white-space:pre-wrap;word-break:break-word;}' +
+        '.cns .cns-nota{margin-top:12px;font-size:12px;color:#444;}',
+
+    _etq: function(en, es) {
+        return this.CONSTANCIA_CON_ESPANOL ? (en + ' / ' + es) : en;
+    },
+
+    // Fecha legible + hora universal, para que no haya dudas de zona horaria en el documento.
+    formatearFechaConstancia: function(iso) {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return String(iso || '');
+        var utc = d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+        try {
+            var local = new Intl.DateTimeFormat('en-GB', {
+                year: 'numeric', month: 'short', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short'
+            }).format(d);
+            return local + '  (' + utc + ')';
+        } catch (err) {
+            return utc;
+        }
+    },
+
+    // Devuelve el HTML del comprobante (sin <html>/<body>): se usa igual en pantalla y en el PDF.
+    // Todo lo que escribió la persona pasa por escHtml -- lo escribe cualquier visitante anónimo.
+    htmlConstancia: function(clase, datos, res) {
+        var self = this;
+        var sitio = (typeof location !== 'undefined' && location.hostname) ? location.hostname : 'this site';
+        var esReclamo = (clase === 'reclamo');
+        var tipos = { reclamo: ['Complaint', 'Reclamo'], queja: ['Grievance', 'Queja'], reporte: ['Report', 'Reporte'] };
+        var tipo = tipos[datos.tipo] || null;
+        var titulo = esReclamo ? self._etq('Complaint receipt', 'Constancia de reclamo') : self._etq('Contact ticket', 'Ticket de atención');
+
+        function fila(en, es, valor) {
+            if (valor === null || valor === undefined || String(valor).trim() === '') return '';
+            return '<tr><th>' + escHtml(self._etq(en, es)) + '</th><td>' + escHtml(String(valor)) + '</td></tr>';
+        }
+
+        var filas = '';
+        filas += fila('Code', 'Código', res.codigo);
+        filas += fila('Date and time', 'Fecha y hora', self.formatearFechaConstancia(res.fecha));
+        if (esReclamo) {
+            filas += fila('Type', 'Tipo', tipo ? (self.CONSTANCIA_CON_ESPANOL ? tipo[0] + ' / ' + tipo[1] : tipo[0]) : datos.tipo);
+            filas += fila('Full name', 'Nombre completo', datos.nombre);
+            filas += fila('ID document', 'Documento de identidad', datos.documento);
+            filas += fila('Email', 'Correo electrónico', datos.email);
+            filas += fila('Phone', 'Teléfono', datos.telefono);
+            filas += fila('Related product or service', 'Producto o servicio relacionado', datos.bien);
+            filas += fila('Amount claimed', 'Monto reclamado', (typeof datos.monto === 'number' && !isNaN(datos.monto)) ? datos.monto.toFixed(2) : '');
+            filas += fila('Details of what happened', 'Detalle de lo ocurrido', datos.detalle);
+            filas += fila('Requested resolution', 'Solución solicitada', datos.pedido);
+        } else {
+            filas += fila('Name', 'Nombre', datos.nombre);
+            filas += fila('Email', 'Correo electrónico', datos.email);
+            filas += fila('Message', 'Mensaje', datos.mensaje);
+        }
+
+        var nota = 'This receipt only records that the information above was submitted through ' + sitio +
+            ' on the date shown. ' + sitio + ' only connects users and is not a party to any transaction between them; ' +
+            'this receipt does not imply acceptance of liability or a commitment to a specific outcome. ' +
+            'Keep this code to refer to this submission.';
+        var notaEs = 'Esta constancia solo registra que la información anterior fue enviada a través de ' + sitio +
+            ' en la fecha indicada. ' + sitio + ' solo pone en contacto a los usuarios y no es parte de ninguna operación entre ellos; ' +
+            'esta constancia no implica reconocimiento de responsabilidad ni compromiso de un resultado. ' +
+            'Conserve este código para referirse a este envío.';
+        if (esReclamo && datos.tipo === 'reporte') {
+            nota += ' A report is a notice sent to the site administrator; it is not a claim addressed to a specific seller or provider.';
+            notaEs += ' Un reporte es un aviso al administrador del sitio; no es un reclamo dirigido a un vendedor o proveedor específico.';
+        }
+
+        return '<style>' + self.CONSTANCIA_CSS + '</style>' +
+            '<div class="cns">' +
+            '<h2>' + escHtml(titulo) + '</h2>' +
+            '<div class="cns-sitio">' + escHtml(sitio) + '</div>' +
+            '<div class="cns-codigo">' + escHtml(res.codigo) + '</div>' +
+            '<table>' + filas + '</table>' +
+            '<div class="cns-nota">' + escHtml(nota) + (self.CONSTANCIA_CON_ESPANOL ? '<br><br>' + escHtml(notaEs) : '') + '</div>' +
+            '</div>';
+    },
+
+    // Reemplaza el formulario por el mensaje de éxito + el comprobante + el botón de PDF.
+    mostrarConstancia: function(idFormulario, clase, datos, res, textoExito) {
+        var t = this.t.bind(this);
+        var form = document.getElementById(idFormulario);
+        if (!form) return;
+        var cuerpo = this.htmlConstancia(clase, datos, res);
+        this._constanciaActual = { codigo: res.codigo, cuerpo: cuerpo };
+        form.innerHTML =
+            '<p style="text-align:center;color:#059669;">' + textoExito + '</p>' +
+            '<div style="border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin:10px 0;">' + cuerpo + '</div>' +
+            '<button type="button" onclick="Institucional.imprimirConstancia()" style="width:100%;padding:12px;background:#111827;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + escHtml(t('btn_guardar_pdf')) + '</button>' +
+            '<p style="margin-top:8px;font-size:12px;color:#6B7280;text-align:center;">' + escHtml(t('msg_guarda_codigo')) + '</p>';
+    },
+
+    // Abre la impresión del navegador SOLO con la constancia (no con la página entera). El título
+    // del documento es el código, así que el nombre de archivo que sugiere "Guardar como PDF" es el código.
+    imprimirConstancia: function() {
+        var c = this._constanciaActual;
+        if (!c) return;
+        var doc = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
+            '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+            '<title>' + escHtml(c.codigo) + '</title>' +
+            '<style>@page{margin:18mm;} body{margin:16px;}</style></head><body>' + c.cuerpo + '</body></html>';
+        var w = null;
+        try { w = window.open('', '_blank'); } catch (err) { w = null; }
+        if (w && w.document) {
+            w.document.open(); w.document.write(doc); w.document.close();
+            try { w.focus(); } catch (err) {}
+            setTimeout(function() { try { w.print(); } catch (err) {} }, 400);
+            return;
+        }
+        // Respaldo si el navegador bloquea la ventana nueva: iframe oculto.
+        var f = document.createElement('iframe');
+        f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+        document.body.appendChild(f);
+        var d = f.contentWindow.document;
+        d.open(); d.write(doc); d.close();
+        setTimeout(function() {
+            try { f.contentWindow.focus(); f.contentWindow.print(); } catch (err) {}
+            setTimeout(function() { if (f.parentNode) f.parentNode.removeChild(f); }, 2000);
+        }, 400);
     }
 };
