@@ -9,6 +9,14 @@ var AIService = {
     // un mensaje claro en vez de "No pude conectarme... ¿Puedes intentar de nuevo?", que parece
     // un problema de internet de la persona.
     _limiteHasta: 0,
+
+    // Reintento automático ante fallos TÉCNICOS pasajeros (la petición no llegó, la respuesta no era
+    // JSON o el servidor dio un 5xx): se repite UNA vez tras una pausa corta, sin que la persona vea
+    // el error. NO se reintenta si fue el límite de cuota (429 / "limite_alcanzado") ni con errores
+    // fijos (400, 401, 404...), porque repetirlos solo gastaría más cupo o daría lo mismo.
+    // Para desactivarlo: REINTENTOS_TECNICOS = 0.
+    REINTENTOS_TECNICOS: 1,
+    REINTENTO_ESPERA_MS: 1500,
     _respuestaLimite: function() {
         var datos = this._parsearRespuesta(null); // objeto "vacío" estándar (fallo técnico)
         datos.mensaje_chat = textoUI('ia_limite', 'El asistente llegó a su límite de uso por ahora, así que no responderá durante un rato. Mientras tanto puedes buscar por nombre o usar los accesos rápidos de la barra lateral.');
@@ -30,19 +38,36 @@ var AIService = {
         var resultadosWebServidor = null;
         var resultadosVideosServidor = null;
         var limiteAlcanzado = false;
-        try {
-            var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ messages: this.historial, idioma: idiomaInterfaz }) });
-            var data = await response.json();
-            if (response.status === 429 || (data && data.error === 'limite_alcanzado')) limiteAlcanzado = true;
-            textoBruto = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
-            // El servidor (función chat-ia) ya ejecuta la búsqueda real en internet/YouTube
-            // cuando la IA decide usar sus herramientas, y la manda en la misma respuesta --
-            // se aprovecha esto en vez de pedirle al cliente que busque otra vez lo mismo por
-            // su cuenta (antes esto se descartaba acá y buscador.js repetía la búsqueda).
-            resultadosWebServidor = (data && data.resultados_web) || null;
-            resultadosVideosServidor = (data && data.resultados_videos) || null;
-        } catch (e) {
+        var cuerpoPeticion = JSON.stringify({ messages: this.historial, idioma: idiomaInterfaz });
+        for (var intento = 0; intento <= this.REINTENTOS_TECNICOS; intento++) {
+            // Cada intento parte limpio, para no mezclar datos de un intento fallido con el siguiente.
             textoBruto = null;
+            resultadosWebServidor = null;
+            resultadosVideosServidor = null;
+            limiteAlcanzado = false;
+            var reintentable = false;
+            try {
+                var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: cuerpoPeticion });
+                var data = null;
+                try { data = await response.json(); } catch (eJson) { data = null; }
+                if (response.status === 429 || (data && data.error === 'limite_alcanzado')) limiteAlcanzado = true;
+                textoBruto = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
+                // El servidor (función chat-ia) ya ejecuta la búsqueda real en internet/YouTube
+                // cuando la IA decide usar sus herramientas, y la manda en la misma respuesta --
+                // se aprovecha esto en vez de pedirle al cliente que busque otra vez lo mismo por
+                // su cuenta (antes esto se descartaba acá y buscador.js repetía la búsqueda).
+                resultadosWebServidor = (data && data.resultados_web) || null;
+                resultadosVideosServidor = (data && data.resultados_videos) || null;
+                // Sin contenido y sin ser el límite: ¿fallo pasajero que vale la pena repetir?
+                if (textoBruto === null && !limiteAlcanzado) {
+                    reintentable = response.status >= 500 || (data === null && response.status < 400);
+                }
+            } catch (e) {
+                textoBruto = null;
+                reintentable = true; // la petición no llegó (sin red, corte, CORS)
+            }
+            if (!reintentable || intento >= this.REINTENTOS_TECNICOS) break;
+            await new Promise(function(listo) { setTimeout(listo, AIService.REINTENTO_ESPERA_MS); });
         }
         if (limiteAlcanzado) {
             this._limiteHasta = Date.now() + 60000;
