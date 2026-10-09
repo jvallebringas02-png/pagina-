@@ -4,7 +4,22 @@ var AIService = {
     // Hace la llamada real a la IA y devuelve los datos ya parseados (objeto). Es privado --
     // lo usan las dos funciones públicas de abajo, cada una lo expone de una forma distinta
     // según quién la llame, pero la IA solo se consulta UNA vez por mensaje.
+    // Cuando el servidor avisa que se acabó el cupo de la IA ("limite_alcanzado" / HTTP 429), se
+    // pausa el envío 60 segundos. Así nadie insiste (cada intento gasta más cupo) y se muestra
+    // un mensaje claro en vez de "No pude conectarme... ¿Puedes intentar de nuevo?", que parece
+    // un problema de internet de la persona.
+    _limiteHasta: 0,
+    _respuestaLimite: function() {
+        var datos = this._parsearRespuesta(null); // objeto "vacío" estándar (fallo técnico)
+        datos.mensaje_chat = textoUI('ia_limite', 'El asistente llegó a su límite de uso por ahora, así que no responderá durante un rato. Mientras tanto puedes buscar por nombre o usar los accesos rápidos de la barra lateral.');
+        datos._limite = true;
+        datos.resultados_web = null;
+        datos.resultados_videos = null;
+        return datos;
+    },
+
     _consultarIA: async function(mensaje) {
+        if (this._limiteHasta && Date.now() < this._limiteHasta) return this._respuestaLimite();
         var idiomaInterfaz = obtenerIdiomaPreferido(); // Solo para la interfaz y la búsqueda web; el chat detecta el idioma real del mensaje.
         // 🔒 Ya no se manda un mensaje "system" con PROMPT_BASE aquí: el servidor (función chat-ia)
         // lo descarta de todas formas y usa su propio PROMPT_BASE. Mandarlo solo agregaba peso
@@ -14,9 +29,11 @@ var AIService = {
         var textoBruto = null;
         var resultadosWebServidor = null;
         var resultadosVideosServidor = null;
+        var limiteAlcanzado = false;
         try {
             var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: JSON.stringify({ messages: this.historial, idioma: idiomaInterfaz }) });
             var data = await response.json();
+            if (response.status === 429 || (data && data.error === 'limite_alcanzado')) limiteAlcanzado = true;
             textoBruto = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
             // El servidor (función chat-ia) ya ejecuta la búsqueda real en internet/YouTube
             // cuando la IA decide usar sus herramientas, y la manda en la misma respuesta --
@@ -26,6 +43,11 @@ var AIService = {
             resultadosVideosServidor = (data && data.resultados_videos) || null;
         } catch (e) {
             textoBruto = null;
+        }
+        if (limiteAlcanzado) {
+            this._limiteHasta = Date.now() + 60000;
+            this.historial.pop(); // el mensaje que no se pudo contestar no queda en el historial
+            return this._respuestaLimite();
         }
         var datos = this._parsearRespuesta(textoBruto);
         datos.resultados_web = resultadosWebServidor;
