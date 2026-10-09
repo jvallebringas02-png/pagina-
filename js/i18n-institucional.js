@@ -55,3 +55,30 @@ var INSTITUCIONAL_TEXTOS = {
         titulo_reclamo: "Quejasiña Qillqa", ph_tipo: "Laya...", opt_reclamo: "Quejasiña", opt_queja: "Jan Walt'äwi", opt_reporte: "Reporte", ph_nombre_completo: "Phuqata sutima", ph_documento: "DNI / qillqata", ph_telefono: "Jawsañ (janiw wakiskiti)", ph_bien: "Alañataki uñstäwi jan ukax yanapt'awi", ph_monto: "Mayjt'ayasiri qullqi (janiw wakiskiti, ej: 150.50)", ph_detalle: "Kunjamsa pasawayi ukxa qillqt'am", ph_pedido: "¿Kuna askichawsa suyta?", btn_registrar: "Quejasiña qillqt'aña", exito_reclamo: "✅ Quejasiñamax qillqatawa. Jankaki jumamp parlt'asiñäni.", error_reclamo: "Janiw qillqasiñäkiti. Wasitat lurasiñäma.",
         btn_visitar: "Uñjaña", btn_volver: "Qalltäwiru kutt'aña" },
 };
+
+// Seguridad (pie de página). Solo es y en por ahora; los demás idiomas caen a español (Institucional.t).
+(function() {
+    var seguridad = {
+        es: { titulo_seguridad: "Seguridad", msg_seguridad: "🛡️ Aquí tienes cómo cuidamos tu cuenta y qué puedes hacer tú para comprar, vender o intercambiar con tranquilidad.",
+            seg_hace_t: "Lo que hace remarket-db",
+            seg_h1: "Cada persona solo puede ver y modificar los datos de su propia cuenta; los demás usuarios solo ven la información pública de tu perfil.",
+            seg_h2: "Nadie puede darse a sí mismo permisos especiales ni cambiar el estado de su cuenta.",
+            seg_h3: "Quien publica lo hace bajo declaración jurada y conforme a las normas legales; remarket-db puede retirar publicaciones que las incumplan. Si ves algo sospechoso, puedes reportarlo y recibirás una constancia con código.",
+            seg_tu_t: "Lo que puedes hacer tú",
+            seg_t1: "Reúnete en lugares públicos y concurridos, y avisa a alguien de confianza.",
+            seg_t2: "Revisa el producto antes de pagar y no adelantes dinero a desconocidos.",
+            seg_t3: "No compartas tus claves ni códigos de verificación con nadie.",
+            seg_aviso: "remarket-db conecta a las personas: los acuerdos de compra, venta o intercambio se hacen directamente entre usuarios, y la página no interviene en ellos." },
+        en: { titulo_seguridad: "Safety", msg_seguridad: "🛡️ Here is how we protect your account and what you can do to buy, sell or swap with peace of mind.",
+            seg_hace_t: "What remarket-db does",
+            seg_h1: "Each person can only view and edit the data of their own account; other users only see the public information of your profile.",
+            seg_h2: "Nobody can give themselves special permissions or change the status of their account.",
+            seg_h3: "Anyone who posts does so under a sworn statement and in line with legal rules; remarket-db may remove listings that break them. If you see something suspicious, you can report it and you will get a confirmation with a code.",
+            seg_tu_t: "What you can do",
+            seg_t1: "Meet in public, busy places and let someone you trust know.",
+            seg_t2: "Check the item before paying and never send money in advance to strangers.",
+            seg_t3: "Never share your passwords or verification codes with anyone.",
+            seg_aviso: "remarket-db connects people: purchase, sale or exchange agreements are made directly between users, and the site does not take part in them." }
+    };
+    for (var l in seguridad) { if (INSTITUCIONAL_TEXTOS[l]) Object.assign(INSTITUCIONAL_TEXTOS[l], seguridad[l]); }
+})();
