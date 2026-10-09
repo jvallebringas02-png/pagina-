@@ -93,7 +93,9 @@ var EventController = {
                 UIController.mostrarResultadosBusqueda(resultadoRespaldo);
             } else {
                 if (!UIController.formularioAbierto) { UIController.cerrarResultados(); }
-                UIController.mostrarRespuestaIA('No pude conectarme bien en este momento, pero tienes los accesos rápidos en la barra lateral para seguir igual.');
+                // Si fue por el límite de uso de la IA, el chat ya mostró el aviso claro: no se repite
+                // ni se agrega el de "no pude conectarme".
+                if (!datos._limite) UIController.mostrarRespuestaIA('No pude conectarme bien en este momento, pero tienes los accesos rápidos en la barra lateral para seguir igual.');
             }
         } else if (datos._formato_invalido) {
             // La IA SÍ respondió con contenido real (ya se mostró en el chat aparte, tal como
