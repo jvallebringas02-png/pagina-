@@ -331,6 +331,30 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         UIController.mostrarRespuestaIA(textoUI('msg_contacto', '📩 Aquí tienes el formulario para comunicarte con el administrador -- úsalo para consultas, sugerencias, o cualquier tema que no sea un reclamo formal (para eso está el Libro de Reclamaciones). Completa tus datos y el mensaje, y el equipo te responderá.'));
         this.mostrarContactoAdmin();
     },
+    // Seguridad (pie de página): texto fijo, SIN llamar a la IA. No gasta cuota de Groq ni busca en
+    // internet/YouTube, y no falla si el asistente está sin cupo. Los textos están en i18n-institucional.js;
+    // los idiomas sin traducción caen a español (ver Institucional.t).
+    iniciarSeguridadGuiado: function() {
+        UIController.mostrarRespuestaIA(this.t('msg_seguridad'));
+        this.mostrarSeguridad();
+    },
+    mostrarSeguridad: function() {
+        var t = this.t.bind(this);
+        var item = function(clave) { return '<li style="margin-bottom:8px;">' + escHtml(t(clave)) + '</li>'; };
+        var boton = function(accion, texto) {
+            return '<button type="button" onclick="' + accion + '" style="padding:10px 14px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin:0 8px 8px 0;">' + escHtml(texto) + '</button>';
+        };
+        UIController.mostrarFormularioEnMuro(t('titulo_seguridad'), '🛡️', '' +
+            '<div style="line-height:1.6;">' +
+            '<h4 style="margin:0 0 8px;">' + escHtml(t('seg_hace_t')) + '</h4>' +
+            '<ul style="margin:0 0 16px;padding-left:20px;">' + item('seg_h1') + item('seg_h2') + item('seg_h3') + '</ul>' +
+            '<h4 style="margin:0 0 8px;">' + escHtml(t('seg_tu_t')) + '</h4>' +
+            '<ul style="margin:0 0 16px;padding-left:20px;">' + item('seg_t1') + item('seg_t2') + item('seg_t3') + '</ul>' +
+            '<p style="font-size:13px;color:var(--texto-secundario);margin:0 0 16px;">' + escHtml(t('seg_aviso')) + '</p>' +
+            boton('Institucional.iniciarReclamoGuiado()', textoUI('footer_reclamos', 'Libro de Reclamaciones')) +
+            boton('Institucional.iniciarContactoGuiado()', textoUI('footer_contacto', 'Comunícate con el Administrador')) +
+            '</div>');
+    },
     iniciarReclamoGuiado: function() {
         UIController.mostrarRespuestaIA(textoUI('msg_reclamo', '📋 Aquí tienes el Libro de Reclamaciones -- úsalo si tuviste un problema concreto con una compra, venta o publicación y quieres dejarlo registrado formalmente. Completa los datos y el detalle de lo ocurrido, y quedará constancia de tu reclamo.'));
         this.mostrarLibroReclamaciones();
