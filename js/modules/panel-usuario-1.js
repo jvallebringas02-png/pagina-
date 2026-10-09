@@ -165,7 +165,7 @@ var PanelUsuario = {
                 '</div></div>';
         }
         var videoHtmlFeed = '';
-        if (item.video_url) {
+        if (item.video_url && /^https:\/\//i.test(String(item.video_url).trim())) {
             videoHtmlFeed = '<a href="' + this.escHtml(item.video_url) + '" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--borde);text-decoration:none;color:inherit;">' +
                 (item.video_miniatura ? '<img src="' + this.escHtml(item.video_miniatura) + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">' : '<span style="font-size:24px;">▶️</span>') +
                 '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶️ ' + this.escHtml(item.video_titulo || 'Video') + '</div>' +

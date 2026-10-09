@@ -118,6 +118,22 @@ Object.assign(PanelUsuario, {
     // === ENLACE DE VIDEO VERIFICADO (YouTube/TikTok) ===
     _videoVerificado: null,
 
+    // Comprueba que el enlace sea https:// y que su DOMINIO sea de verdad el de la plataforma
+    // (antes bastaba con que el texto "contuviera" instagram.com / youtube.com / tiktok.com, y
+    // algo como https://sitio-malo.com/?x=instagram.com pasaba la prueba).
+    _dominioEnlaceValido: function(url, dominios) {
+        try {
+            var u = new URL(url);
+            if (u.protocol !== 'https:') return false;
+            var host = u.hostname.toLowerCase();
+            return dominios.some(function(d) { return host === d || host.slice(-(d.length + 1)) === '.' + d; });
+        } catch (e) { return false; }
+    },
+    _rutaInstagramValida: function(url) {
+        try { return /^\/([A-Za-z0-9._]+\/)?(p|reel|reels|tv)\/[A-Za-z0-9_-]+/.test(new URL(url).pathname); }
+        catch (e) { return false; }
+    },
+
     verificarEnlaceVideo: async function() {
         var plataforma = document.getElementById('pubVideoPlataforma').value;
         var url = document.getElementById('pubVideoUrl').value.trim();
@@ -127,7 +143,7 @@ Object.assign(PanelUsuario, {
         if (!url) { previewEl.innerHTML = ''; return; }
 
         if (plataforma === 'instagram') {
-            if (url.indexOf('instagram.com') === -1) {
+            if (!this._dominioEnlaceValido(url, ['instagram.com']) || !this._rutaInstagramValida(url)) {
                 previewEl.innerHTML = '<div class="alert alert-error" style="display:block;">🚫 Ese link no parece ser de Instagram.</div>';
                 this._videoVerificado = null;
                 return;
@@ -141,7 +157,7 @@ Object.assign(PanelUsuario, {
         }
 
         var dominiosValidos = { youtube: ['youtube.com', 'youtu.be'], tiktok: ['tiktok.com'] };
-        var esDominioValido = dominiosValidos[plataforma].some(function(d) { return url.indexOf(d) !== -1; });
+        var esDominioValido = this._dominioEnlaceValido(url, dominiosValidos[plataforma]);
         if (!esDominioValido) {
             previewEl.innerHTML = '<div class="alert alert-error" style="display:block;">🚫 Ese link no parece ser de ' + (plataforma === 'youtube' ? 'YouTube' : 'TikTok') + '.</div>';
             return;
