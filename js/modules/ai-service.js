@@ -17,6 +17,12 @@ var AIService = {
     // Para desactivarlo: REINTENTOS_TECNICOS = 0.
     REINTENTOS_TECNICOS: 1,
     REINTENTO_ESPERA_MS: 1500,
+
+    // DIAGNÓSTICO (fase de pruebas): cuando la IA falla por un motivo técnico, el aviso termina con un
+    // código corto, por ejemplo "(código: HTTP 502 servicio_no_disponible groq:401)", y el mismo
+    // código sale en la consola (F12) como "[asistente] fallo técnico". Así se ve la causa sin
+    // tener que abrir la pestaña Red. Poner en false antes de abrir la página al público.
+    MOSTRAR_CODIGO_ERROR: true,
     _respuestaLimite: function() {
         var datos = this._parsearRespuesta(null); // objeto "vacío" estándar (fallo técnico)
         datos.mensaje_chat = textoUI('ia_limite', 'El asistente llegó a su límite de uso por ahora, así que no responderá durante un rato. Mientras tanto puedes buscar por nombre o usar los accesos rápidos de la barra lateral.');
@@ -24,6 +30,24 @@ var AIService = {
         datos.resultados_web = null;
         datos.resultados_videos = null;
         return datos;
+    },
+
+    // Texto corto con la causa de un fallo, a partir del estado HTTP y del cuerpo que devolvió el servidor.
+    // No incluye mensajes largos ni datos internos: solo el estado y palabras clave.
+    _describirFallo: function(estado, data) {
+        var partes = ['HTTP ' + estado];
+        if (data === null || typeof data === 'undefined') {
+            partes.push('sin_json');
+        } else if (typeof data.error === 'string') {
+            partes.push(data.error.slice(0, 40).replace(/[^\w.:-]/g, '_'));
+            if (typeof data.groq !== 'undefined') partes.push('groq:' + String(data.groq).slice(0, 6));
+        } else if (data.error && typeof data.error === 'object') {
+            var c = data.error.code || data.error.type || '';
+            if (c) partes.push(String(c).slice(0, 40).replace(/[^\w.:-]/g, '_'));
+        } else if (estado < 400) {
+            partes.push('respuesta_vacia');
+        }
+        return partes.join(' ');
     },
 
     _consultarIA: async function(mensaje) {
@@ -38,6 +62,7 @@ var AIService = {
         var resultadosWebServidor = null;
         var resultadosVideosServidor = null;
         var limiteAlcanzado = false;
+        var motivoFallo = null; // texto corto con la causa del último fallo técnico (solo diagnóstico)
         var cuerpoPeticion = JSON.stringify({ messages: this.historial, idioma: idiomaInterfaz });
         for (var intento = 0; intento <= this.REINTENTOS_TECNICOS; intento++) {
             // Cada intento parte limpio, para no mezclar datos de un intento fallido con el siguiente.
@@ -45,6 +70,7 @@ var AIService = {
             resultadosWebServidor = null;
             resultadosVideosServidor = null;
             limiteAlcanzado = false;
+            motivoFallo = null;
             var reintentable = false;
             try {
                 var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: cuerpoPeticion });
@@ -61,10 +87,12 @@ var AIService = {
                 // Sin contenido y sin ser el límite: ¿fallo pasajero que vale la pena repetir?
                 if (textoBruto === null && !limiteAlcanzado) {
                     reintentable = response.status >= 500 || (data === null && response.status < 400);
+                    motivoFallo = AIService._describirFallo(response.status, data);
                 }
             } catch (e) {
                 textoBruto = null;
                 reintentable = true; // la petición no llegó (sin red, corte, CORS)
+                motivoFallo = 'sin_conexion';
             }
             if (!reintentable || intento >= this.REINTENTOS_TECNICOS) break;
             await new Promise(function(listo) { setTimeout(listo, AIService.REINTENTO_ESPERA_MS); });
@@ -75,6 +103,18 @@ var AIService = {
             return this._respuestaLimite();
         }
         var datos = this._parsearRespuesta(textoBruto);
+        if (datos._fallo_tecnico) {
+            var etiqueta = motivoFallo || 'sin_contenido';
+            console.warn('[asistente] fallo técnico:', etiqueta);
+            datos._motivo = etiqueta;
+            if (this.MOSTRAR_CODIGO_ERROR) datos.mensaje_chat = datos.mensaje_chat + ' (código: ' + etiqueta + ')';
+            // Ni el mensaje que no se pudo contestar ni el aviso de error quedan en el historial:
+            // así la IA no los ve como parte de la conversación en los mensajes siguientes.
+            this.historial.pop();
+            datos.resultados_web = null;
+            datos.resultados_videos = null;
+            return datos;
+        }
         datos.resultados_web = resultadosWebServidor;
         datos.resultados_videos = resultadosVideosServidor;
         // Se guarda en el historial solo el mensaje conversacional, no el JSON crudo -- así en
