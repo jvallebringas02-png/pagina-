@@ -1,5 +1,4 @@
-> **Estado: PROPUESTO, SIN CÓDIGO. Esta bitácora es el diseño de la pantalla de seguimiento y la
-> lista de decisiones que faltan. No se escribió ni se probó nada. Marcar cada punto cuando se haga.**
+> **Estado: CONSTRUIDO COMO BORRADOR, SIN CONFIRMAR. El código de la página y el SQL están escritos; el código pasa `node --check` y una prueba simulada (29 comprobaciones). El SQL NO se ejecutó (no hay Postgres disponible) y nada se probó en la página real ni en Supabase. Ver la sección 12. Marcar cada punto cuando se haga.**
 
 # Bitácora — Seguimiento del reclamo y de la atención con el administrador
 
@@ -187,11 +186,83 @@ escapar.
 
 ## 10. Cómo volver atrás
 
-Quitar el enlace del pie y borrar la función `consultar_seguimiento`. Las columnas de la tabla y la
-Fase 1 no se tocan.
+Quitar el enlace del pie (`index.html`), subir los archivos anteriores del repo, y en Supabase: `drop function if exists obtener_seguimiento(text, text);` y `drop table if exists seguimiento_intentos;`. Las columnas añadidas a `mensajes_contacto` y la Fase 1 no se tocan.
 
 ## 11. Registro
 
 | Fecha | Cambio | Resultado |
 |---|---|---|
 | 10/10/2026 | Diseño del seguimiento y lista de decisiones | Solo documento. Sin código, sin SQL, sin pruebas |
+| 10/10/2026 | Construido como borrador: `seguimiento.sql`, pantalla en `institucional.js`, enlaces en formularios, constancia y pie, textos | `node --check` OK; prueba simulada 29/29 (y 30/30 de la constancia sin cambios); falta SQL, subida y prueba real |
+
+---
+
+## 12. Qué se construyó (borrador del 10/10/2026)
+
+### 12.1 Archivos
+
+| Archivo | Cambio |
+|---|---|
+| `seguimiento.sql` | Cierra la función vieja `obtener_seguimiento(text)`; añade `estado_tramite`, `respuesta_administrador` y `fecha_respuesta` a `mensajes_contacto`; tabla `seguimiento_intentos` (cerrada); nueva `obtener_seguimiento(p_codigo, p_clave)`. |
+| `js/modules/institucional.js` | Pantalla `mostrarSeguimiento` / `consultarSeguimiento` / `htmlSeguimiento`; `iniciarSeguimiento`; enlace dentro de los dos formularios y dentro de la constancia; retraducción al cambiar de idioma. |
+| `js/i18n-institucional.js` | 24 claves nuevas en **español e inglés**. Los demás idiomas (incluido quechua y aimara) caen al **español** hasta que se traduzcan. |
+| `js/i18n.js` | Texto del enlace del pie (`footer_seguimiento`) en 15 idiomas. |
+| `index.html` | Enlace "Seguimiento de mi reclamo o mensaje" en el pie, columna Transparencia. |
+
+### 12.2 Dónde aparece el seguimiento
+1. Arriba del formulario del **Libro de Reclamaciones** ("¿Ya enviaste uno? Consulta cómo va").
+2. Arriba del formulario de **Comunícate con el Administrador**.
+3. Dentro de la **constancia**, justo después de enviar (con el código ya escrito).
+4. En el **pie de página**.
+
+### 12.3 Cómo se decidió (según las decisiones de la sección 8; confirmar cada una)
+- **Alcance:** reclamos **y** mensajes al administrador.
+- **Segunda clave:** número de documento (reclamo) o correo (mensaje).
+- **Estados que reconoce:** PENDIENTE, EN_REVISION, RESPONDIDO, CERRADO (otro valor se muestra tal cual, escapado).
+- **Límite de intentos:** 5 fallos por código y 20 por persona (IP) cada hora; 0,4 s de espera tras cada fallo.
+- **Qué devuelve la función:** resultado, código, tipo, subtipo, estado, fecha de registro, fecha de respuesta y respuesta. **Nunca** nombre, documento, correo, teléfono ni lo que escribió la persona (se eliminó el "resumen" de la versión anterior).
+- **Largo del código:** no se cambió (4 caracteres al azar). Con segunda clave y límite de intentos, ya no es el secreto.
+
+### 12.4 Qué se probó y qué no
+**Probado (simulado en Node, 29 comprobaciones):** enlaces en los dos formularios, la constancia y el pie; código prellenado y escapado; llamada con `p_codigo`/`p_clave` normalizados (mayúsculas, sin espacios); estado traducido (es/en); respuesta del administrador escapada (XSS); no se muestran datos personales aunque el servidor los enviara; sin respuesta → "Pendiente. Aún no hay respuesta."; no encontrado, demasiados intentos, error y respuesta vacía; botón reactivado; retraducción de la pantalla abierta.
+**No probado:** el SQL (nunca se ejecutó); la función contra Supabase real (nombres de columnas, `to_jsonb`, lectura de `request.headers`, `pg_sleep`); el límite de intentos; la pantalla en navegadores reales; los textos nuevos con hablantes nativos.
+
+### 12.5 Límites y riesgos conocidos
+- **Bloqueo por terceros:** quien conozca un código puede agotar sus 5 intentos y bloquear la consulta de esa persona por una hora (es el precio de frenar la fuerza bruta).
+- **Huella de IP:** se guarda un resumen (md5) de la IP en `seguimiento_intentos` durante 2 días. Hay que decirlo en la política de privacidad. Las IP compartidas (oficinas, redes móviles) pueden consumir el límite de otros.
+- **Quien tenga documento y código** (por ejemplo, alguien que vio el PDF) puede ver la respuesta del administrador.
+- **Respuesta en un solo idioma:** se muestra tal cual la escribió el administrador.
+- **Promesa del mensaje de contacto** ("Te responderemos a tu correo pronto"): sigue pendiente decidir quién responde; si nadie, cambiarla.
+- Si la columna de la fecha de registro de `libro_reclamaciones` no se llama `created_at`, `creado_en`, `fecha_registro` ni `fecha_reclamo`, la fecha saldrá vacía.
+
+### 12.6 Orden para aplicarlo
+1. [ ] Si ya ejecutaste la versión anterior de `seguimiento.sql`: `drop function if exists obtener_seguimiento(text);` **primero** (es la que se podía consultar solo con el código).
+2. [ ] Comprobar que la Fase 1 funciona (un reclamo de prueba devuelve código y constancia).
+3. [ ] Ejecutar el Paso 1 de `seguimiento.sql` (solo lectura) y revisar columnas y restricciones.
+4. [ ] Ejecutar los Pasos 2 a 4 **en una copia** del proyecto; probar con el Paso 5.
+5. [ ] Ejecutarlos en el proyecto real.
+6. [ ] Subir los 4 archivos de la página a GitHub; esperar a Vercel; Ctrl+F5.
+7. [ ] Probar la sección 9, más: el seguimiento desde el formulario, desde la constancia y desde el pie.
+8. [ ] Con una cuenta normal, comprobar que `supabase.from('libro_reclamaciones').select('*')` siga devolviendo vacío o error.
+
+### 12.7 Pendientes
+- [ ] Que el asistente abra la pantalla con "¿cómo va mi reclamo?" (no hecho).
+- [ ] Traducir los 24 textos a los otros 13 idiomas cuando el texto esté definitivo.
+- [ ] Decidir quién lee y responde los mensajes, y el plazo de respuesta (no ponerlo sin confirmar).
+- [ ] Panel de administrador para responder (hoy se responde desde Supabase, sección 5).
+- [ ] Actualizar la política de privacidad (documento, correo, huella de IP).
+
+### 12.8 Resultado de la consulta de columnas (10/10/2026)
+
+Lo que mostró el CSV de `information_schema.columns` y lo que se hizo:
+
+| Hallazgo | Consecuencia |
+|---|---|
+| `mensajes_contacto.codigo` existe (`varchar(40)`) | La Fase 1 sí se ejecutó. |
+| `mensajes_contacto` ya tiene `estado_tramite`, `respuesta_administrador` y `fecha_respuesta` | Se ejecutó la Parte 1-A de la **versión anterior** de `seguimiento.sql`; por tanto la función vieja `obtener_seguimiento(text)` pudo haberse creado. Hay que **borrarla** y comprobar con `pg_proc`. |
+| `mensajes_contacto.codigo_contacto` (`varchar(30)`) | Sobra: la primera versión del archivo la inventó. Comprobar que está vacía y que ningún disparador arma códigos `CA-` antes de borrarla. |
+| `numero_documento` y `telefono` miden `varchar(20)`, `correo_electronico` `varchar(100)` | La función `registrar_reclamo` aceptaba hasta 40, 40 y 200: con textos largos fallaba el INSERT. **Corregido** en `fase1-ajuste-largos.sql` y con `maxlength` en los campos de la página. |
+| `fecha_registro` y `fecha_respuesta` de `libro_reclamaciones` son `timestamp without time zone` | La página las interpretaba como hora local. **Corregido** en `_fechaPantalla` (se leen como UTC). Supone que Supabase guarda en UTC; confirmar con un reclamo de prueba. |
+| `codigo_reclamo` mide `varchar(30)` | Sobra espacio para los 19 caracteres del código. |
+| El CSV no trae `is_nullable` ni `column_default` | Falta saber si `estado_tramite` de `libro_reclamaciones` es obligatorio sin valor por defecto (el INSERT de `registrar_reclamo` no lo llena). |
+
