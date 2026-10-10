@@ -388,6 +388,8 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             if (banner) banner.textContent = tituloS;
             var sCod = document.getElementById('seguimientoCodigo'); if (sCod) sCod.placeholder = t('ph_codigo_seg');
             var sCla = document.getElementById('seguimientoClave'); if (sCla) sCla.placeholder = t('ph_clave_seg');
+            var sEtqC = document.getElementById('seguimientoEtqCodigo'); if (sEtqC) sEtqC.textContent = t('lbl_seg_campo_codigo');
+            this.actualizarEtiquetaClave();
             var sBtn = document.getElementById('seguimientoBtn'); if (sBtn && !sBtn.disabled) sBtn.textContent = t('btn_consultar');
             var sNota = document.getElementById('seguimientoNota'); if (sNota) sNota.textContent = t('seg_nota_privacidad');
             return;
@@ -529,14 +531,32 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     mostrarSeguimiento: function(codigoInicial) {
         var t = this.t.bind(this);
         var estilo = 'width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;';
+        var estiloEtq = 'display:block;font-size:13px;font-weight:600;color:#374151;margin:0 0 4px 2px;';
         UIController.mostrarFormularioEnMuro(t('titulo_seguimiento'), '🔎', '' +
             '<form id="formSeguimiento" onsubmit="Institucional.consultarSeguimiento(event)">' +
-            '<input type="text" id="seguimientoCodigo" placeholder="' + escHtml(t('ph_codigo_seg')) + '" required maxlength="40" autocomplete="off" value="' + escHtml(codigoInicial || '') + '" style="' + estilo + '">' +
+            '<label id="seguimientoEtqCodigo" for="seguimientoCodigo" style="' + estiloEtq + '">' + escHtml(t('lbl_seg_campo_codigo')) + '</label>' +
+            '<input type="text" id="seguimientoCodigo" oninput="Institucional.actualizarEtiquetaClave()" placeholder="' + escHtml(t('ph_codigo_seg')) + '" required maxlength="40" autocomplete="off" value="' + escHtml(codigoInicial || '') + '" style="' + estilo + '">' +
+            '<label id="seguimientoEtqClave" for="seguimientoClave" style="' + estiloEtq + '">' + escHtml(t('lbl_seg_clave_generica')) + '</label>' +
             '<input type="text" id="seguimientoClave" placeholder="' + escHtml(t('ph_clave_seg')) + '" required maxlength="200" autocomplete="off" style="' + estilo + '">' +
             '<button type="submit" id="seguimientoBtn" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + escHtml(t('btn_consultar')) + '</button>' +
             '<div id="seguimientoResultado" style="margin-top:12px;"></div>' +
             '<p id="seguimientoNota" style="margin-top:10px;font-size:12px;color:#6B7280;text-align:center;">' + escHtml(t('seg_nota_privacidad')) + '</p>' +
             '</form>');
+        this.actualizarEtiquetaClave(); // el código puede venir ya escrito (desde la constancia o un formulario)
+    },
+
+    // La etiqueta del segundo campo se adapta al código: LR- = reclamo (número de documento),
+    // MC- = mensaje al administrador (correo). Si aún no hay código, se muestra la explicación general.
+    actualizarEtiquetaClave: function() {
+        var t = this.t.bind(this);
+        var cod = document.getElementById('seguimientoCodigo');
+        var etq = document.getElementById('seguimientoEtqClave');
+        var cla = document.getElementById('seguimientoClave');
+        if (!cod || !etq) return;
+        var prefijo = String(cod.value || '').replace(/\s+/g, '').toUpperCase().slice(0, 2);
+        var clave = prefijo === 'LR' ? 'lbl_seg_clave_reclamo' : (prefijo === 'MC' ? 'lbl_seg_clave_mensaje' : 'lbl_seg_clave_generica');
+        etq.textContent = t(clave);
+        if (cla) cla.setAttribute('inputmode', prefijo === 'MC' ? 'email' : 'text');
     },
 
     consultarSeguimiento: async function(e) {
