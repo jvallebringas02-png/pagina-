@@ -87,6 +87,30 @@ var CHROME_RESULTADOS_I18N = {
     ay: { chrome_resultados_titulo: "Thaqhaña Jaysäwinaka", chrome_resultado_singular: "jaysäwi", chrome_resultado_plural: "jaysäwinaka", chrome_volver_matriz: "← Tablaru kuttaña", chrome_no_encontramos_en: "Akan jani jikxataktanti:", chrome_pero_si_otras_zonas: ", ukampis aka yaqha markanakan jikxataraktanwa:", chrome_filtrado_por: "Akjama jaqukatata:", chrome_hibrida_titulo: "Chikachasita Thaqhaña:", chrome_hibrida_texto: "Marka jaysäwinaka taqi uraqi yatiyäwinakampi tantachtanwa.", chrome_global_titulo: "Taqi Uraqin Thaqhaña:", chrome_global_texto: "Jaqllankaru jani jaysäwinak jikxataktanti, ukampis taqi uraqi akllanaka uñacht'ayapxsma.", chrome_mostrando_resultados_de: "Akat jaysäwinak uñacht'ayasi:", chrome_orden_barato_caro: "Pisi chaninat jach'a chanikam wakichata", chrome_orden_caro_barato: "Jach'a chaninat pisi chanikam wakichata", chrome_disponible: "Utji", chrome_patrocinado: "Yanapata", chrome_zona_lejana: "Jaya markana", chrome_referencia_global: "Taqi Uraqin Yatiyäwi", chrome_contactar: "Aruskipaña", chrome_reportar: "Yatiyaña", chrome_esto_hay_ciudad: "Akaw markamana utji", chrome_esto_hay_pais: "Akaw jach'a markamana utji (markamansti janïr kunas utjkänti)", chrome_tu_zona: "Markama", chrome_categoria_singular: "categoría", chrome_categoria_plural: "categoríanaka", chrome_sin_publicaciones_zona: "Markamansti janïr uchjatanak utjkiti. ¿Nayrïri uchjiri kañ munta?", chrome_ver_detalles: "Yatxataña Uñjaña", chrome_resultados_para: " Akat jaysäwinaka:" },
 };
 
+// Textos de la matriz por niveles (UIController.mostrarMatrizNiveles). {lugar} se reemplaza por el nombre del
+// país. Quechua y aimara no tienen entrada: obtenerTextoChrome cae a español hasta que los revise un
+// hablante nativo. Traducido con IA el 10/10/2026; pendiente de revisión humana.
+(function() {
+    var matriz = {
+        es: { chrome_matriz_mundial: "Matriz mundial", chrome_matriz_de: "Matriz de {lugar}", chrome_cat_por_ciudad_en: "Categorías por ciudad en {lugar}", chrome_cat_por_pais: "Categorías por país (mundial)", chrome_volver: "← Volver", chrome_sin_pub_matriz: "Todavía no hay publicaciones para armar esta matriz." },
+        en: { chrome_matriz_mundial: "World matrix", chrome_matriz_de: "Matrix of {lugar}", chrome_cat_por_ciudad_en: "Categories by city in {lugar}", chrome_cat_por_pais: "Categories by country (worldwide)", chrome_volver: "← Back", chrome_sin_pub_matriz: "There are no listings yet to build this matrix." },
+        pt: { chrome_matriz_mundial: "Matriz mundial", chrome_matriz_de: "Matriz de {lugar}", chrome_cat_por_ciudad_en: "Categorias por cidade em {lugar}", chrome_cat_por_pais: "Categorias por país (mundial)", chrome_volver: "← Voltar", chrome_sin_pub_matriz: "Ainda não há publicações para montar esta matriz." },
+        fr: { chrome_matriz_mundial: "Matrice mondiale", chrome_matriz_de: "Matrice : {lugar}", chrome_cat_por_ciudad_en: "Catégories par ville : {lugar}", chrome_cat_por_pais: "Catégories par pays (monde)", chrome_volver: "← Retour", chrome_sin_pub_matriz: "Il n'y a pas encore d'annonces pour construire cette matrice." },
+        de: { chrome_matriz_mundial: "Weltweite Matrix", chrome_matriz_de: "Matrix: {lugar}", chrome_cat_por_ciudad_en: "Kategorien nach Stadt in {lugar}", chrome_cat_por_pais: "Kategorien nach Land (weltweit)", chrome_volver: "← Zurück", chrome_sin_pub_matriz: "Es gibt noch keine Anzeigen, um diese Matrix zu erstellen." },
+        it: { chrome_matriz_mundial: "Matrice mondiale", chrome_matriz_de: "Matrice di {lugar}", chrome_cat_por_ciudad_en: "Categorie per città in {lugar}", chrome_cat_por_pais: "Categorie per paese (mondiale)", chrome_volver: "← Indietro", chrome_sin_pub_matriz: "Non ci sono ancora annunci per creare questa matrice." },
+        ru: { chrome_matriz_mundial: "Мировая матрица", chrome_matriz_de: "Матрица: {lugar}", chrome_cat_por_ciudad_en: "Категории по городам: {lugar}", chrome_cat_por_pais: "Категории по странам (весь мир)", chrome_volver: "← Назад", chrome_sin_pub_matriz: "Пока нет публикаций для построения этой матрицы." },
+        zh: { chrome_matriz_mundial: "全球分类表", chrome_matriz_de: "{lugar}分类表", chrome_cat_por_ciudad_en: "{lugar}各城市的分类", chrome_cat_por_pais: "按国家划分的分类（全球）", chrome_volver: "← 返回", chrome_sin_pub_matriz: "目前还没有足够的发布内容来生成此分类表。" },
+        ja: { chrome_matriz_mundial: "世界の一覧", chrome_matriz_de: "{lugar}の一覧", chrome_cat_por_ciudad_en: "{lugar}の都市別カテゴリ", chrome_cat_por_pais: "国別カテゴリ（世界）", chrome_volver: "← 戻る", chrome_sin_pub_matriz: "この一覧を作成するための投稿はまだありません。" },
+        ko: { chrome_matriz_mundial: "전 세계 목록", chrome_matriz_de: "{lugar} 목록", chrome_cat_por_ciudad_en: "{lugar} 도시별 카테고리", chrome_cat_por_pais: "국가별 카테고리(전 세계)", chrome_volver: "← 뒤로", chrome_sin_pub_matriz: "이 목록을 만들 게시물이 아직 없습니다." },
+        ar: { chrome_matriz_mundial: "الجدول العالمي", chrome_matriz_de: "جدول {lugar}", chrome_cat_por_ciudad_en: "الفئات حسب المدينة في {lugar}", chrome_cat_por_pais: "الفئات حسب البلد (عالميًا)", chrome_volver: "← رجوع", chrome_sin_pub_matriz: "لا توجد منشورات بعد لإنشاء هذا الجدول." },
+        hi: { chrome_matriz_mundial: "विश्व सूची", chrome_matriz_de: "{lugar} की सूची", chrome_cat_por_ciudad_en: "{lugar} में शहर के अनुसार श्रेणियाँ", chrome_cat_por_pais: "देश के अनुसार श्रेणियाँ (विश्वव्यापी)", chrome_volver: "← वापस", chrome_sin_pub_matriz: "इस सूची को बनाने के लिए अभी कोई विज्ञापन नहीं है।" },
+        nl: { chrome_matriz_mundial: "Wereldwijd overzicht", chrome_matriz_de: "Overzicht van {lugar}", chrome_cat_por_ciudad_en: "Categorieën per stad in {lugar}", chrome_cat_por_pais: "Categorieën per land (wereldwijd)", chrome_volver: "← Terug", chrome_sin_pub_matriz: "Er zijn nog geen advertenties om dit overzicht op te bouwen." },
+        tr: { chrome_matriz_mundial: "Dünya listesi", chrome_matriz_de: "{lugar} listesi", chrome_cat_por_ciudad_en: "{lugar} şehirlerine göre kategoriler", chrome_cat_por_pais: "Ülkeye göre kategoriler (dünya geneli)", chrome_volver: "← Geri", chrome_sin_pub_matriz: "Bu listeyi oluşturmak için henüz ilan yok." },
+        bg: { chrome_matriz_mundial: "Световна таблица", chrome_matriz_de: "Таблица: {lugar}", chrome_cat_por_ciudad_en: "Категории по градове в {lugar}", chrome_cat_por_pais: "Категории по държави (в света)", chrome_volver: "← Назад", chrome_sin_pub_matriz: "Все още няма публикации, с които да се състави тази таблица." }
+    };
+    for (var l in matriz) { if (CHROME_RESULTADOS_I18N[l]) Object.assign(CHROME_RESULTADOS_I18N[l], matriz[l]); }
+})();
+
 var CATEGORIAS_I18N = {
     es: { "Tecnología": "Tecnología", "Hogar": "Hogar", "Ropa": "Ropa", "Deportes": "Deportes", "Vehículos": "Vehículos", "Transporte": "Transporte", "Agro": "Agro", "Servicios": "Servicios", "Libros": "Libros", "Otros": "Otros" },
     en: { "Tecnología": "Technology", "Hogar": "Home", "Ropa": "Clothing", "Deportes": "Sports", "Vehículos": "Vehicles", "Transporte": "Transport", "Agro": "Agriculture", "Servicios": "Services", "Libros": "Books", "Otros": "Other" },
@@ -143,6 +167,43 @@ function traducirModalidad(valorEs) {
     var lang = obtenerIdiomaPreferido();
     var dic = MODALIDADES_I18N[lang] || MODALIDADES_I18N['es'];
     return dic[valorEs] || valorEs;
+}
+
+// Nombre de un país (guardado en español, ej. "Perú") en el idioma actual, usando la traducción del
+// propio navegador (Intl.DisplayNames). Si no se puede (idioma es/qu/ay, navegador sin Intl o país no
+// reconocido) devuelve el nombre original, así que nunca rompe lo que se pinta.
+var _mapaPaisesEs = null;
+function _normalizarNombrePais(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').trim().toLowerCase();
+}
+function _construirMapaPaises() {
+    var mapa = {};
+    try {
+        var dn = new Intl.DisplayNames(['es'], { type: 'region' });
+        var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (var i = 0; i < 26; i++) {
+            for (var j = 0; j < 26; j++) {
+                var cod = A.charAt(i) + A.charAt(j);
+                var n = dn.of(cod);
+                if (n && n !== cod) mapa[_normalizarNombrePais(n)] = cod;
+            }
+        }
+    } catch (e) {}
+    // Nombres alternativos frecuentes (se escribieron a mano o vienen de la IP del visitante).
+    var alias = { 'eeuu': 'US', 'ee uu': 'US', 'usa': 'US', 'estados unidos de america': 'US', 'uk': 'GB', 'republica checa': 'CZ' };
+    for (var a in alias) { if (!mapa[a]) mapa[a] = alias[a]; }
+    return mapa;
+}
+function traducirPais(nombreEs) {
+    var lang = obtenerIdiomaPreferido();
+    if (!nombreEs || lang === 'es' || lang === 'qu' || lang === 'ay') return nombreEs;
+    try {
+        if (typeof Intl === 'undefined' || !Intl.DisplayNames) return nombreEs;
+        if (!_mapaPaisesEs) _mapaPaisesEs = _construirMapaPaises();
+        var cod = _mapaPaisesEs[_normalizarNombrePais(nombreEs)];
+        if (!cod) return nombreEs;
+        return new Intl.DisplayNames([lang], { type: 'region' }).of(cod) || nombreEs;
+    } catch (e) { return nombreEs; }
 }
 
 // ============================================
