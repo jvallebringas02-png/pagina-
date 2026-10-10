@@ -27,6 +27,7 @@ var AIService = {
         var datos = this._parsearRespuesta(null); // objeto "vacío" estándar (fallo técnico)
         datos.mensaje_chat = textoUI('ia_limite', 'El asistente llegó a su límite de uso por ahora, así que no responderá durante un rato. Mientras tanto puedes buscar por nombre o usar los accesos rápidos de la barra lateral.');
         datos._limite = true;
+        if (this.MOSTRAR_CODIGO_ERROR && this._motivoLimite) datos.mensaje_chat += ' (código: ' + this._motivoLimite + ')';
         datos.resultados_web = null;
         datos.resultados_videos = null;
         return datos;
@@ -76,7 +77,10 @@ var AIService = {
                 var response = await fetch(CONFIG.GROQ_API_URL, { method: 'POST', headers: { "Content-Type": "application/json", "apikey": MI_API_KEY, "Authorization": "Bearer " + MI_API_KEY }, body: cuerpoPeticion });
                 var data = null;
                 try { data = await response.json(); } catch (eJson) { data = null; }
-                if (response.status === 429 || (data && data.error === 'limite_alcanzado')) limiteAlcanzado = true;
+                if (response.status === 429 || (data && data.error === 'limite_alcanzado')) {
+                    limiteAlcanzado = true;
+                    motivoFallo = AIService._describirFallo(response.status, data);
+                }
                 textoBruto = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
                 // El servidor (función chat-ia) ya ejecuta la búsqueda real en internet/YouTube
                 // cuando la IA decide usar sus herramientas, y la manda en la misma respuesta --
@@ -98,6 +102,8 @@ var AIService = {
             await new Promise(function(listo) { setTimeout(listo, AIService.REINTENTO_ESPERA_MS); });
         }
         if (limiteAlcanzado) {
+            this._motivoLimite = motivoFallo;
+            console.warn('[asistente] límite de la IA:', motivoFallo);
             this._limiteHasta = Date.now() + 60000;
             this.historial.pop(); // el mensaje que no se pudo contestar no queda en el historial
             return this._respuestaLimite();
