@@ -181,22 +181,36 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     mostrarMatrizNiveles: function(matriz) { this.limpiarPaginacionVieja(); this.formularioAbierto = false;
         this._matrizActual = matriz; this._vistaActual = 'matriz_niveles';
         this.elementos.searchBreadcrumb.style.display = 'flex';
-        this.elementos.searchQuery.textContent = matriz.nivel === 'pais' ? ('Matriz de ' + matriz.lugar) : 'Matriz mundial';
-        this.elementos.resultCount.textContent = matriz.filas.length + (matriz.filas.length === 1 ? ' categoría' : ' categorías');
+        // Solo se traduce lo que se VE; los valores en español quedan en data-fila / data-col (abajo),
+        // porque con ellos se hace la búsqueda al pulsar una celda.
+        var _esPais = matriz.nivel === 'pais';
+        var _lugar = _esPais ? traducirPais(matriz.lugar) : '';
+        var _conLugar = function(clave) { return obtenerTextoChrome(clave).replace('{lugar}', function() { return _lugar; }); };
+        this.elementos.searchQuery.textContent = _esPais ? _conLugar('chrome_matriz_de') : obtenerTextoChrome('chrome_matriz_mundial');
+        this.elementos.resultCount.textContent = matriz.filas.length + ' ' + obtenerTextoChrome(matriz.filas.length === 1 ? 'chrome_categoria_singular' : 'chrome_categoria_plural');
         this.elementos.catalogContainer.style.display = 'none';
         this.elementos.searchResultsContainer.style.display = 'block';
         this.elementos.contentTitle.textContent = ' ' + obtenerTextoChrome('chrome_resultados_titulo');
-        var titulo = matriz.nivel === 'pais' ? ('Categorías por ciudad en ' + escHtml(matriz.lugar)) : 'Categorías por país (mundial)';
-        var volverHtml = this._matrizPila.length ? '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverMatrizAnterior();">← Volver</a></div>' : '';
+        var titulo = escHtml(_esPais ? _conLugar('chrome_cat_por_ciudad_en') : obtenerTextoChrome('chrome_cat_por_pais'));
+        var volverHtml = this._matrizPila.length ? '<div style="padding:6px 4px;"><a href="#" onclick="event.preventDefault();UIController.volverMatrizAnterior();">' + escHtml(obtenerTextoChrome('chrome_volver')) + '</a></div>' : '';
         if (!matriz.filas.length || !matriz.columnas.length) {
-            this.elementos.searchResultsContent.innerHTML = volverHtml + '<div class="ai-context-banner">📊 <strong>' + titulo + '</strong></div><div style="text-align:center;padding:40px;"><p>Todavía no hay publicaciones para armar esta matriz.</p></div>';
+            this.elementos.searchResultsContent.innerHTML = volverHtml + '<div class="ai-context-banner">📊 <strong>' + titulo + '</strong></div><div style="text-align:center;padding:40px;"><p>' + escHtml(obtenerTextoChrome('chrome_sin_pub_matriz')) + '</p></div>';
             return;
         }
         var html = volverHtml + '<div class="ai-context-banner">📊 <strong>' + titulo + '</strong></div>';
         html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;">';
-        html += '<tr><th style="text-align:left;padding:10px;background:#F3F4F6;"></th>' + matriz.columnas.map(function(c) { return '<th style="padding:10px;background:#F3F4F6;text-align:center;">' + escHtml(c) + '</th>'; }).join('') + '</tr>';
+        html += '<tr><th style="text-align:left;padding:10px;background:#F3F4F6;"></th>' + matriz.columnas.map(function(c) {
+            // Países: idioma de la persona, con el nombre en español al pasar el cursor. Ciudades: tal cual.
+            var ct = matriz.columnaTipo === 'pais' ? traducirPais(c) : c;
+            var tt = (ct !== c) ? ' title="' + escVal(c) + '"' : '';
+            return '<th' + tt + ' style="padding:10px;background:#F3F4F6;text-align:center;">' + escHtml(ct) + '</th>';
+        }).join('') + '</tr>';
         html += matriz.filas.map(function(fila) {
-            return '<tr><td style="padding:10px;font-weight:600;border-top:1px solid #E5E7EB;">' + escHtml(fila) + '</td>' +
+            // Categoría en el idioma de la persona y, si es distinta, el español pequeño debajo (las publicaciones
+            // y las búsquedas siguen en español). En español, o si no hay traducción, no se duplica nada.
+            var catT = traducirCategoria(fila);
+            var sub = (catT !== fila) ? '<div style="font-size:11px;font-weight:400;color:#6B7280;">' + escHtml(fila) + '</div>' : '';
+            return '<tr><td style="padding:10px;font-weight:600;border-top:1px solid #E5E7EB;">' + escHtml(catT) + sub + '</td>' +
                 matriz.columnas.map(function(col) {
                     var n = (matriz.datos[fila] && matriz.datos[fila][col]) || 0;
                     if (!n) return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;color:#D1D5DB;">-</td>';
