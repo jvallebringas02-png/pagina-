@@ -380,6 +380,18 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         var t = this.t.bind(this);
         var banner = UIController.elementos.searchResultsContent && UIController.elementos.searchResultsContent.querySelector('.ai-context-banner strong');
 
+        var enlaceSeg = document.getElementById('linkSeguimientoForm');
+        if (enlaceSeg) enlaceSeg.textContent = '🔎 ' + t('link_seguimiento');
+        if (document.getElementById('formSeguimiento')) {
+            var tituloS = t('titulo_seguimiento');
+            UIController.elementos.searchQuery.textContent = tituloS;
+            if (banner) banner.textContent = tituloS;
+            var sCod = document.getElementById('seguimientoCodigo'); if (sCod) sCod.placeholder = t('ph_codigo_seg');
+            var sCla = document.getElementById('seguimientoClave'); if (sCla) sCla.placeholder = t('ph_clave_seg');
+            var sBtn = document.getElementById('seguimientoBtn'); if (sBtn && !sBtn.disabled) sBtn.textContent = t('btn_consultar');
+            var sNota = document.getElementById('seguimientoNota'); if (sNota) sNota.textContent = t('seg_nota_privacidad');
+            return;
+        }
         if (document.getElementById('formContactoAdmin')) {
             var tituloC = t('titulo_contacto');
             UIController.elementos.searchQuery.textContent = tituloC;
@@ -495,14 +507,118 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         }
     },
 
+    // ---------- Seguimiento del reclamo y del mensaje al administrador ----------
+    // La persona escribe el CÓDIGO que recibió y una SEGUNDA CLAVE (su número de documento si fue un
+    // reclamo, su correo si fue un mensaje al administrador). La consulta pasa por la función
+    // obtener_seguimiento(p_codigo, p_clave) de Supabase (seguimiento.sql), que devuelve solo estado,
+    // fechas y la respuesta del administrador -- nunca datos personales ni lo que la persona escribió.
+    // Si el código no existe o la clave no coincide, la respuesta es la misma (no se revela cuáles existen).
+    _enlaceSeguimientoHtml: function() {
+        return '<div style="margin-bottom:12px;padding:10px 12px;background:#F3F4F6;border-radius:8px;font-size:13px;">' +
+            '<a href="#" id="linkSeguimientoForm" onclick="Institucional.iniciarSeguimiento(); return false;" style="color:#7C3AED;font-weight:600;text-decoration:none;">🔎 ' +
+            escHtml(this.t('link_seguimiento')) + '</a></div>';
+    },
+
+    // Si la persona acaba de enviar algo (hay constancia en pantalla), el código ya viene escrito.
+    iniciarSeguimiento: function() {
+        var codigo = (this._constanciaActual && this._constanciaActual.codigo) || '';
+        UIController.mostrarRespuestaIA(this.t('msg_seguimiento'));
+        this.mostrarSeguimiento(codigo);
+    },
+
+    mostrarSeguimiento: function(codigoInicial) {
+        var t = this.t.bind(this);
+        var estilo = 'width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;';
+        UIController.mostrarFormularioEnMuro(t('titulo_seguimiento'), '🔎', '' +
+            '<form id="formSeguimiento" onsubmit="Institucional.consultarSeguimiento(event)">' +
+            '<input type="text" id="seguimientoCodigo" placeholder="' + escHtml(t('ph_codigo_seg')) + '" required maxlength="40" autocomplete="off" value="' + escHtml(codigoInicial || '') + '" style="' + estilo + '">' +
+            '<input type="text" id="seguimientoClave" placeholder="' + escHtml(t('ph_clave_seg')) + '" required maxlength="200" autocomplete="off" style="' + estilo + '">' +
+            '<button type="submit" id="seguimientoBtn" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + escHtml(t('btn_consultar')) + '</button>' +
+            '<div id="seguimientoResultado" style="margin-top:12px;"></div>' +
+            '<p id="seguimientoNota" style="margin-top:10px;font-size:12px;color:#6B7280;text-align:center;">' + escHtml(t('seg_nota_privacidad')) + '</p>' +
+            '</form>');
+    },
+
+    consultarSeguimiento: async function(e) {
+        e.preventDefault();
+        var t = this.t.bind(this);
+        var boton = document.getElementById('seguimientoBtn');
+        var salida = document.getElementById('seguimientoResultado');
+        var codigo = document.getElementById('seguimientoCodigo').value.replace(/\s+/g, '').toUpperCase();
+        var clave = document.getElementById('seguimientoClave').value.trim();
+        // Se desactiva el botón mientras consulta, para no gastar intentos con dobles clics.
+        boton.disabled = true;
+        boton.textContent = t('seg_consultando');
+        salida.innerHTML = '';
+        try {
+            var { data, error } = await supabase.rpc('obtener_seguimiento', { p_codigo: codigo, p_clave: clave });
+            if (error) throw error;
+            var res = Array.isArray(data) ? data[0] : data;
+            if (!res || !res.resultado) throw new Error('obtener_seguimiento no devolvió un resultado');
+            if (res.resultado === 'ok') {
+                salida.innerHTML = this.htmlSeguimiento(res);
+            } else if (res.resultado === 'demasiados_intentos') {
+                salida.innerHTML = '<p style="color:#B45309;text-align:center;">' + escHtml(t('seg_demasiados')) + '</p>';
+            } else {
+                salida.innerHTML = '<p style="color:#B91C1C;text-align:center;">' + escHtml(t('seg_no_encontrado')) + '</p>';
+            }
+        } catch (err) {
+            console.error('remarket-db: no se pudo consultar el seguimiento', err);
+            salida.innerHTML = '<p style="color:#B91C1C;text-align:center;">' + escHtml(t('seg_error')) + '</p>';
+        }
+        boton.disabled = false;
+        boton.textContent = t('btn_consultar');
+    },
+
+    _fechaPantalla: function(iso) {
+        if (!iso) return '';
+        var texto = String(iso);
+        // libro_reclamaciones guarda fecha_registro y fecha_respuesta SIN zona horaria (timestamp sin tz):
+        // llegan como "2026-10-08T23:41:00" y el navegador las tomaría como hora local. Se interpretan como UTC.
+        if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(texto)) texto = texto.replace(' ', 'T') + 'Z';
+        var d = new Date(texto);
+        if (isNaN(d.getTime())) return '';
+        try { return d.toLocaleString(obtenerIdiomaPreferido(), { dateStyle: 'medium', timeStyle: 'short' }); }
+        catch (err) { return d.toLocaleString(); }
+    },
+
+    // Todo lo que viene del servidor (incluida la respuesta del administrador) pasa por escHtml.
+    htmlSeguimiento: function(res) {
+        var t = this.t.bind(this);
+        var etiquetasEstado = { PENDIENTE: 'est_pendiente', EN_REVISION: 'est_en_revision', RESPONDIDO: 'est_respondido', CERRADO: 'est_cerrado' };
+        var claveEstado = String(res.estado || '').toUpperCase().replace(/[\s-]+/g, '_');
+        var textoEstado = etiquetasEstado[claveEstado] ? t(etiquetasEstado[claveEstado]) : String(res.estado || '');
+        var tiposReclamo = { reclamo: 'opt_reclamo', queja: 'opt_queja', reporte: 'opt_reporte' };
+        var subtipo = String(res.subtipo || '').toLowerCase();
+        var textoTipo = res.tipo === 'contacto' ? t('seg_tipo_contacto') : (tiposReclamo[subtipo] ? t(tiposReclamo[subtipo]) : t('seg_tipo_reclamo'));
+        function fila(etq, valor) {
+            if (!valor) return '';
+            return '<tr><th style="width:36%;text-align:left;background:#F9FAFB;border:1px solid #D1D5DB;padding:6px 8px;font-size:13px;">' + escHtml(etq) +
+                '</th><td style="border:1px solid #D1D5DB;padding:6px 8px;font-size:13px;">' + escHtml(valor) + '</td></tr>';
+        }
+        var filas = fila(t('lbl_seg_codigo'), res.codigo) + fila(t('lbl_seg_tipo'), textoTipo) +
+            fila(t('lbl_seg_registrado'), this._fechaPantalla(res.fecha_registro)) + fila(t('lbl_seg_estado'), textoEstado);
+        var respuesta;
+        if (res.respuesta && String(res.respuesta).trim()) {
+            var cuando = this._fechaPantalla(res.fecha_respuesta);
+            respuesta = '<div style="margin-top:12px;padding:12px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;">' +
+                '<div style="font-weight:600;font-size:13px;margin-bottom:6px;">' + escHtml(t('lbl_seg_respuesta')) + (cuando ? ' · ' + escHtml(cuando) : '') + '</div>' +
+                '<div style="white-space:pre-wrap;word-break:break-word;font-size:14px;">' + escHtml(String(res.respuesta)) + '</div></div>';
+        } else {
+            respuesta = '<p style="margin-top:12px;text-align:center;color:#6B7280;">' + escHtml(t('seg_sin_respuesta')) + '</p>';
+        }
+        return '<table style="width:100%;border-collapse:collapse;">' + filas + '</table>' + respuesta;
+    },
+
     // ---------- Comunícate con el Admin ----------
     mostrarContactoAdmin: function() {
         var t = this.t.bind(this);
-        UIController.mostrarFormularioEnMuro(t('titulo_contacto'), '📩', '' +
+        this._constanciaActual = null;
+        UIController.mostrarFormularioEnMuro(t('titulo_contacto'), '📩', this._enlaceSeguimientoHtml() +
             '<form id="formContactoAdmin" onsubmit="Institucional.enviarContacto(event)">' +
-            '<input type="text" id="contactoNombre" placeholder="' + t('ph_nombre') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="email" id="contactoEmail" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<textarea id="contactoMensaje" placeholder="' + t('ph_mensaje') + '" required rows="4" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<input type="text" id="contactoNombre" maxlength="120" placeholder="' + t('ph_nombre') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="email" id="contactoEmail" maxlength="200" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<textarea id="contactoMensaje" maxlength="2000" placeholder="' + t('ph_mensaje') + '" required rows="4" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
             '<button type="submit" id="contactoBtnEnviar" style="width:100%;padding:12px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + t('btn_enviar_mensaje') + '</button>' +
             '<div id="contactoEstado" style="margin-top:10px;text-align:center;"></div>' +
             '</form>');
@@ -550,17 +666,18 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         var tipoSel = (prefill && prefill.tipo) || '';
         var bienVal = (prefill && prefill.bien) ? escHtml(prefill.bien) : '';
         function opt(valor, texto) { return '<option value="' + valor + '"' + (tipoSel === valor ? ' selected' : '') + '>' + texto + '</option>'; }
-        UIController.mostrarFormularioEnMuro(t('titulo_reclamo'), '📋', '' +
+        this._constanciaActual = null;
+        UIController.mostrarFormularioEnMuro(t('titulo_reclamo'), '📋', this._enlaceSeguimientoHtml() +
             '<form id="formReclamo" onsubmit="Institucional.enviarReclamo(event)">' +
             '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">' + t('ph_tipo') + '</option>' + opt('reclamo', t('opt_reclamo')) + opt('queja', t('opt_queja')) + opt('reporte', t('opt_reporte')) + '</select>' +
-            '<input type="text" id="reclamoNombre" placeholder="' + t('ph_nombre_completo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoDocumento" placeholder="' + t('ph_documento') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="email" id="reclamoEmail" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoTelefono" placeholder="' + t('ph_telefono') + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<input type="text" id="reclamoBien" placeholder="' + t('ph_bien') + '" required value="' + bienVal + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoNombre" maxlength="150" placeholder="' + t('ph_nombre_completo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoDocumento" maxlength="20" placeholder="' + t('ph_documento') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="email" id="reclamoEmail" maxlength="100" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoTelefono" maxlength="20" placeholder="' + t('ph_telefono') + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<input type="text" id="reclamoBien" maxlength="300" placeholder="' + t('ph_bien') + '" required value="' + bienVal + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoMonto" placeholder="' + t('ph_monto') + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
-            '<textarea id="reclamoDetalle" placeholder="' + t('ph_detalle') + '" required rows="3" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
-            '<textarea id="reclamoPedido" placeholder="' + t('ph_pedido') + '" required rows="2" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<textarea id="reclamoDetalle" maxlength="3000" placeholder="' + t('ph_detalle') + '" required rows="3" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
+            '<textarea id="reclamoPedido" maxlength="1500" placeholder="' + t('ph_pedido') + '" required rows="2" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"></textarea>' +
             '<button type="submit" id="reclamoBtnEnviar" style="width:100%;padding:12px;background:#DC2626;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + t('btn_registrar') + '</button>' +
             '<div id="reclamoEstado" style="margin-top:10px;text-align:center;"></div>' +
             '</form>');
@@ -732,7 +849,8 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             '<p style="text-align:center;color:#059669;">' + textoExito + '</p>' +
             '<div style="border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin:10px 0;">' + cuerpo + '</div>' +
             '<button type="button" onclick="Institucional.imprimirConstancia()" style="width:100%;padding:12px;background:#111827;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + escHtml(t('btn_guardar_pdf')) + '</button>' +
-            '<p style="margin-top:8px;font-size:12px;color:#6B7280;text-align:center;">' + escHtml(t('msg_guarda_codigo')) + '</p>';
+            '<p style="margin-top:8px;font-size:12px;color:#6B7280;text-align:center;">' + escHtml(t('msg_guarda_codigo')) + '</p>' +
+            '<p style="margin-top:10px;text-align:center;"><a href="#" onclick="Institucional.iniciarSeguimiento(); return false;" style="color:#7C3AED;font-weight:600;text-decoration:none;">' + escHtml(t('seg_link_constancia')) + '</a></p>';
     },
 
     // Abre la impresión del navegador SOLO con la constancia (no con la página entera). El título
