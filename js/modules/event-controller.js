@@ -187,12 +187,12 @@ var EventController = {
         var panelActivoChat = document.getElementById('userPanelView').classList.contains('active');
         try {
             if (panelActivoChat) {
-                // El panel de usuario todavía interpreta el formato de texto viejo -- se le
-                // sigue hablando con AIService.enviarMensaje() tal cual, sin tocar su lógica.
-                var respuestaTextoPanel = await AIService.enviarMensaje(mensaje);
+                // BITACORA-ASISTENTE-PANEL.md, sección 4: el panel ya usa el mismo camino
+                // estructurado que la página principal, en vez de leer un texto con [ACCION: ...].
+                var datosPanel = await AIService.enviarMensajeEstructurado(mensaje);
                 UIController.quitarEstadoCarga();
-                UIController.mostrarRespuestaIA(respuestaTextoPanel);
-                await PanelUsuario.procesarAccionEnFeed(respuestaTextoPanel, mensaje);
+                UIController.mostrarRespuestaIA(datosPanel.mensaje_chat);
+                await PanelUsuario.procesarAccionEnFeed(datosPanel, mensaje);
             } else {
                 var datos = await AIService.enviarMensajeEstructurado(mensaje);
                 UIController.quitarEstadoCarga();

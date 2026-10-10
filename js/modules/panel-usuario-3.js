@@ -1735,42 +1735,49 @@ Object.assign(PanelUsuario, {
     ejecutarBusquedaConIA: async function(query) {
         var container = document.getElementById('userFeedContainer');
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 El Asistente IA está pensando...</p></div>';
-        var respuestaIA = await AIService.enviarMensaje(query);
-        var esError = respuestaIA === 'Error al conectar con la IA.' || respuestaIA === 'Error de conexión.';
-        if (esError) {
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>No pude conectarme con el Asistente en este momento. Intenta de nuevo en unos segundos.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+        // BITACORA-ASISTENTE-PANEL.md, sección 4: mismo camino estructurado que la página
+        // principal. "_fallo_tecnico" es ahora la única forma confiable de detectar que no hubo
+        // respuesta real (antes se comparaba con textos fijos que ya no existían en ningún
+        // archivo, así que el aviso de error nunca salía y el feed se recargaba en silencio).
+        var datos = await AIService.enviarMensajeEstructurado(query);
+        if (datos._fallo_tecnico) {
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>' + this.escHtml(datos.mensaje_chat || 'No pude conectarme con el Asistente en este momento. Intenta de nuevo en unos segundos.') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
             return;
         }
-        var manejada = await this.procesarAccionEnFeed(respuestaIA, query);
+        var manejada = await this.procesarAccionEnFeed(datos, query);
         // Igual que en la página principal: la respuesta de texto de la IA siempre se muestra en
         // el chat del Asistente, sin importar si además actualizó el feed con resultados o no.
-        if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(respuestaIA, 'assistant');
+        if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(datos.mensaje_chat, 'assistant');
         if (!manejada) {
             this.cargarFeed();
         }
     },
 
-    // Interpreta la etiqueta [ACCION: ...] de una respuesta de la IA y actualiza el feed del panel
-    // en consecuencia. Recibe la respuesta YA generada (no llama de nuevo a la IA), para que tanto
-    // el buscador de arriba (ejecutarBusquedaConIA) como el chat lateral del asistente -- que antes
-    // pintaba los resultados en una parte de la página principal oculta mientras estás en el panel,
-    // por eso la IA "contestaba bien" pero el feed no cambiaba -- compartan el mismo resultado final.
+    // Lee el objeto "datos" ya estructurado (AIService.enviarMensajeEstructurado) y actualiza el
+    // feed del panel en consecuencia -- ya no hace falta interpretar ninguna etiqueta de texto
+    // (BITACORA-ASISTENTE-PANEL.md, sección 4). Recibe los datos YA generados (no llama de nuevo
+    // a la IA), para que tanto el buscador de arriba (ejecutarBusquedaConIA) como el chat lateral
+    // del asistente -- que antes pintaba los resultados en una parte de la página principal
+    // oculta mientras estás en el panel, por eso la IA "contestaba bien" pero el feed no
+    // cambiaba -- compartan el mismo resultado final.
     // Devuelve true si reconoció y manejó la acción, false si era una respuesta conversacional
     // (para que cada quien decida qué hacer en ese caso: el buscador reinicia el feed, el chat no).
-    procesarAccionEnFeed: async function(respuestaIA, query) {
-        var accionMatch = respuestaIA.match(/\[ACCION:\s*([^\]\|]+)/i);
-        var accion = accionMatch ? accionMatch[1].trim().toUpperCase() : '';
+    procesarAccionEnFeed: async function(datos, query) {
+        var accion = datos.accion;
         if (typeof detectarIntencionExplorarLocalidad === 'function' && detectarIntencionExplorarLocalidad(query)) {
             accion = 'EXPLORAR_LOCALIDAD';
         }
         if (typeof detectarIntencionQuienesSomos === 'function' && detectarIntencionQuienesSomos(query)) {
             accion = 'QUIENES_SOMOS';
         }
+        // Mismos filtros que usa la página principal (event-controller.js) -- antes el panel los
+        // ignoraba por completo, así que "lo más barato cerca de mí" o "solo trueque" se
+        // buscaban sin orden, sin ubicación ni modalidad.
+        var opciones = { orden: datos.orden || null, ubicacionPropia: datos.ubicacion === 'propia', modalidad: datos.modalidad || null };
 
         if (accion === 'BUSCAR') {
-            var prodMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
-            var producto = prodMatch ? prodMatch[1].trim() : query;
-            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto);
+            var producto = datos.producto || query;
+            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto, opciones);
             await this.renderResultadoBusquedaEnFeed(resultado);
         } else if (accion === 'EXPLORAR_LOCALIDAD') {
             await this.renderMatrizLocalidadEnFeed(BuscadorMotor.obtenerMatrizPorLocalidad());
@@ -1780,34 +1787,31 @@ Object.assign(PanelUsuario, {
             contQuienesSomos.innerHTML = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌱 Sobre remarket-db · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>' +
                 '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + this.escHtml(textoQuienesSomos) + '</div>';
         } else if (accion === 'CATEGORIA') {
-            var catMatch = respuestaIA.match(/CATEGORIA:\s*([^\|\]]+)/i);
-            var categoria = catMatch ? catMatch[1].trim() : query;
-            var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria);
+            var categoria = datos.categoria || query;
+            var resultadoCat = await BuscadorMotor.ejecutarBusquedaHibrida(categoria, opciones);
             await this.renderResultadoBusquedaEnFeed(resultadoCat);
         } else if (accion === 'LISTAR_CATEGORIAS') {
             this.renderCategoriasEnFeed(BuscadorMotor.obtenerCategoriasDisponibles());
         } else if (accion === 'VIDEO') {
-            var videoMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
-            var temaVideo = videoMatch ? videoMatch[1].trim() : query;
-            var videos = await BuscadorMotor.buscarSoloVideo(temaVideo);
+            var temaVideo = datos.tema || query;
+            // El servidor (chat-ia) ya buscó en YouTube cuando la IA usó su herramienta --
+            // se usa eso directo, igual que en la página principal, en vez de buscar otra vez
+            // lo mismo (antes el panel siempre repetía la búsqueda, gastando cuota de más).
+            var videos = (datos.resultados_videos && datos.resultados_videos.length) ? datos.resultados_videos : await BuscadorMotor.buscarSoloVideo(temaVideo);
             this.renderExternoEnFeed(videos, '🎬 Videos de YouTube', 'No encontramos videos sobre eso. Intenta con otras palabras.');
         } else if (accion === 'MUSICA') {
-            var musicaMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
-            var temaMusica = musicaMatch ? musicaMatch[1].trim() : query;
-            var canciones = await BuscadorMotor.buscarSoloMusica(temaMusica);
+            var temaMusica = datos.tema || query;
+            var canciones = (datos.resultados_videos && datos.resultados_videos.length) ? datos.resultados_videos : await BuscadorMotor.buscarSoloMusica(temaMusica);
             this.renderExternoEnFeed(canciones, '🎵 Música', 'No encontramos música sobre eso. Intenta con otras palabras.');
         } else if (accion === 'INTERNET') {
-            var webMatch = respuestaIA.match(/PRODUCTO:\s*([^\|\]]+)/i);
-            var temaWeb = webMatch ? webMatch[1].trim() : query;
-            var web = await BuscadorMotor.buscarSoloWeb(temaWeb);
+            var temaWeb = datos.tema || query;
+            var web = (datos.resultados_web && datos.resultados_web.length) ? datos.resultados_web : await BuscadorMotor.buscarSoloWeb(temaWeb);
             this.renderExternoEnFeed(web, '🌐 Resultados de internet', 'No encontramos nada en internet sobre eso.');
         } else if (accion === 'PUBLICAR') {
-            var tituloMatch = respuestaIA.match(/TITULO:\s*([^\|\]]+)/i);
-            var tituloSugerido = tituloMatch ? tituloMatch[1].trim() : query;
+            var tituloSugerido = datos.titulo || query;
             this.iniciarPublicacionDesdeAsistente(tituloSugerido);
         } else if (accion === 'BUSCAR_PERSONA') {
-            var nombreMatch = respuestaIA.match(/NOMBRE:\s*([^\|\]]+)/i);
-            var nombre = nombreMatch ? nombreMatch[1].trim() : query;
+            var nombre = datos.nombre || query;
             var usuarios = await this.buscarUsuariosPorNombre(nombre);
             this.renderResultadosPersonasEnFeed(usuarios, nombre);
         } else if (accion === 'RECIENTES') {
