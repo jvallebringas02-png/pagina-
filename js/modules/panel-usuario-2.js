@@ -616,7 +616,7 @@ Object.assign(PanelUsuario, {
         var seleccionados = Array.from(document.querySelectorAll('#configInteresesGrid input[type=checkbox]:checked')).map(function(chk) { return chk.value; });
         var categoria = seleccionados.length ? seleccionados.join(', ') : 'General';
         var ciudad = document.getElementById('configCiudad').value.trim();
-        var pais = document.getElementById('configPais').value.trim();
+        var pais = normalizarPaisEs(document.getElementById('configPais').value.trim());
         var notifMensajes = document.getElementById('configNotifMensajes').checked;
         var notifComentarios = document.getElementById('configNotifComentarios').checked;
         var notifLikes = document.getElementById('configNotifLikes').checked;

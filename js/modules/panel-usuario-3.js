@@ -643,7 +643,7 @@ Object.assign(PanelUsuario, {
                     precio: datos.precio,
                     moneda: 'PEN',
                     ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
-                    pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
+                    pais: paisParaGuardar(typeof UbicacionUsuario !== 'undefined' ? UbicacionUsuario.pais : null),
                     alcance: datos.alcance,
                     fotos: fotos,
                     estado: 'aprobado', // auto-aprobado: no hay Panel de Moderador todavía (queda pendiente para más adelante)
@@ -723,7 +723,7 @@ Object.assign(PanelUsuario, {
                 precio: datos.precio,
                 moneda: 'PEN',
                 ciudad: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.ciudad) ? UbicacionUsuario.ciudad : null,
-                pais: (typeof UbicacionUsuario !== 'undefined' && UbicacionUsuario.pais) ? UbicacionUsuario.pais : null,
+                pais: paisParaGuardar(typeof UbicacionUsuario !== 'undefined' ? UbicacionUsuario.pais : null),
                 alcance: datos.alcance,
                 fotos: fotos,
                 estado: 'borrador',

@@ -308,7 +308,11 @@ var BuscadorMotor = {
     // Arma la tabla: filas = categorías, columnas = países (nivel mundial) o ciudades de un país
     // (nivel país). Cada celda es la cantidad de publicaciones reales en ese cruce.
     obtenerMatrizNiveles: function(categoriasFiltro, nivel, lugar) {
-        var base = this.catalogo.filter(function(a) { return nivel === 'pais' ? a.pais === lugar : true; });
+        // Los países se comparan y se agrupan con su nombre "oficial" en español ("Peru" = "Perú"), para que
+        // un mismo país no salga como dos columnas.
+        var canon = function(p) { return (typeof normalizarPaisEs === 'function') ? normalizarPaisEs(p) : p; };
+        var lugarCanon = nivel === 'pais' ? canon(lugar) : lugar;
+        var base = this.catalogo.filter(function(a) { return nivel === 'pais' ? canon(a.pais) === lugarCanon : true; });
         var columnaKey = nivel === 'pais' ? 'ciudad' : 'pais';
         var matriz = {};
         base.forEach(function(art) {
@@ -316,12 +320,13 @@ var BuscadorMotor = {
             if (categoriasFiltro && categoriasFiltro.indexOf(cat) === -1) return;
             var col = art[columnaKey];
             if (!col) return;
+            if (columnaKey === 'pais') col = canon(col);
             if (!matriz[cat]) matriz[cat] = {};
             matriz[cat][col] = (matriz[cat][col] || 0) + 1;
         });
         var columnasSet = {};
         Object.keys(matriz).forEach(function(cat) { Object.keys(matriz[cat]).forEach(function(c) { columnasSet[c] = true; }); });
-        return { filas: Object.keys(matriz).sort(), columnas: Object.keys(columnasSet).sort(), datos: matriz, nivel: nivel, lugar: lugar, columnaTipo: columnaKey };
+        return { filas: Object.keys(matriz).sort(), columnas: Object.keys(columnasSet).sort(), datos: matriz, nivel: nivel, lugar: lugarCanon, columnaTipo: columnaKey };
     },
 
     obtenerCategoriasDisponibles: function() {
