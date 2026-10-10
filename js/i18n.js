@@ -206,6 +206,39 @@ function traducirPais(nombreEs) {
     } catch (e) { return nombreEs; }
 }
 
+// Nombre "oficial" en español de un país escrito de cualquier forma: "peru", "Peru", "PERÚ" y "Perú " dan
+// "Perú". Sirve para que un mismo país no se guarde ni se cuente como dos distintos. Si no lo reconoce
+// (o el navegador no tiene Intl), devuelve el texto tal cual, sin espacios sobrantes.
+var _cachePaisEs = {};
+var _displayNamesEs = null;
+function normalizarPaisEs(nombre) {
+    var crudo = String(nombre == null ? '' : nombre).trim();
+    if (!crudo) return crudo;
+    if (_cachePaisEs.hasOwnProperty(crudo)) return _cachePaisEs[crudo];
+    var resultado = crudo;
+    try {
+        if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+            if (!_mapaPaisesEs) _mapaPaisesEs = _construirMapaPaises();
+            var cod = _mapaPaisesEs[_normalizarNombrePais(crudo)];
+            if (cod) {
+                if (!_displayNamesEs) _displayNamesEs = new Intl.DisplayNames(['es'], { type: 'region' });
+                resultado = _displayNamesEs.of(cod) || crudo;
+            }
+        }
+    } catch (e) { resultado = crudo; }
+    _cachePaisEs[crudo] = resultado;
+    return resultado;
+}
+
+// País que se guarda en una publicación. Devuelve null si no se sabe: antes se guardaban "Mundo" y
+// "Desconocido" (valores de relleno de la detección por IP) como si fueran un país.
+function paisParaGuardar(nombre) {
+    var p = normalizarPaisEs(nombre);
+    var n = _normalizarNombrePais(p);
+    if (!n || n === 'mundo' || n === 'desconocido' || n === 'desconocida') return null;
+    return p;
+}
+
 // ============================================
 // TRADUCCIONES UI
 // ============================================
