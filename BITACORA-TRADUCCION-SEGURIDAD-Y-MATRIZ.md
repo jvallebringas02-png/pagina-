@@ -192,3 +192,41 @@ Se cargaron `i18n.js`, `ui-controller.js` e `i18n-institucional.js` en Node con 
 **No cubrió:** el aspecto real (alto de las filas con dos líneas, árabe de derecha a izquierda, celular), ni el cambio de idioma con la matriz o Seguridad abiertas, ni la calidad de las traducciones.
 
 **Detalle a saber:** en quechua y aimara las categorías sí se traducen, porque tu diccionario ya las tiene. Los países y los textos nuevos de la matriz siguen en español.
+
+---
+
+## 11. Hallazgo al probar: "Peru" y "Perú" salían como dos columnas (10/10/2026)
+
+**Qué se vio** (captura de la matriz mundial, página en español): dos columnas, `Peru` y `Perú`. No lo causó la traducción: es un dato guardado de dos formas, y la matriz agrupa por el texto exacto.
+
+**Causa (leída en el código; los datos reales no se consultaron):**
+1. `ubicacion.js` guardaba `data.country_name` de `ipapi.co`, que viene en inglés y sin tilde (`Peru`).
+2. Al publicar, `panel-usuario-3.js` (líneas 646 y 726) guardaba `UbicacionUsuario.pais` como país del producto.
+3. Configuración (`configPais`, `panel-usuario-2.js`) se rellena con ese mismo valor; si la persona pulsa "Guardar preferencias" sin tocarlo, `Peru` se guarda en `usuarios.pais`, y al volver a entrar `sesion-auth.js` (línea 89) lo vuelve a poner en `UbicacionUsuario.pais`.
+4. `configPais` es un cuadro de texto libre: "peru" o "PERÚ" también se guardaban tal cual.
+5. Si la IP no se detecta, el valor de relleno `Mundo` se guardaba como país del producto.
+
+**Cambio (código preparado, sin confirmar):**
+- `js/i18n.js`: funciones nuevas `normalizarPaisEs` ("peru", "Peru", "PERÚ" → "Perú"; lo que no reconoce lo deja igual) y `paisParaGuardar` (devuelve `null` para `Mundo`/`Desconocido`).
+- `js/modules/ubicacion.js`: el país de la IP se pasa a español con su código (`PE` → Perú).
+- `js/modules/panel-usuario-2.js`: el país escrito en Configuración se normaliza al guardar.
+- `js/modules/panel-usuario-3.js`: las dos publicaciones usan `paisParaGuardar`.
+- `js/modules/buscador.js` (`obtenerMatrizNiveles`): compara y agrupa los países con el nombre normalizado, así "Peru" y "Perú" suman en una sola columna aunque queden datos sucios.
+
+**Datos ya guardados:** el código no los corrige. Hay que revisarlos y corregirlos en Supabase (SQL en el chat; paso 1 es solo lectura).
+
+**Prueba simulada:** 27 comprobaciones sin fallos (normalización, IP con y sin código, red caída, matriz mundial y de país con datos mezclados `Peru`/`Perú`/`peru`). Sin probar en el navegador.
+
+**Pruebas pendientes en la página:**
+- [ ] Ejecutar el paso 1 del SQL y anotar qué valores de país hay.
+- [ ] Tras subir los archivos y ejecutar el paso 2: la matriz mundial debe mostrar una sola columna "Perú".
+- [ ] Publicar un producto de prueba con la IP detectada: en Supabase debe quedar `pais = 'Perú'`.
+- [ ] En Configuración escribir "peru", guardar y volver a abrir: debe decir "Perú".
+- [ ] Clic en la celda de Perú en la matriz mundial: debe abrir la matriz de ciudades.
+- [ ] Con la IP sin detectar (bloquear `ipapi.co` en F12 → Red): al publicar, `pais` debe quedar vacío, no `Mundo`.
+
+**No cubre:** otros lugares que comparan el país con `===` (por ejemplo la búsqueda por zona en `buscador.js`); con los datos ya corregidos no debería importar, pero no se revisó uno por uno. Tampoco cubre la columna `Mundo` que ya exista en los datos (decisión: dejarla o ponerla en `null`; ponerla en `null` la saca de la matriz mundial).
+
+| Fecha | Cambio | Resultado |
+|---|---|---|
+| 10/10/2026 | Normalización del país (IP, Configuración, publicar y matriz) | `node --check` en 5 archivos y prueba simulada sin fallos. Sin probar en el navegador |
