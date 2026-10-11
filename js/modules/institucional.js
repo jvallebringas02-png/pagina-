@@ -765,12 +765,56 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     },
 
     // ---------- Constancia (comprobante) del reclamo y del mensaje al administrador ----------
-    // DECISIÓN (07/10/2026): el comprobante va SIEMPRE en inglés, sin importar el idioma de la
-    // pantalla (la página es de alcance mundial y el documento debe leerse igual en todas partes).
-    // Lo que la persona escribió se imprime tal cual, sin traducir. Para añadir el español junto a
-    // cada etiqueta (por si lo debe leer INDECOPI o un abogado), poner esto en true.
-    CONSTANCIA_CON_ESPANOL: false,
+    // DECISIÓN (11/10/2026): la constancia sale en el idioma de la persona MÁS español, para que la
+    // pueda leer INDECOPI o un abogado. Quechua y aimara: solo español. Lo que la persona escribió se
+    // imprime tal cual, sin traducir. Los textos de los demás idiomas están en CONSTANCIA_TEXTOS
+    // (js/i18n-institucional.js); si ese archivo no está cargado, solo hay español e inglés.
+    // Poner esto en false deja la constancia solo en español.
+    CONSTANCIA_IDIOMA_Y_ESPANOL: true,
     _constanciaActual: null,
+
+    CONSTANCIA_BASE: {
+        es: {"titulo_reclamo": "Constancia de reclamo", "titulo_contacto": "Ticket de atención", "codigo": "Código", "fecha": "Fecha y hora", "tipo": "Tipo", "nombre_completo": "Nombre completo", "documento": "Documento de identidad", "email": "Correo electrónico", "telefono": "Teléfono", "bien": "Producto o servicio relacionado", "monto": "Monto reclamado", "detalle": "Detalle de lo ocurrido", "pedido": "Solución solicitada", "nombre": "Nombre", "mensaje": "Mensaje", "t_reclamo": "Reclamo", "t_queja": "Queja", "t_reporte": "Reporte", "nota": "Esta constancia solo registra que la información anterior fue enviada a través de {sitio} en la fecha indicada. {sitio} solo pone en contacto a los usuarios y no es parte de ninguna operación entre ellos; esta constancia no implica reconocimiento de responsabilidad ni compromiso de un resultado. Conserve este código para referirse a este envío.", "nota_seg": "Para consultar el estado de este envío, utilice la página de seguimiento de este sitio con el código de arriba y el documento de identidad tal como figura en esta constancia.", "nota_reporte": "Un reporte es un aviso al administrador del sitio; no es un reclamo dirigido a un vendedor o proveedor específico."},
+        en: {"titulo_reclamo": "Complaint receipt", "titulo_contacto": "Contact ticket", "codigo": "Code", "fecha": "Date and time", "tipo": "Type", "nombre_completo": "Full name", "documento": "ID document", "email": "Email", "telefono": "Phone", "bien": "Related product or service", "monto": "Amount claimed", "detalle": "Details of what happened", "pedido": "Requested resolution", "nombre": "Name", "mensaje": "Message", "t_reclamo": "Complaint", "t_queja": "Grievance", "t_reporte": "Report", "nota": "This receipt only records that the information above was submitted through {sitio} on the date shown. {sitio} only connects users and is not a party to any transaction between them; this receipt does not imply acceptance of liability or a commitment to a specific outcome. Keep this code to refer to this submission.", "nota_seg": "To check the status of this submission, use the tracking page of this site with the code above and the ID document exactly as shown in this receipt.", "nota_reporte": "A report is a notice sent to the site administrator; it is not a claim addressed to a specific seller or provider."}
+    },
+
+    // Devuelve { lang, es, propio }. "propio" es el texto en el idioma de la persona, o null cuando
+    // basta el español (idioma español, quechua, aimara o interruptor apagado). Un idioma sin
+    // traducción de la constancia cae a inglés.
+    _textosConstancia: function() {
+        var lang = obtenerIdiomaPreferido();
+        var base = this.CONSTANCIA_BASE;
+        var extra = (typeof CONSTANCIA_TEXTOS !== 'undefined') ? CONSTANCIA_TEXTOS : {};
+        var propio = null;
+        if (this.CONSTANCIA_IDIOMA_Y_ESPANOL && lang !== 'es' && lang !== 'qu' && lang !== 'ay') {
+            propio = base[lang] || extra[lang] || null;
+            if (!propio) { propio = base.en; lang = 'en'; }
+        }
+        return { lang: propio ? lang : 'es', es: base.es, propio: propio };
+    },
+
+    // En árabe se aísla cada texto para que no se mezcle con el español ni con el nombre del sitio.
+    _bidi: function(tx, texto) {
+        return (tx.lang === 'ar') ? '<bdi dir="rtl">' + escHtml(texto) + '</bdi>' : escHtml(texto);
+    },
+
+    // "texto en el idioma de la persona / texto en español" (o solo español).
+    _etqHtml: function(tx, clave) {
+        var es = escHtml(tx.es[clave]);
+        return tx.propio ? this._bidi(tx, tx.propio[clave]) + ' / ' + es : es;
+    },
+
+    // Párrafo(s) legal(es): primero el idioma de la persona y debajo el español. Une varias claves en un párrafo.
+    _notaHtml: function(tx, claves, sitio) {
+        function pintar(texto) {
+            return escHtml(texto).split('{sitio}').join('<bdi dir="ltr">' + escHtml(sitio) + '</bdi>');
+        }
+        function unir(dic) { return claves.map(function(c) { return dic[c]; }).join(' '); }
+        var es = '<div>' + pintar(unir(tx.es)) + '</div>';
+        if (!tx.propio) return es;
+        var propio = '<div' + (tx.lang === 'ar' ? ' dir="rtl" style="text-align:right"' : '') + '>' + pintar(unir(tx.propio)) + '</div>';
+        return propio + '<div style="margin-top:10px">' + es + '</div>';
+    },
 
     CONSTANCIA_CSS:
         '.cns{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:14px;line-height:1.5;text-align:left;direction:ltr;}' +
@@ -782,10 +826,6 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         '.cns th{width:34%;background:#F9FAFB;text-align:left;font-weight:600;}' +
         '.cns td{white-space:pre-wrap;word-break:break-word;}' +
         '.cns .cns-nota{margin-top:12px;font-size:12px;color:#444;}',
-
-    _etq: function(en, es) {
-        return this.CONSTANCIA_CON_ESPANOL ? (en + ' / ' + es) : en;
-    },
 
     // Fecha legible + hora universal, para que no haya dudas de zona horaria en el documento.
     formatearFechaConstancia: function(iso) {
@@ -807,60 +847,47 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     // Todo lo que escribió la persona pasa por escHtml -- lo escribe cualquier visitante anónimo.
     htmlConstancia: function(clase, datos, res) {
         var self = this;
+        var tx = self._textosConstancia();
         var sitio = (typeof location !== 'undefined' && location.hostname) ? location.hostname : 'this site';
         var esReclamo = (clase === 'reclamo');
-        var tipos = { reclamo: ['Complaint', 'Reclamo'], queja: ['Grievance', 'Queja'], reporte: ['Report', 'Reporte'] };
-        var tipo = tipos[datos.tipo] || null;
-        var titulo = esReclamo ? self._etq('Complaint receipt', 'Constancia de reclamo') : self._etq('Contact ticket', 'Ticket de atención');
+        var claveTipo = { reclamo: 't_reclamo', queja: 't_queja', reporte: 't_reporte' }[datos.tipo] || null;
+        var titulo = self._etqHtml(tx, esReclamo ? 'titulo_reclamo' : 'titulo_contacto');
 
-        function fila(en, es, valor) {
-            if (valor === null || valor === undefined || String(valor).trim() === '') return '';
-            return '<tr><th>' + escHtml(self._etq(en, es)) + '</th><td>' + escHtml(String(valor)) + '</td></tr>';
+        function fila(clave, valor, valorHtml) {
+            if (valorHtml === undefined && (valor === null || valor === undefined || String(valor).trim() === '')) return '';
+            return '<tr><th>' + self._etqHtml(tx, clave) + '</th><td>' + (valorHtml !== undefined ? valorHtml : escHtml(String(valor))) + '</td></tr>';
         }
 
         var filas = '';
-        filas += fila('Code', 'Código', res.codigo);
-        filas += fila('Date and time', 'Fecha y hora', self.formatearFechaConstancia(res.fecha));
+        filas += fila('codigo', res.codigo);
+        filas += fila('fecha', self.formatearFechaConstancia(res.fecha));
         if (esReclamo) {
-            filas += fila('Type', 'Tipo', tipo ? (self.CONSTANCIA_CON_ESPANOL ? tipo[0] + ' / ' + tipo[1] : tipo[0]) : datos.tipo);
-            filas += fila('Full name', 'Nombre completo', datos.nombre);
-            filas += fila('ID document', 'Documento de identidad', datos.documento);
-            filas += fila('Email', 'Correo electrónico', datos.email);
-            filas += fila('Phone', 'Teléfono', datos.telefono);
-            filas += fila('Related product or service', 'Producto o servicio relacionado', datos.bien);
-            filas += fila('Amount claimed', 'Monto reclamado', (typeof datos.monto === 'number' && !isNaN(datos.monto)) ? datos.monto.toFixed(2) : '');
-            filas += fila('Details of what happened', 'Detalle de lo ocurrido', datos.detalle);
-            filas += fila('Requested resolution', 'Solución solicitada', datos.pedido);
+            filas += claveTipo ? fila('tipo', null, self._etqHtml(tx, claveTipo)) : fila('tipo', datos.tipo);
+            filas += fila('nombre_completo', datos.nombre);
+            filas += fila('documento', datos.documento);
+            filas += fila('email', datos.email);
+            filas += fila('telefono', datos.telefono);
+            filas += fila('bien', datos.bien);
+            filas += fila('monto', (typeof datos.monto === 'number' && !isNaN(datos.monto)) ? datos.monto.toFixed(2) : '');
+            filas += fila('detalle', datos.detalle);
+            filas += fila('pedido', datos.pedido);
         } else {
-            filas += fila('Name', 'Nombre', datos.nombre);
-            filas += fila('Email', 'Correo electrónico', datos.email);
-            filas += fila('Message', 'Mensaje', datos.mensaje);
+            filas += fila('nombre', datos.nombre);
+            filas += fila('email', datos.email);
+            filas += fila('mensaje', datos.mensaje);
         }
 
-        var nota = 'This receipt only records that the information above was submitted through ' + sitio +
-            ' on the date shown. ' + sitio + ' only connects users and is not a party to any transaction between them; ' +
-            'this receipt does not imply acceptance of liability or a commitment to a specific outcome. ' +
-            'Keep this code to refer to this submission.';
-        var notaEs = 'Esta constancia solo registra que la información anterior fue enviada a través de ' + sitio +
-            ' en la fecha indicada. ' + sitio + ' solo pone en contacto a los usuarios y no es parte de ninguna operación entre ellos; ' +
-            'esta constancia no implica reconocimiento de responsabilidad ni compromiso de un resultado. ' +
-            'Conserve este código para referirse a este envío.';
-        if (esReclamo) {
-            nota += ' To check the status of this submission, use the tracking page of this site with the code above and the ID document exactly as shown in this receipt.';
-            notaEs += ' Para consultar el estado de este envío, utilice la página de seguimiento de este sitio con el código de arriba y el documento de identidad tal como figura en esta constancia.';
-        }
-        if (esReclamo && datos.tipo === 'reporte') {
-            nota += ' A report is a notice sent to the site administrator; it is not a claim addressed to a specific seller or provider.';
-            notaEs += ' Un reporte es un aviso al administrador del sitio; no es un reclamo dirigido a un vendedor o proveedor específico.';
-        }
+        var clavesNota = ['nota'];
+        if (esReclamo) clavesNota.push('nota_seg');
+        if (esReclamo && datos.tipo === 'reporte') clavesNota.push('nota_reporte');
 
         return '<style>' + self.CONSTANCIA_CSS + '</style>' +
             '<div class="cns">' +
-            '<h2>' + escHtml(titulo) + '</h2>' +
+            '<h2>' + titulo + '</h2>' +
             '<div class="cns-sitio">' + escHtml(sitio) + '</div>' +
             '<div class="cns-codigo">' + escHtml(res.codigo) + '</div>' +
             '<table>' + filas + '</table>' +
-            '<div class="cns-nota">' + escHtml(nota) + (self.CONSTANCIA_CON_ESPANOL ? '<br><br>' + escHtml(notaEs) : '') + '</div>' +
+            '<div class="cns-nota">' + self._notaHtml(tx, clavesNota, sitio) + '</div>' +
             '</div>';
     },
 
@@ -870,7 +897,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         var form = document.getElementById(idFormulario);
         if (!form) return;
         var cuerpo = this.htmlConstancia(clase, datos, res);
-        this._constanciaActual = { codigo: res.codigo, cuerpo: cuerpo };
+        this._constanciaActual = { codigo: res.codigo, cuerpo: cuerpo, lang: this._textosConstancia().lang };
         form.innerHTML =
             '<p style="text-align:center;color:#059669;">' + textoExito + '</p>' +
             '<div style="border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin:10px 0;">' + cuerpo + '</div>' +
@@ -885,7 +912,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     imprimirConstancia: function() {
         var c = this._constanciaActual;
         if (!c) return;
-        var doc = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
+        var doc = '<!DOCTYPE html><html lang="' + escHtml(c.lang || 'es') + '"><head><meta charset="utf-8">' +
             '<meta name="viewport" content="width=device-width, initial-scale=1">' +
             '<title>' + escHtml(c.codigo) + '</title>' +
             '<style>@page{margin:18mm;} body{margin:16px;}</style></head><body>' + c.cuerpo + '</body></html>';
