@@ -415,6 +415,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             }
             var placeholdersReclamo = { reclamoNombre: 'ph_nombre_completo', reclamoDocumento: 'ph_documento', reclamoEmail: 'ph_correo', reclamoTelefono: 'ph_telefono', reclamoBien: 'ph_bien', reclamoMonto: 'ph_monto', reclamoDetalle: 'ph_detalle', reclamoPedido: 'ph_pedido' };
             Object.keys(placeholdersReclamo).forEach(function(id) { var el = document.getElementById(id); if (el) el.placeholder = t(placeholdersReclamo[id]); });
+            var dHint = document.getElementById('reclamoDocumentoHint'); if (dHint) dHint.textContent = t('hint_documento_reclamo');
             var rBtn = document.getElementById('reclamoBtnEnviar'); if (rBtn && !rBtn.disabled) rBtn.textContent = t('btn_registrar');
         } else if (document.getElementById('formOpinion')) {
             var tituloO = t('titulo_opinion');
@@ -692,6 +693,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">' + t('ph_tipo') + '</option>' + opt('reclamo', t('opt_reclamo')) + opt('queja', t('opt_queja')) + opt('reporte', t('opt_reporte')) + '</select>' +
             '<input type="text" id="reclamoNombre" maxlength="150" placeholder="' + t('ph_nombre_completo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoDocumento" maxlength="20" placeholder="' + t('ph_documento') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
+            '<div id="reclamoDocumentoHint" style="font-size:12px;color:#6B7280;margin:-6px 0 10px;">' + escHtml(t('hint_documento_reclamo')) + '</div>' +
             '<input type="email" id="reclamoEmail" maxlength="100" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoTelefono" maxlength="20" placeholder="' + t('ph_telefono') + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="text" id="reclamoBien" maxlength="300" placeholder="' + t('ph_bien') + '" required value="' + bienVal + '" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
@@ -843,6 +845,10 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             ' en la fecha indicada. ' + sitio + ' solo pone en contacto a los usuarios y no es parte de ninguna operación entre ellos; ' +
             'esta constancia no implica reconocimiento de responsabilidad ni compromiso de un resultado. ' +
             'Conserve este código para referirse a este envío.';
+        if (esReclamo) {
+            nota += ' To check the status of this submission, use the tracking page of this site with the code above and the ID document exactly as shown in this receipt.';
+            notaEs += ' Para consultar el estado de este envío, utilice la página de seguimiento de este sitio con el código de arriba y el documento de identidad tal como figura en esta constancia.';
+        }
         if (esReclamo && datos.tipo === 'reporte') {
             nota += ' A report is a notice sent to the site administrator; it is not a claim addressed to a specific seller or provider.';
             notaEs += ' Un reporte es un aviso al administrador del sitio; no es un reclamo dirigido a un vendedor o proveedor específico.';
@@ -870,6 +876,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             '<div style="border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin:10px 0;">' + cuerpo + '</div>' +
             '<button type="button" onclick="Institucional.imprimirConstancia()" style="width:100%;padding:12px;background:#111827;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">' + escHtml(t('btn_guardar_pdf')) + '</button>' +
             '<p style="margin-top:8px;font-size:12px;color:#6B7280;text-align:center;">' + escHtml(t('msg_guarda_codigo')) + '</p>' +
+            (clase === 'reclamo' ? '<p style="margin-top:8px;font-size:13px;font-weight:600;color:#374151;text-align:center;">' + escHtml(t('aviso_seg_reclamo')) + '</p>' : '') +
             '<p style="margin-top:10px;text-align:center;"><a href="#" onclick="Institucional.iniciarSeguimiento(); return false;" style="color:#7C3AED;font-weight:600;text-decoration:none;">' + escHtml(t('seg_link_constancia')) + '</a></p>';
     },
 
