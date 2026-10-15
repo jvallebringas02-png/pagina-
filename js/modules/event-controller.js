@@ -164,7 +164,10 @@ var EventController = {
         if (typeof Institucional !== 'undefined' && Institucional.reclamoEnCurso) { Institucional.procesarRespuestaReclamo(mensaje); return; }
         if (typeof Institucional !== 'undefined' && Institucional.contactoEnCurso) { Institucional.procesarRespuestaContacto(mensaje); return; }
         if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(mensaje)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; }
-        if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
+        // Dentro del panel de usuario el atajo de matriz se salta: dibujaría en la vista pública, que
+        // está oculta (BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md, Parte 1). Decide la IA.
+        var panelActivoAtajo = document.getElementById('userPanelView').classList.contains('active');
+        if (!panelActivoAtajo && typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
             var intentoMatrizChat = BuscadorMotor.detectarIntencionMatriz(mensaje);
             if (intentoMatrizChat) {
                 if (intentoMatrizChat.tipo === 'matriz') {
@@ -215,7 +218,8 @@ var EventController = {
         if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; }
         if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(query); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); }
         if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(query)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; }
-        if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
+        var panelActivoAtajoBusq = document.getElementById('userPanelView').classList.contains('active');
+        if (!panelActivoAtajoBusq && typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
             var intentoMatriz = BuscadorMotor.detectarIntencionMatriz(query);
             if (intentoMatriz) {
                 if (intentoMatriz.tipo === 'matriz') {

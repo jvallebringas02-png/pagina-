@@ -137,6 +137,33 @@ var Institucional = {
         if (modal) modal.remove();
     },
 
+    // Dibuja un formulario (Contacto, Libro de Reclamaciones, Seguimiento, Opinión, Seguridad).
+    // Página principal: en el muro central, como siempre. Con el panel de usuario activo la vista
+    // pública está oculta, y ahí el formulario no se veía: entonces se abre en la ventana emergente
+    // general (BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md, Parte 1). Los ids del formulario
+    // (formReclamo, reclamoEstado...) son los mismos en los dos casos, así que el envío, la
+    // constancia y el PDF funcionan igual sin tocar nada más.
+    _mostrarFormulario: function(titulo, icono, formularioHTML) {
+        var panel = document.getElementById('userPanelView');
+        var panelActivo = !!(panel && panel.classList.contains('active'));
+        if (!panelActivo) {
+            UIController.mostrarFormularioEnMuro(titulo, icono, formularioHTML);
+            return;
+        }
+        this.abrirModal(icono + ' ' + escHtml(titulo), '<div style="line-height:1.6;">' + formularioHTML + '</div>');
+        // El estilo general de la ventana no deja desplazar el contenido ni la centra: con un
+        // formulario largo (Libro de Reclamaciones, constancia) se cortaría, sobre todo en el celular.
+        var m = document.getElementById('modalInstitucional');
+        if (!m) return;
+        m.style.justifyContent = 'center';
+        m.style.padding = '12px';
+        m.style.boxSizing = 'border-box';
+        var caja = m.querySelector('.modal-fb');
+        if (caja) caja.style.width = '100%';
+        var cuerpo = m.querySelector('.modal-fb-body');
+        if (cuerpo) { cuerpo.style.overflowY = 'auto'; cuerpo.style.maxHeight = 'calc(90vh - 64px)'; }
+    },
+
     // ---------- Quiénes Somos ----------
     RESPALDO_QUIENES_SOMOS: 'remarket-db es una plataforma peruana de economía circular que conecta a vecinos y comercios para vender, donar e intercambiar productos de segunda mano. Creemos que darle una segunda vida a lo que ya tienes es una forma simple y poderosa de cuidar el planeta y fortalecer la comunidad.',
 
@@ -344,7 +371,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         var boton = function(accion, texto) {
             return '<button type="button" onclick="' + accion + '" style="padding:10px 14px;background:#7C3AED;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin:0 8px 8px 0;">' + escHtml(texto) + '</button>';
         };
-        UIController.mostrarFormularioEnMuro(t('titulo_seguridad'), '🛡️', '' +
+        this._mostrarFormulario(t('titulo_seguridad'), '🛡️', '' +
             '<div style="line-height:1.6;">' +
             '<h4 style="margin:0 0 8px;">' + escHtml(t('seg_hace_t')) + '</h4>' +
             '<ul style="margin:0 0 16px;padding-left:20px;">' + item('seg_h1') + item('seg_h2') + item('seg_h3') + '</ul>' +
@@ -451,7 +478,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
             botones += '<button type="button" class="op-nota" data-nota="' + n + '" aria-pressed="false" aria-label="' + n + '" onclick="Institucional.elegirNota(' + n + ')" ' +
                 'style="padding:12px 0;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#111827;font-weight:600;font-size:16px;cursor:pointer;">' + n + '</button>';
         }
-        UIController.mostrarFormularioEnMuro(t('titulo_opinion'), '⭐', '' +
+        this._mostrarFormulario(t('titulo_opinion'), '⭐', '' +
             '<form id="formOpinion" onsubmit="Institucional.enviarOpinion(event)">' +
             '<p id="opinionPregunta" style="margin:0 0 10px;font-weight:600;">' + escHtml(t('op_pregunta')) + '</p>' +
             // Los números van siempre de izquierda a derecha (1 → 10), también en idiomas de derecha a izquierda.
@@ -533,7 +560,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         var t = this.t.bind(this);
         var estilo = 'width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;';
         var estiloEtq = 'display:block;font-size:13px;font-weight:600;color:#374151;margin:0 0 4px 2px;';
-        UIController.mostrarFormularioEnMuro(t('titulo_seguimiento'), '🔎', '' +
+        this._mostrarFormulario(t('titulo_seguimiento'), '🔎', '' +
             '<form id="formSeguimiento" onsubmit="Institucional.consultarSeguimiento(event)">' +
             '<label id="seguimientoEtqCodigo" for="seguimientoCodigo" style="' + estiloEtq + '">' + escHtml(t('lbl_seg_campo_codigo')) + '</label>' +
             '<input type="text" id="seguimientoCodigo" oninput="Institucional.actualizarEtiquetaClave()" placeholder="' + escHtml(t('ph_codigo_seg')) + '" required maxlength="40" autocomplete="off" value="' + escHtml(codigoInicial || '') + '" style="' + estilo + '">' +
@@ -635,7 +662,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
     mostrarContactoAdmin: function() {
         var t = this.t.bind(this);
         this._constanciaActual = null;
-        UIController.mostrarFormularioEnMuro(t('titulo_contacto'), '📩', this._enlaceSeguimientoHtml() +
+        this._mostrarFormulario(t('titulo_contacto'), '📩', this._enlaceSeguimientoHtml() +
             '<form id="formContactoAdmin" onsubmit="Institucional.enviarContacto(event)">' +
             '<input type="text" id="contactoNombre" maxlength="120" placeholder="' + t('ph_nombre') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
             '<input type="email" id="contactoEmail" maxlength="200" placeholder="' + t('ph_correo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
@@ -688,7 +715,7 @@ Tienes derecho a acceder, rectificar, cancelar u oponerte al uso de tus datos pe
         var bienVal = (prefill && prefill.bien) ? escHtml(prefill.bien) : '';
         function opt(valor, texto) { return '<option value="' + valor + '"' + (tipoSel === valor ? ' selected' : '') + '>' + texto + '</option>'; }
         this._constanciaActual = null;
-        UIController.mostrarFormularioEnMuro(t('titulo_reclamo'), '📋', this._enlaceSeguimientoHtml() +
+        this._mostrarFormulario(t('titulo_reclamo'), '📋', this._enlaceSeguimientoHtml() +
             '<form id="formReclamo" onsubmit="Institucional.enviarReclamo(event)">' +
             '<select id="reclamoTipo" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;"><option value="">' + t('ph_tipo') + '</option>' + opt('reclamo', t('opt_reclamo')) + opt('queja', t('opt_queja')) + opt('reporte', t('opt_reporte')) + '</select>' +
             '<input type="text" id="reclamoNombre" maxlength="150" placeholder="' + t('ph_nombre_completo') + '" required style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:1px solid #E5E7EB;">' +
