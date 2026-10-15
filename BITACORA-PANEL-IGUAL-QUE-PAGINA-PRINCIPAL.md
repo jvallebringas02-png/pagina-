@@ -1,4 +1,4 @@
-> **Estado: PLAN, SIN CAMBIOS DE CÓDIGO. Esta bitácora se escribió antes de tocar nada. Lo que dice "comprobado en el código" sale de leer los archivos del zip del 11/10/2026; nada se probó en el navegador. Todo lo marcado "no verificado" hay que comprobarlo en la página antes de darlo por cierto.**
+> **Estado (15/10/2026): PARTE 1 APLICADA EN EL CÓDIGO, SIN PROBAR EN EL NAVEGADOR. Partes 2 y 3 siguen siendo plan.** Lo que dice "comprobado en el código" sale de leer los archivos; nada se probó en la página. Todo lo marcado "no verificado" hay que comprobarlo antes de darlo por cierto.
 
 # Bitácora — Que el panel de usuario se comporte como la página principal
 
@@ -95,10 +95,10 @@ Los tres puntos coinciden con lo que se ve en el código (sección 2).
 
 ## 7. Decisiones pendientes (marcar al decidirlas)
 
-- [ ] ¿Los formularios del panel van en **ventana emergente** (recomendado) o en el feed?
-- [ ] ¿Qué hace el atajo de "matriz mundial" en el panel? Propuesta: **saltarlo** y dejar que decida la IA, hasta que haya matriz en el feed.
-- [ ] ¿Se pinta la matriz mundial o por país en el feed del panel, o queda para después? Sugerido: después.
-- [ ] ¿Se incluye en el panel el respaldo de novedades y categorías cuando no hay resultados? Sugerido: segunda etapa.
+- [x] Formularios del panel en **ventana emergente** (decidido 15/10).
+- [x] Atajo de matriz en el panel: **se salta** y decide la IA (decidido 15/10).
+- [x] Matriz en el feed del panel: **queda para después**.
+- [x] Respaldo de novedades/categorías en el panel: **segunda etapa**.
 - [ ] ¿Se da el visto bueno para tocar `panel-usuario-*.js` en las partes 2 y 3?
 - [ ] ¿Alguien revisará las traducciones nuevas (árabe, hindi, búlgaro, turco)?
 
@@ -145,3 +145,4 @@ Subir de nuevo los archivos anteriores del repositorio. Cada parte se entrega po
 | Fecha | Cambio | Resultado |
 |---|---|---|
 | 11/10/2026 | Comparación del pie, formularios, asistente, buscador y traducción entre la página principal y el panel | Diagnóstico y plan; sin cambios de código |
+| 15/10/2026 | Parte 1: `institucional.js` nueva `_mostrarFormulario` (ventana emergente si el panel está activo; si no, el muro como siempre) usada por Seguridad, Opinión, Seguimiento, Contacto y Libro. `event-controller.js`: el atajo de matriz se salta con el panel activo (chat y buscador) | Revisión de sintaxis OK en todos los `js/`; simulación de enrutado OK (muro sin sesión, ventana con sesión). **Falta probar en el navegador (sección 9).** Limitación conocida: al cambiar de idioma con la ventana abierta, el formulario no se retraduce hasta reabrirlo |
