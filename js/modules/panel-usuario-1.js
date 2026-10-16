@@ -214,10 +214,8 @@ var PanelUsuario = {
     },
 
     // === FEED === [FASE 4 - Feed Social / FASE 8 - Feed Algorítmico]
-    feedPagina: 0,
+    feedPagina: 1,
     feedTamanoPagina: 10,
-    feedCargandoMas: false,
-    feedSinMasResultados: false,
     autoresCacheGlobal: {},
     
     obtenerAutor: async function(uid) {
@@ -305,59 +303,105 @@ var PanelUsuario = {
         });
     },
 
-    cargarFeed: async function() {
-        this.feedPagina = 0;
-        this.feedSinMasResultados = false;
+    // Pide a Supabase UNA página del muro, ya mezclada (publicaciones + compartidos), sin bloqueados y con el total.
+    // Usa la función SQL feed_muro (ver SQL-FEED-MURO.sql). Devuelve { items, total } o null si la función no existe todavía.
+    obtenerPaginaFeed: async function(pagina) {
+        var desde = (pagina - 1) * this.feedTamanoPagina;
+        try {
+            var { data, error } = await supabase.rpc('feed_muro', { p_desde: desde, p_cantidad: this.feedTamanoPagina });
+            if (error) throw error;
+            var filas = (data && data.items) || [];
+            var total = (data && typeof data.total === 'number') ? data.total : 0;
+            var ids = [];
+            filas.forEach(function(f) { if (ids.indexOf(f.producto_id) === -1) ids.push(f.producto_id); });
+            var mapa = {};
+            if (ids.length) {
+                var { data: prods, error: errP } = await supabase.from('productos').select('*').in('id', ids);
+                if (errP) throw errP;
+                (prods || []).forEach(function(p) { mapa[String(p.id)] = p; });
+            }
+            var items = [];
+            filas.forEach(function(f) {
+                var prod = mapa[String(f.producto_id)];
+                if (!prod) return;
+                if (f.tipo === 'repost') items.push({ tipo: 'repost', fecha: f.fecha, producto: prod, resharerUid: f.resharer_uid, comentario: f.comentario });
+                else items.push({ tipo: 'original', fecha: f.fecha, producto: prod });
+            });
+            return { items: items, total: total };
+        } catch (e) {
+            console.warn('feed_muro no está disponible; se usa el método anterior (solo Anterior / Siguiente):', e);
+            return null;
+        }
+    },
+
+    // Botones de página del muro. Mismo aspecto que el Paginador del catálogo. Con total conocido muestra números
+    // (con "…" si son muchos); sin total (método anterior) solo Anterior / Siguiente.
+    renderPaginacionFeed: function(pagina, totalPaginas, hayMas) {
+        var base = 'padding:8px 12px;border-radius:8px;border:1px solid #E5E7EB;background:white;cursor:pointer;';
+        var sinTotal = (totalPaginas === null);
+        if (sinTotal ? (pagina === 1 && !hayMas) : (totalPaginas <= 1)) return '';
+        var ultima = sinTotal ? null : totalPaginas;
+        var h = '<nav class="paginacion" aria-label="Paginación del muro" style="display:flex;justify-content:center;align-items:center;gap:6px;margin:20px 0;flex-wrap:wrap;">';
+        h += '<button type="button" ' + (pagina === 1 ? 'disabled ' : '') + 'onclick="PanelUsuario.irAPaginaFeed(' + (pagina - 1) + ')" style="' + base + (pagina === 1 ? 'opacity:0.4;' : '') + '">← Anterior</button>';
+        if (!sinTotal) {
+            var mostrar = [];
+            for (var i = 1; i <= ultima; i++) {
+                if (i === 1 || i === ultima || Math.abs(i - pagina) <= 2) mostrar.push(i);
+            }
+            var previo = 0;
+            mostrar.forEach(function(i) {
+                if (previo && i - previo > 1) h += '<span style="padding:0 4px;color:#6B7280;">…</span>';
+                var act = (i === pagina);
+                h += '<button type="button" ' + (act ? 'aria-current="page" ' : '') + 'onclick="PanelUsuario.irAPaginaFeed(' + i + ')" style="padding:8px 12px;border-radius:8px;border:1px solid ' + (act ? '#7C3AED' : '#E5E7EB') + ';background:' + (act ? '#7C3AED' : 'white') + ';color:' + (act ? 'white' : '#111827') + ';font-weight:' + (act ? '700' : '400') + ';cursor:pointer;">' + i + '</button>';
+                previo = i;
+            });
+        } else {
+            h += '<span style="padding:0 8px;color:#6B7280;font-size:14px;">' + pagina + '</span>';
+        }
+        var sinSiguiente = sinTotal ? !hayMas : (pagina >= ultima);
+        h += '<button type="button" ' + (sinSiguiente ? 'disabled ' : '') + 'onclick="PanelUsuario.irAPaginaFeed(' + (pagina + 1) + ')" style="' + base + (sinSiguiente ? 'opacity:0.4;' : '') + '">Siguiente →</button>';
+        return h + '</nav>';
+    },
+
+    // Cambia de página y sube al inicio del muro (como hace el catálogo).
+    irAPaginaFeed: async function(n) {
+        await this.cargarFeed(n);
+        var c = document.getElementById('userFeedContainer');
+        if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    // pagina (opcional, desde 1). Sin argumento carga la primera página: así la llaman publicar, bloquear, "Volver al inicio", etc.
+    cargarFeed: async function(pagina) {
+        pagina = (typeof pagina === 'number' && pagina >= 1) ? Math.floor(pagina) : 1;
         var container = document.getElementById('userFeedContainer');
+        if (!container) return;
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        var tamano = this.feedTamanoPagina;
         container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>';
         try {
-            var combinado = await this.obtenerFeedCombinado(0, this.feedTamanoPagina);
-            if (!combinado.length) {
+            var res = await this.obtenerPaginaFeed(pagina);
+            var totalPaginas = null, hayMas = false;
+            if (res) {
+                totalPaginas = Math.max(1, Math.ceil(res.total / tamano));
+                if (pagina > totalPaginas) { return this.cargarFeed(totalPaginas); } // p. ej. se borraron publicaciones y esa página ya no existe
+            } else {
+                var combinado = await this.obtenerFeedCombinado((pagina - 1) * tamano, tamano + 1);
+                hayMas = combinado.length > tamano;
+                res = { items: combinado.slice(0, tamano), total: null };
+            }
+            this.feedPagina = pagina;
+            if (!res.items.length) {
                 container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">📭</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">No hay publicaciones aún</h3><p>Sé el primero en publicar en tu zona.</p><button class="btn-publicar" style="margin-top:16px;" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar ahora</button></div>';
                 return;
             }
-            var html = await this.renderItemsFeed(combinado);
-            container.innerHTML = html + '<div id="feedScrollSentinel" style="height:1px;"></div>';
-            this.feedPagina = 1;
-            this.activarScrollInfinito();
+            var html = await this.renderItemsFeed(res.items);
+            container.innerHTML = html + this.renderPaginacionFeed(pagina, totalPaginas, hayMas);
         } catch (e) {
             console.warn('Error cargando feed:', e);
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar las publicaciones.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Reintentar</button></div>';
         }
     },
 
-    cargarMasFeed: async function() {
-        if (this.feedCargandoMas || this.feedSinMasResultados) return;
-        this.feedCargandoMas = true;
-        var desde = this.feedPagina * this.feedTamanoPagina;
-        try {
-            var combinado = await this.obtenerFeedCombinado(desde, this.feedTamanoPagina);
-            var sentinel = document.getElementById('feedScrollSentinel');
-            if (!combinado.length) {
-                this.feedSinMasResultados = true;
-                if (sentinel) sentinel.outerHTML = '<div style="text-align:center;padding:20px;color:var(--texto-terciario);font-size:13px;">— No hay más publicaciones —</div>';
-                return;
-            }
-            var html = await this.renderItemsFeed(combinado);
-            if (sentinel) sentinel.insertAdjacentHTML('beforebegin', html);
-            this.feedPagina++;
-        } catch (e) {
-            console.warn('Error cargando más publicaciones:', e);
-        } finally {
-            this.feedCargandoMas = false;
-        }
-    },
-
-    activarScrollInfinito: function() {
-        if (this._scrollObserver) this._scrollObserver.disconnect();
-        var sentinel = document.getElementById('feedScrollSentinel');
-        if (!sentinel || !('IntersectionObserver' in window)) return;
-        var self = this;
-        this._scrollObserver = new IntersectionObserver(function(entries) {
-            if (entries[0].isIntersecting) self.cargarMasFeed();
-        }, { rootMargin: '200px' });
-        this._scrollObserver.observe(sentinel);
-    },
 
     // === TENDENCIAS === [FASE 8 - Personalización Inteligente]
     cargarTendencias: async function() {
