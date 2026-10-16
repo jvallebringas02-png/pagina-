@@ -162,7 +162,55 @@ if (resultado.coincidencias === 0 && hayExterno) { html += '<div style="text-ali
     // en el muro central, en vez de un modal o del chat del Asistente IA -- mismo patrón visual
     // que mostrarQuienesSomosEnMuro: banner con ícono + tarjeta blanca, para que se sienta parte
     // de la misma página. formularioHTML ya viene armado (incluye su propio <form>).
-    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { this.limpiarPaginacionVieja(); if (this._vistaActual !== 'formulario') { this._vistaAntesFormulario = this._vistaActual; } this.formularioAbierto = true;
+    // ¿Hay una sesión iniciada? Entonces la vista pública (donde está el "muro") está oculta.
+    _panelActivo: function() {
+        var p = document.getElementById('userPanelView');
+        return !!(p && p.classList.contains('active'));
+    },
+
+    // Con la sesión iniciada, los formularios (Contacto, Libro de Reclamaciones, Seguimiento, Opinión y Seguridad)
+    // se dibujaban en la vista pública, que está oculta: la persona no los veía. Ahora se abren en una ventana
+    // que sí se ve. BITACORA-PANEL-ENTREGAS-1-Y-2.md. Los formularios no cambian: se escriben igual y buscan sus
+    // campos con los mismos ids.
+    _mostrarFormularioEnModal: function(titulo, icono, formularioHTML) {
+        this.cerrarModalFormulario(true);
+        // Si quedó un formulario viejo en la zona oculta, se vacía: dos formularios con los mismos ids harían que
+        // el código leyera los campos del oculto.
+        if (this.elementos.searchResultsContent) this.elementos.searchResultsContent.innerHTML = '';
+        this.formularioAbierto = true; // para que el cambio de idioma pueda retraducir lo abierto
+        this.elementos.searchQuery.textContent = titulo; // la retraducción deja aquí el título nuevo
+        var overlay = document.createElement('div');
+        overlay.id = 'modalFormulario';
+        overlay.className = 'modal-overlay';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.dataset.icono = icono;
+        overlay.innerHTML =
+            '<div class="modal-fb modal-fb-scroll" role="dialog" aria-modal="true" aria-labelledby="modalFormularioTitulo">' +
+                '<div class="modal-fb-header"><h3 id="modalFormularioTitulo">' + icono + ' ' + escHtml(titulo) + '</h3>' +
+                '<button type="button" id="modalFormularioCerrar" aria-label="' + escHtml(textoUI('cerrar', 'Cerrar')) + '" onclick="UIController.cerrarModalFormulario()" style="border:none;background:none;font-size:20px;cursor:pointer;">✕</button></div>' +
+                '<div class="modal-fb-body">' + formularioHTML + '</div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) UIController.cerrarModalFormulario(); });
+        this._teclaModalFormulario = function(e) { if (e.key === 'Escape') UIController.cerrarModalFormulario(); };
+        document.addEventListener('keydown', this._teclaModalFormulario);
+        // Mientras la ventana está abierta, la página de atrás no se desplaza
+        this._overflowAntesModal = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        var primero = overlay.querySelector('input, select, textarea, button.op-nota') || overlay.querySelector('#modalFormularioCerrar');
+        if (primero && primero.focus) { try { primero.focus(); } catch (err) {} }
+    },
+
+    cerrarModalFormulario: function(silencioso) {
+        var m = document.getElementById('modalFormulario');
+        if (m) m.remove();
+        if (this._teclaModalFormulario) { document.removeEventListener('keydown', this._teclaModalFormulario); this._teclaModalFormulario = null; }
+        if (this._overflowAntesModal !== undefined) { document.body.style.overflow = this._overflowAntesModal; this._overflowAntesModal = undefined; }
+        if (!silencioso) this.formularioAbierto = false;
+    },
+
+    mostrarFormularioEnMuro: function(titulo, icono, formularioHTML) { if (this._panelActivo()) { return this._mostrarFormularioEnModal(titulo, icono, formularioHTML); } this.limpiarPaginacionVieja(); if (this._vistaActual !== 'formulario') { this._vistaAntesFormulario = this._vistaActual; } this.formularioAbierto = true;
         // No se repinta al cambiar de idioma: es un formulario abierto (la persona puede estar a
         // mitad de escribir algo), y redibujarlo lo borraría. Se deja tal cual está.
         this._vistaActual = 'formulario';

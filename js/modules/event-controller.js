@@ -164,10 +164,8 @@ var EventController = {
         if (typeof Institucional !== 'undefined' && Institucional.reclamoEnCurso) { Institucional.procesarRespuestaReclamo(mensaje); return; }
         if (typeof Institucional !== 'undefined' && Institucional.contactoEnCurso) { Institucional.procesarRespuestaContacto(mensaje); return; }
         if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(mensaje)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; }
-        // Dentro del panel de usuario el atajo de matriz se salta: dibujaría en la vista pública, que
-        // está oculta (BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md, Parte 1). Decide la IA.
-        var panelActivoAtajo = document.getElementById('userPanelView').classList.contains('active');
-        if (!panelActivoAtajo && typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
+        // En el panel el atajo de la matriz se salta: dibujaría en la zona oculta y la persona no vería nada (decisión de BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md; la IA responde en su lugar).
+        if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz && !UIController._panelActivo()) {
             var intentoMatrizChat = BuscadorMotor.detectarIntencionMatriz(mensaje);
             if (intentoMatrizChat) {
                 if (intentoMatrizChat.tipo === 'matriz') {
@@ -195,7 +193,12 @@ var EventController = {
                 var datosPanel = await AIService.enviarMensajeEstructurado(mensaje);
                 UIController.quitarEstadoCarga();
                 UIController.mostrarRespuestaIA(datosPanel.mensaje_chat);
-                await PanelUsuario.procesarAccionEnFeed(datosPanel, mensaje);
+                if (datosPanel._fallo_tecnico) {
+                    // Igual que en la página principal: si la IA no respondió, se busca igual en el catálogo.
+                    await PanelUsuario.respaldoPorFalloIA(mensaje);
+                } else {
+                    await PanelUsuario.procesarAccionEnFeed(datosPanel, mensaje);
+                }
             } else {
                 var datos = await AIService.enviarMensajeEstructurado(mensaje);
                 UIController.quitarEstadoCarga();
@@ -218,8 +221,8 @@ var EventController = {
         if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; }
         if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(query); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); }
         if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(query)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; }
-        var panelActivoAtajoBusq = document.getElementById('userPanelView').classList.contains('active');
-        if (!panelActivoAtajoBusq && typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz) {
+        // En el panel el atajo de la matriz se salta: dibujaría en la zona oculta y la persona no vería nada (decisión de BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md; la IA responde en su lugar).
+        if (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.detectarIntencionMatriz && !UIController._panelActivo()) {
             var intentoMatriz = BuscadorMotor.detectarIntencionMatriz(query);
             if (intentoMatriz) {
                 if (intentoMatriz.tipo === 'matriz') {
@@ -239,7 +242,7 @@ var EventController = {
             catch (e) {
                 console.error('remarket-db: error en ejecutarBusquedaConIA', e);
                 var cont = document.getElementById('userFeedContainer');
-                if (cont) cont.innerHTML = '<div class="feed-empty"><p>Ocurrió un error al buscar: ' + escHtml(e.message || 'motivo desconocido') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+                if (cont) cont.innerHTML = '<div class="feed-empty"><p>' + escHtml(Institucional.t('panel_error_buscar')) + ' ' + escHtml(e.message || 'motivo desconocido') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">' + escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</button></div>';
             }
             return;
         }
@@ -254,7 +257,7 @@ var EventController = {
             await EventController.procesarAccionIA(datos, query);
         } catch (e) {
             console.error('remarket-db: error en manejarBusquedaPrincipal', e);
-            content.innerHTML = '<div style="text-align:center;padding:40px;"><p>Ocurrió un error al buscar: ' + escHtml(e.message || 'motivo desconocido') + '</p></div>';
+            content.innerHTML = '<div style="text-align:center;padding:40px;"><p>' + escHtml(Institucional.t('panel_error_buscar')) + ' ' + escHtml(e.message || 'motivo desconocido') + '</p></div>';
         }
     },
 

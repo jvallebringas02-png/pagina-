@@ -1732,16 +1732,44 @@ Object.assign(PanelUsuario, {
     // A partir de aquí usa el MISMO BuscadorMotor que la página principal (sinónimos, ciudad,
     // presupuesto, orden por relevancia) -- antes tenía su propia búsqueda aparte, más simple
     // (solo "contiene la palabra", sin sinónimos ni orden), y por eso se comportaba distinto.
+    // Texto traducido (diccionario de i18n-institucional.js; quechua y aimara usan el español). Si no se puede
+    // leer, devuelve el texto en español que se le pasa.
+    _t: function(clave, porDefecto) {
+        try {
+            if (typeof Institucional !== 'undefined' && Institucional.t) {
+                var x = Institucional.t(clave);
+                if (x && x !== clave) return x;
+            }
+        } catch (e) {}
+        return porDefecto;
+    },
+
+    // Cuando la IA no respondió (sin cupo, caída o sin conexión) se hace lo mismo que en la página principal:
+    // se busca lo escrito en el catálogo y se muestran los resultados (o "no encontré"). El aviso del motivo
+    // lo muestra quien llama, una sola vez, en el chat.
+    respaldoPorFalloIA: async function(query) {
+        var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(query);
+        await this.renderResultadoBusquedaEnFeed(resultado);
+    },
+
     ejecutarBusquedaConIA: async function(query) {
         var container = document.getElementById('userFeedContainer');
-        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 El Asistente IA está pensando...</p></div>';
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 ' + this.escHtml(this._t('panel_pensando', 'El Asistente IA está pensando...')) + '</p></div>';
         // BITACORA-ASISTENTE-PANEL.md, sección 4: mismo camino estructurado que la página
         // principal. "_fallo_tecnico" es ahora la única forma confiable de detectar que no hubo
         // respuesta real (antes se comparaba con textos fijos que ya no existían en ningún
         // archivo, así que el aviso de error nunca salía y el feed se recargaba en silencio).
         var datos = await AIService.enviarMensajeEstructurado(query);
         if (datos._fallo_tecnico) {
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>' + this.escHtml(datos.mensaje_chat || 'No pude conectarme con el Asistente en este momento. Intenta de nuevo en unos segundos.') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+            // Un solo aviso, en el chat (ya traducido: límite, servicio caído o sin conexión), y el feed busca
+            // igual en el catálogo, como en la página principal.
+            if (typeof UIController !== 'undefined' && UIController.mostrarRespuestaIA) UIController.mostrarRespuestaIA(datos.mensaje_chat, 'assistant');
+            try {
+                await this.respaldoPorFalloIA(query);
+            } catch (e) {
+                console.error('remarket-db: no se pudo buscar en el catálogo como respaldo', e);
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🤖</div><p>' + this.escHtml(datos.mensaje_chat || '') + '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">' + this.escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</button></div>';
+            }
             return;
         }
         var manejada = await this.procesarAccionEnFeed(datos, query);
@@ -1784,7 +1812,7 @@ Object.assign(PanelUsuario, {
         } else if (accion === 'QUIENES_SOMOS') {
             var textoQuienesSomos = await Institucional.obtenerTextoQuienesSomos();
             var contQuienesSomos = document.getElementById('userFeedContainer');
-            contQuienesSomos.innerHTML = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌱 Sobre remarket-db · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>' +
+            contQuienesSomos.innerHTML = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌱 ' + this.escHtml(this._t('titulo_quienes_somos', 'Sobre remarket-db')) + ' · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">' + this.escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</a></div>' +
                 '<div style="background:#fff;border-radius:12px;padding:20px;line-height:1.6;">' + this.escHtml(textoQuienesSomos) + '</div>';
         } else if (accion === 'CATEGORIA') {
             var categoria = datos.categoria || query;
@@ -1798,15 +1826,15 @@ Object.assign(PanelUsuario, {
             // se usa eso directo, igual que en la página principal, en vez de buscar otra vez
             // lo mismo (antes el panel siempre repetía la búsqueda, gastando cuota de más).
             var videos = (datos.resultados_videos && datos.resultados_videos.length) ? datos.resultados_videos : await BuscadorMotor.buscarSoloVideo(temaVideo);
-            this.renderExternoEnFeed(videos, '🎬 Videos de YouTube', 'No encontramos videos sobre eso. Intenta con otras palabras.');
+            this.renderExternoEnFeed(videos, '🎬 ' + this.escHtml(this._t('panel_titulo_videos', 'Videos de YouTube')), this._t('panel_vacio_videos', 'No encontramos videos sobre eso. Intenta con otras palabras.'));
         } else if (accion === 'MUSICA') {
             var temaMusica = datos.tema || query;
             var canciones = (datos.resultados_videos && datos.resultados_videos.length) ? datos.resultados_videos : await BuscadorMotor.buscarSoloMusica(temaMusica);
-            this.renderExternoEnFeed(canciones, '🎵 Música', 'No encontramos música sobre eso. Intenta con otras palabras.');
+            this.renderExternoEnFeed(canciones, '🎵 ' + this.escHtml(this._t('panel_titulo_musica', 'Música')), this._t('panel_vacio_musica', 'No encontramos música sobre eso. Intenta con otras palabras.'));
         } else if (accion === 'INTERNET') {
             var temaWeb = datos.tema || query;
             var web = (datos.resultados_web && datos.resultados_web.length) ? datos.resultados_web : await BuscadorMotor.buscarSoloWeb(temaWeb);
-            this.renderExternoEnFeed(web, '🌐 Resultados de internet', 'No encontramos nada en internet sobre eso.');
+            this.renderExternoEnFeed(web, '🌐 ' + this.escHtml(this._t('panel_titulo_internet', 'Resultados de internet')), this._t('panel_vacio_internet', 'No encontramos nada en internet sobre eso.'));
         } else if (accion === 'PUBLICAR') {
             var tituloSugerido = datos.titulo || query;
             this.iniciarPublicacionDesdeAsistente(tituloSugerido);
@@ -1864,18 +1892,24 @@ Object.assign(PanelUsuario, {
         var productosReales = (resultado.resultados || []).filter(function(p) { return !!p.usuario_id; });
 
         if (!productosReales.length && !(resultado.resultados_web && resultado.resultados_web.length) && !(resultado.resultados_videos && resultado.resultados_videos.length)) {
-            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🔎</div><p>' +
-                (resultado.lugar_sin_resultados ? 'No encontré publicaciones en ' + this.escHtml(resultado.lugar_sin_resultados) + ' para "' + this.escHtml(resultado.query) + '".' : 'No encontré publicaciones para "' + this.escHtml(resultado.query) + '". Intenta con sinónimos.') +
-                '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
+            // {q} y {lugar} se reemplazan con el texto ya escapado (con una función, para que un "$&" escrito por la persona no se interprete).
+            var escQ = this.escHtml(resultado.query);
+            var escLugar = this.escHtml(resultado.lugar_sin_resultados || '');
+            var textoVacio = resultado.lugar_sin_resultados
+                ? this._t('panel_sin_pub_en', 'No encontré publicaciones en {lugar} para "{q}".')
+                : this._t('panel_sin_pub', 'No encontré publicaciones para "{q}". Intenta con sinónimos.');
+            textoVacio = this.escHtml(textoVacio).replace('{q}', function() { return escQ; }).replace('{lugar}', function() { return escLugar; });
+            container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🔎</div><p>' + textoVacio +
+                '</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">' + this.escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</button></div>';
             return;
         }
 
         var banner = resultado.lugar_sin_resultados
-            ? '📍 No encontramos esto en <strong>' + this.escHtml(resultado.lugar_sin_resultados) + '</strong>, pero sí en estas otras zonas:'
+            ? '📍 ' + this.escHtml(obtenerTextoChrome('chrome_no_encontramos_en')) + ' <strong>' + this.escHtml(resultado.lugar_sin_resultados) + '</strong>' + this.escHtml(obtenerTextoChrome('chrome_pero_si_otras_zonas'))
             : resultado.lugar_aplicado
-                ? '📍 Filtrado por: <strong>' + this.escHtml(resultado.lugar_aplicado) + '</strong>'
-                : '🔎 Resultados para "' + this.escHtml(resultado.query) + '"';
-        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">' + banner + ' · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
+                ? '📍 ' + this.escHtml(obtenerTextoChrome('chrome_filtrado_por')) + ' <strong>' + this.escHtml(resultado.lugar_aplicado) + '</strong>'
+                : '🔎 ' + this.escHtml(obtenerTextoChrome('chrome_resultados_titulo')) + ': "' + this.escHtml(resultado.query) + '"';
+        var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">' + banner + ' · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">' + this.escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</a></div>';
 
         if (productosReales.length) {
             var idsLote = productosReales.map(function(p) { return p.id; }).filter(Boolean);
@@ -1889,8 +1923,8 @@ Object.assign(PanelUsuario, {
         }
         container.innerHTML = html;
 
-        if (resultado.resultados_web && resultado.resultados_web.length) this.renderExternoEnFeed(resultado.resultados_web, '🌐 Resultados de internet', '', true);
-        if (resultado.resultados_videos && resultado.resultados_videos.length) this.renderExternoEnFeed(resultado.resultados_videos, '🎬 Videos de YouTube', '', true);
+        if (resultado.resultados_web && resultado.resultados_web.length) this.renderExternoEnFeed(resultado.resultados_web, '🌐 ' + this.escHtml(this._t('panel_titulo_internet', 'Resultados de internet')), '', true);
+        if (resultado.resultados_videos && resultado.resultados_videos.length) this.renderExternoEnFeed(resultado.resultados_videos, '🎬 ' + this.escHtml(this._t('panel_titulo_videos', 'Videos de YouTube')), '', true);
     },
 
     renderCategoriasEnFeed: function(categorias) {
