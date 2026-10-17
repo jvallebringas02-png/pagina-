@@ -1803,6 +1803,18 @@ Object.assign(PanelUsuario, {
         // buscaban sin orden, sin ubicación ni modalidad.
         var opciones = { orden: datos.orden || null, ubicacionPropia: datos.ubicacion === 'propia', modalidad: datos.modalidad || null };
 
+        // "A nivel mundial" / "a nivel nacional": igual que la página principal (event-controller.js, "nivel_matriz"
+        // manda por encima de cualquier otra acción), pero la matriz se dibuja dentro del muro del panel. Si la IA no
+        // marcó nivel_matriz, se reconoce por la frase (solo cuando la IA tampoco pidió otra cosa, como video o publicar).
+        var nivelMatriz = (datos.nivel_matriz === 'mundial' || datos.nivel_matriz === 'pais') ? datos.nivel_matriz : null;
+        if (!nivelMatriz && (!accion || accion === 'BUSCAR' || accion === 'CATEGORIA' || accion === 'RECIENTES' || accion === 'LISTAR_CATEGORIAS')) {
+            nivelMatriz = this._nivelMatrizDesdeTexto(query);
+        }
+        if (nivelMatriz) {
+            this.abrirMatrizNiveles(nivelMatriz, [datos.categoria, datos.producto, query]);
+            return true;
+        }
+
         if (accion === 'BUSCAR') {
             var producto = datos.producto || query;
             var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(producto, opciones);
@@ -1848,6 +1860,114 @@ Object.assign(PanelUsuario, {
             return false; // conversacional: el que llamó decide qué hacer
         }
         return true;
+    },
+
+    // === MATRIZ "A NIVEL MUNDIAL / NACIONAL" DENTRO DEL MURO ===
+    // La página principal la dibuja con UIController.mostrarMatrizNiveles, pero eso escribe en una zona que se oculta
+    // mientras estás en el panel. Esto es lo mismo (mismos datos, textos traducidos y países normalizados) pintado en el muro.
+    _matrizPilaPanel: [],
+    _matrizActualPanel: null,
+
+    // Reconoce la frase cuando la IA no marcó nivel_matriz. Solo frases claras: "mundial" o "nacional" sueltas
+    // ("el Mundial de fútbol", "producto nacional") no cuentan.
+    _nivelMatrizDesdeTexto: function(texto) {
+        var t = (typeof BuscadorMotor !== 'undefined' && BuscadorMotor.normalizar) ? BuscadorMotor.normalizar(texto || '') : String(texto || '').toLowerCase();
+        if (!t) return null;
+        if (/\b(nivel|escala)\s+(mundial|global|internacional)\b|\b(todo|todos)\s+(el\s+)?(mundo|planeta)\b|\bpor\s+paises\b|\bpor\s+pais\b|\bmatriz\b/.test(t)) return 'mundial';
+        if (/\bnivel\s+(nacional|pais)\b|\b(todo|todos)\s+el\s+pais\b|\ben\s+todo\s+(el\s+)?(pais|peru)\b/.test(t)) return 'pais';
+        return null;
+    },
+
+    // Devuelve [categoría] si algún texto menciona una categoría que de verdad tiene publicaciones; si no, null (todas).
+    _categoriasParaMatriz: function(textos) {
+        var disponibles = BuscadorMotor.obtenerCategoriasDisponibles().map(function(c) { return c.nombre; });
+        for (var i = 0; i < textos.length; i++) {
+            var tx = textos[i];
+            if (!tx) continue;
+            var tn = BuscadorMotor.normalizar(tx);
+            var directa = disponibles.filter(function(c) { return tn.indexOf(BuscadorMotor.normalizar(c)) !== -1; })[0];
+            var resuelta = BuscadorMotor.resolverCategoriaDesdeTexto(tx);
+            var cat = directa || ((resuelta && disponibles.indexOf(resuelta) !== -1) ? resuelta : null);
+            if (cat) return [cat];
+        }
+        return null;
+    },
+
+    abrirMatrizNiveles: function(nivel, textosCategoria) {
+        var lugar = null;
+        if (nivel === 'pais') {
+            // Sin país conocido (la detección por IP falló y quedó "Mundo") no hay matriz de país: se muestra la mundial.
+            lugar = (typeof paisParaGuardar === 'function' && typeof UbicacionUsuario !== 'undefined') ? paisParaGuardar(UbicacionUsuario.pais) : null;
+            if (!lugar) nivel = 'mundial';
+        }
+        this._matrizPilaPanel = [];
+        this.renderMatrizNivelesEnFeed(BuscadorMotor.obtenerMatrizNiveles(this._categoriasParaMatriz(textosCategoria || []), nivel, lugar));
+    },
+
+    renderMatrizNivelesEnFeed: function(matriz) {
+        var container = document.getElementById('userFeedContainer');
+        if (!container) return;
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        this._matrizActualPanel = matriz;
+        var self = this;
+        var esPais = matriz.nivel === 'pais';
+        var lugar = esPais ? traducirPais(matriz.lugar) : '';
+        var conLugar = function(clave) { return obtenerTextoChrome(clave).replace('{lugar}', function() { return lugar; }); };
+        var titulo = this.escHtml(esPais ? conLugar('chrome_cat_por_ciudad_en') : obtenerTextoChrome('chrome_cat_por_pais'));
+        var volverMatriz = this._matrizPilaPanel.length
+            ? '<a href="#" onclick="event.preventDefault();PanelUsuario.volverMatrizPanel();">' + this.escHtml(obtenerTextoChrome('chrome_volver')) + '</a> · ' : '';
+        var barra = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">' + volverMatriz +
+            '<a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">' + this.escHtml(textoUI('volver_inicio', 'Volver al inicio')) + '</a></div>';
+        var banner = '<div class="ai-context-banner" style="margin:0 0 10px;">📊 <strong>' + titulo + '</strong></div>';
+        if (!matriz.filas.length || !matriz.columnas.length) {
+            container.innerHTML = barra + banner + '<div class="feed-empty"><p>' + this.escHtml(obtenerTextoChrome('chrome_sin_pub_matriz')) + '</p></div>';
+            return;
+        }
+        var html = barra + banner + '<div style="overflow-x:auto;background:#fff;border-radius:12px;"><table style="width:100%;border-collapse:collapse;">';
+        html += '<tr><th style="text-align:left;padding:10px;background:#F3F4F6;"></th>' + matriz.columnas.map(function(c) {
+            // Países: idioma de la persona, con el nombre en español al pasar el cursor. Ciudades: tal cual.
+            var ct = matriz.columnaTipo === 'pais' ? traducirPais(c) : c;
+            var tt = (ct !== c) ? ' title="' + self.escHtml(c) + '"' : '';
+            return '<th' + tt + ' style="padding:10px;background:#F3F4F6;text-align:center;">' + self.escHtml(ct) + '</th>';
+        }).join('') + '</tr>';
+        html += matriz.filas.map(function(fila) {
+            // Categoría en el idioma de la persona y, si es distinta, el español pequeño debajo.
+            var catT = traducirCategoria(fila);
+            var sub = (catT !== fila) ? '<div style="font-size:11px;font-weight:400;color:#6B7280;">' + self.escHtml(fila) + '</div>' : '';
+            return '<tr><td style="padding:10px;font-weight:600;border-top:1px solid #E5E7EB;">' + self.escHtml(catT) + sub + '</td>' +
+                matriz.columnas.map(function(col) {
+                    var n = (matriz.datos[fila] && matriz.datos[fila][col]) || 0;
+                    if (!n) return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;color:#D1D5DB;">-</td>';
+                    // Los valores en español van en data-*: con ellos se hace la búsqueda al pulsar la celda (sin datos dentro de onclick).
+                    return '<td style="padding:10px;text-align:center;border-top:1px solid #E5E7EB;cursor:pointer;color:var(--purpura-ia);font-weight:700;" data-pu-accion="matriz-celda" data-fila="' + self.escHtml(fila) + '" data-coltipo="' + self.escHtml(matriz.columnaTipo) + '" data-col="' + self.escHtml(col) + '">' + n + '</td>';
+                }).join('') + '</tr>';
+        }).join('');
+        html += '</table></div>';
+        container.innerHTML = html;
+    },
+
+    explorarCeldaMatrizPanel: async function(categoria, colTipo, colValor) {
+        this._matrizPilaPanel.push(this._matrizActualPanel);
+        if (colTipo === 'pais') {
+            this.renderMatrizNivelesEnFeed(BuscadorMotor.obtenerMatrizNiveles([categoria], 'pais', colValor));
+            return;
+        }
+        var container = document.getElementById('userFeedContainer');
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>🤖 ' + this.escHtml(this._t('panel_pensando', 'El Asistente IA está pensando...')) + '</p></div>';
+        try {
+            var resultado = await BuscadorMotor.ejecutarBusquedaHibrida(categoria + ' ' + colValor);
+            await this.renderResultadoBusquedaEnFeed(resultado);
+        } catch (e) {
+            console.warn('remarket-db: no se pudo buscar desde la matriz', e);
+            container.innerHTML = '<div class="feed-empty"><p>' + this.escHtml(this._t('panel_error_buscar', 'No se pudo buscar.')) + '</p></div>';
+        }
+        container.insertAdjacentHTML('afterbegin', '<div style="padding:10px 4px;font-size:13px;"><a href="#" onclick="event.preventDefault();PanelUsuario.volverMatrizPanel();">' + this.escHtml(obtenerTextoChrome('chrome_volver')) + '</a></div>');
+    },
+
+    volverMatrizPanel: function() {
+        var anterior = this._matrizPilaPanel.pop();
+        if (anterior) this.renderMatrizNivelesEnFeed(anterior);
+        else this.cargarFeed();
     },
 
     // Pinta la matriz de "explorar mi localidad" dentro del feed, un bloque por categoría, usando
@@ -2057,6 +2177,8 @@ document.addEventListener('click', function(ev) {
         PanelUsuario.abrirModalReportarUsuario(d.id, d.nombre);
     } else if (accion === 'busqueda-ia') {
         PanelUsuario.ejecutarBusquedaConIA(d.q || '');
+    } else if (accion === 'matriz-celda') {
+        PanelUsuario.explorarCeldaMatrizPanel(d.fila, d.coltipo, d.col);
     } else if (accion === 'abrirlink') {
         // Solo http(s): un enlace "javascript:..." que llegue de una búsqueda externa no se abre.
         if (/^https?:\/\//i.test(d.url || '')) window.open(d.url, '_blank', 'noopener');
