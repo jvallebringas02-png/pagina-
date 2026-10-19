@@ -11,6 +11,11 @@ var PanelUsuario = {
 
     // === MOSTRAR/OCULTAR PANEL === [FASE 2.1 - Layout de 3 Columnas]
     mostrar: function() {
+        // Si el panel ya estaba abierto (al entrar o recargar la página esta función se llama 2 o 3 veces seguidas,
+        // desde updateUIForUser e irAlFeed), solo se refrescan las tarjetas: no se borra el muro, no se limpia el
+        // buscador y no se vuelve a pedir el feed. Eso causaba el parpadeo "Cargando publicaciones…" al entrar.
+        var yaActivo = document.getElementById('userPanelView').classList.contains('active');
+        if (yaActivo) { this.actualizarTarjetasUsuario(); return; }
         document.getElementById('publicView').classList.add('hidden');
         document.getElementById('userPanelView').classList.add('active');
         var buscador = document.getElementById('dynamicSearch');
