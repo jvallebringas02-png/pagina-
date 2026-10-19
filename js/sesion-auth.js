@@ -105,8 +105,15 @@ function cargarSesionUsuario() {
     return null;
 }
 
+// Id de la persona cuya sesión ya se procesó (o se está procesando). Evita repetir todo el arranque
+// (muro, saludo, registro de acceso) cuando Supabase vuelve a avisar "SIGNED_IN" para la misma persona,
+// por ejemplo al regresar a la pestaña o justo después de iniciar sesión con contraseña.
+var _uidSesionProcesada = null;
+
 async function procesarSesionSupabaseAuth(authUser) {
     if (!authUser) return;
+    if (_uidSesionProcesada === authUser.id) return;
+    _uidSesionProcesada = authUser.id; // se marca al empezar, para que dos avisos seguidos no se pisen
     try {
         var { data: usuarioExistente, error: buscarError } = await supabase
             .from('usuarios')
@@ -149,7 +156,8 @@ async function procesarSesionSupabaseAuth(authUser) {
 
         guardarSesionUsuario(usuarioFinal);
         aplicarLocalidadGuardada(usuarioFinal);
-        await logAccess('login_exitoso', authUser.email, 'Vía procesarSesionSupabaseAuth');
+        // No se espera: el registro de acceso no debe retrasar la aparición del panel.
+        try { Promise.resolve(logAccess('login_exitoso', authUser.email, 'Vía procesarSesionSupabaseAuth')).catch(function() {}); } catch (la) {}
         updateUIForUser(usuarioFinal);
         toggleAuthModal(false);
         showAssistantProactive('¡Bienvenido ' + (usuarioFinal.nombres || (authUser.email ? authUser.email.split('@')[0] : 'Usuario')) + '! 🎉 Tu sesión está activa. ¿En qué puedo ayudarte hoy?');
@@ -162,6 +170,7 @@ async function procesarSesionSupabaseAuth(authUser) {
             }, 800);
         }
     } catch (e) {
+        _uidSesionProcesada = null; // si falló, se permite reintentar
         console.warn('No se pudo procesar la sesión de autenticación:', e);
     }
 }
