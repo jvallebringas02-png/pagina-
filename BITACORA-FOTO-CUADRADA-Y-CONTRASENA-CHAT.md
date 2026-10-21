@@ -7,11 +7,11 @@
 ## 1. Foto cuadrada del muro (opción 2 de la bitácora del 17/10)
 **Qué se veía:** cada foto salía de un tamaño distinto (ancho completo y alto según la foto, hasta 420 px).
 **Cambio (`css/estilos.css`, solo CSS):**
-- `.feed-post-image`: cuadrada (`aspect-ratio: 1/1`), máximo 380 px, centrada, recortada con `object-fit: cover`.
+- `.feed-post-image`: cuadrada (`aspect-ratio: 1/1`), máximo 380 px, centrada. **Ajuste 21/10 tras la prueba:** se usa `object-fit: contain` (foto completa sobre fondo gris, sin recortar). La primera versión recortaba con `cover` y cortaba la cabeza de una foto vertical.
 - Carrusel: el contenedor mide 380 px máximo, centrado; todas las fotos del carrusel son cuadradas, así no cambia de tamaño al pasar de una a otra.
 - La ventana "ver publicación" (`#vpImagen`) **no cambia**: se le quitó el cuadrado para que siga igual que antes.
 **Medido (Chromium sin interfaz, con el CSS real):** foto ancha 380×380, foto alta 380×380, carrusel 380×380, celular de 340 px de ancho → 338×338, ventana de la publicación sin cuadrar.
-**Qué se pierde:** las fotos que no son cuadradas se recortan en el muro (se ven completas en "ver publicación").
+**Qué se pierde:** las fotos que no son cuadradas dejan franjas grises arriba/abajo o a los lados (no se recorta nada). La ventana "ver publicación" también pasó a `contain` (antes recortaba si pasaba de 420 px).
 **Pendiente:** poder ampliar la foto al tocarla (idea del 17/10), no hecho.
 
 ## 2. Por qué sale "guardar contraseña" / lista de cuentas en el chat
@@ -27,6 +27,7 @@
 - [ ] Muro: fotos cuadradas y centradas; el carrusel pasa de una a otra sin cambiar de tamaño.
 - [ ] Muro en el celular.
 - [ ] "Ver publicación": la foto se ve como antes.
+- [x] Probado 21/10 en Brave: ya NO sale la lista de cuentas en el chat.
 - [ ] Mensajes: hacer clic en "Escribe un mensaje…" ya no muestra cuentas ni "Administrar contraseñas".
 - [ ] Enviar un mensaje con Enter y con el botón; enviar 👍; enviar una foto.
 - [ ] Configuración → Contraseña: sigue funcionando "Guardar".
