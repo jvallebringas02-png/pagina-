@@ -532,7 +532,7 @@ tailwind.config = {
             <div id="configAvisoClave" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px;">Entraste con un enlace. Crea aquí tu contraseña nueva (mínimo 8 caracteres) y pulsa Guardar contraseña.</div>
             <label class="form-label" style="margin-top:14px;display:block;">🔑 Contraseña</label>
             <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-                <input type="password" id="configNuevaPassword" class="form-input" placeholder="Nueva contraseña">
+                <input type="password" id="configNuevaPassword" class="form-input" placeholder="Nueva contraseña" autocomplete="new-password">
                 <button class="btn-auth btn-auth-primary" style="width:auto;padding:10px 14px;font-size:13px;margin-bottom:0;white-space:nowrap;" onclick="PanelUsuario.cambiarPasswordCuenta()">Guardar contraseña</button>
             </div>
             <div id="configPasswordAlert" class="alert" style="display:none;margin-top:8px;"></div>
