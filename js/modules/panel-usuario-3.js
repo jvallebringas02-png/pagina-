@@ -906,15 +906,15 @@ Object.assign(PanelUsuario, {
                 '<button type="button" title="Reportar usuario" data-pu-accion="reportar-usuario" data-id="' + this.escHtml(otroId) + '" data-nombre="' + this.escHtml(nombreOtro) + '" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚩</button>' +
                 '<button type="button" title="Bloquear usuario" onclick="PanelUsuario.toggleBloqueado(\'' + otroId + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:6px;">🚫</button>' +
                 '</div>' +
-                '<div id="' + ctx.buscarRow + '" style="display:none;padding:8px 12px;border-bottom:1px solid var(--borde);"><input type="text" id="' + ctx.buscarInput + '" class="form-input" placeholder="Buscar en esta conversación..." oninput="PanelUsuario.buscarEnChatAbierto(this.value, \'' + modo + '\')"></div>' +
+                '<div id="' + ctx.buscarRow + '" style="display:none;padding:8px 12px;border-bottom:1px solid var(--borde);"><input type="text" id="' + ctx.buscarInput + '" class="form-input" placeholder="Buscar en esta conversación..." autocomplete="off" name="buscar-chat-' + modo + '" oninput="PanelUsuario.buscarEnChatAbierto(this.value, \'' + modo + '\')"></div>' +
                 '<div class="chat-messages" id="' + ctx.messages + '">' + (msgsHtml || '<p style="text-align:center;color:var(--texto-terciario);font-size:13px;margin-top:20px;">Aún no hay mensajes. ¡Escribe el primero!</p>') + '</div>' +
                 '<div id="' + ctx.escribiendo + '" style="display:none;padding:0 12px;font-size:12px;color:var(--texto-terciario);">✍️ ' + this.escHtml(nombreOtro) + ' está escribiendo...</div>' +
                 '<div id="' + ctx.modAlert + '" class="alert" style="margin:0 12px;"></div>' +
-                '<div class="chat-input-row">' +
+                '<form class="chat-input-row" autocomplete="off" onsubmit="return false;">' +
                 '<input type="file" id="' + ctx.fotoInput + '" accept="image/*" style="display:none;" onchange="PanelUsuario.enviarFotoChat(\'' + convId + '\', \'' + otroId + '\', this.files[0], \'' + modo + '\')">' +
                 '<button type="button" title="Enviar foto" onclick="document.getElementById(\'' + ctx.fotoInput + '\').click()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 8px;">📷</button>' +
                 '<input type="text" id="' + ctx.input + '" class="form-input" placeholder="Escribe un mensaje..." autocomplete="off" name="mensaje-chat-' + modo + '" oninput="PanelUsuario.avisarEscribiendo(\'' + modo + '\'); PanelUsuario.actualizarBotonEnvio(\'' + modo + '\');" onkeydown="if(event.key===\'Enter\'){PanelUsuario.enviarMensajeChat(\'' + convId + '\',\'' + otroId + '\',\'' + modo + '\')}">' +
-                '<button class="btn-auth btn-auth-primary btn-envio-chat" id="' + ctx.input + '_btnEnvio" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarLikeORaTexto(\'' + convId + '\', \'' + otroId + '\', \'' + modo + '\')"><span class="icono-envio">👍</span></button></div>';
+                '<button type="button" class="btn-auth btn-auth-primary btn-envio-chat" id="' + ctx.input + '_btnEnvio" style="width:auto;padding:10px 18px;" onclick="PanelUsuario.enviarLikeORaTexto(\'' + convId + '\', \'' + otroId + '\', \'' + modo + '\')"><span class="icono-envio">👍</span></button></form>';
 
             var msgsBox = document.getElementById(ctx.messages);
             if (msgsBox) msgsBox.scrollTop = msgsBox.scrollHeight;
