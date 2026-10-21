@@ -71,6 +71,11 @@ var BuscadorMotor = {
     catalogo: [],
     JERGA: { 'carro': 'auto', 'carros': 'auto', 'auto': 'auto', 'autos': 'auto', 'vehiculo': 'auto', 'vehiculos': 'auto', 'coche': 'auto', 'coches': 'auto', 'chompa': 'casaca', 'casaca': 'chompa', 'polo': 'camiseta', 'camisa': 'camiseta', 'camiseta': 'camisa', 'blusa': 'camisa', 'playera': 'camiseta', 'remera': 'camiseta', 'zapa': 'zapatilla', 'zapato': 'zapatilla', 'zapatos': 'zapatilla', 'tenis': 'zapatilla', 'celu': 'celular', 'cel': 'celular', 'note': 'laptop', 'lapto': 'laptop', 'compu': 'computadora', 'ordenador': 'computadora', 'tele': 'televisor', 'bici': 'bicicleta', 'carpintero': 'carpinteria', 'chumpi': 'faja', 'aguayo': 'manta', 'poncho': 'poncho', 'chullo': 'gorro', 'lliqlla': 'manta', 'papa': 'papa', 'quinua': 'quinua', 'oca': 'oca', 'alpaca': 'alpaca', 'maskani': 'busco', 'rantini': 'compro', 'rantikuni': 'vendo', 'aljt\'a': 'venta' },
     STOPWORDS: new Set(['de', 'la', 'el', 'en', 'y', 'a', 'los', 'del', 'se', 'las', 'por', 'un', 'para', 'con', 'no', 'una', 'su', 'al', 'es', 'que', 'si', 'sin', 'sobre', 'este', 'entre', 'cuando', 'muy', 'ya', 'todo', 'esa', 'esos', 'esto', 'eso', 'esta', 'ser', 'ha', 'cada', 'mas', 'pero', 'otro', 'le', 'o', 'estar', 'tener', 'hay', 'aqui', 'bueno', 'tan', 'cual', 'donde', 'mi', 'tu', 'yo', 'me', 'te', 'nos', 'lo', 'como', 'quien', 'porque', 'segun', 'hasta', 'desde', 'hacia']),
+    // BÚSQUEDA INTELIGENTE, FASE 1 (BITACORA-BUSQUEDA-INTELIGENTE-FASES.md): palabras que piden algo en
+    // general ("búscame productos", "qué cosas hay") y no nombran ningún artículo. Se quitan antes de buscar;
+    // si no queda ninguna palabra específica, es un pedido general y se muestra lo último publicado.
+    // Ya normalizadas (sin tildes, en minúsculas). Propuesta inicial en español: se ajusta con el uso.
+    GENERICAS: new Set(['busca', 'buscame', 'buscar', 'busco', 'muestrame', 'muestra', 'quiero', 'necesito', 'dame', 'dime', 'tienes', 'tienen', 'encuentra', 'encuentrame', 'producto', 'productos', 'cosa', 'cosas', 'articulo', 'articulos', 'algo', 'anuncio', 'anuncios', 'publicacion', 'publicaciones', 'novedades', 'recientes', 'ultimo', 'ultimos']),
     // Categoría real <- palabras de subcategoría/tipo de producto (ej: "zapato" pertenece a "Ropa").
     // ÚNICA fuente de verdad: antes esta misma lista vivía duplicada dentro de
     // PanelUsuario.sugerirCategoria() (panel-usuario-3.js), solo para sugerir categoría al publicar.
@@ -348,6 +353,38 @@ var BuscadorMotor = {
         });
     },
 
+    // Vocabulario de palabras "conocidas" como producto: las categorías y tipos de producto de
+    // MAPA_CATEGORIAS, los sinónimos de JERGA y las palabras de títulos/categorías del catálogo.
+    _vocabularioConocido: function() {
+        var self = this, v = {};
+        var agregar = function(texto) {
+            var n = self.normalizar(texto);
+            if (!n) return;
+            n.split(' ').forEach(function(p) { if (p.length > 2) v[p] = true; });
+        };
+        Object.keys(this.MAPA_CATEGORIAS).forEach(function(cat) { agregar(cat); self.MAPA_CATEGORIAS[cat].forEach(agregar); });
+        Object.keys(this.JERGA).forEach(function(k) { agregar(k); agregar(self.JERGA[k]); });
+        (this.catalogo || []).forEach(function(art) { agregar(art.titulo); agregar(art.categoria); });
+        return v;
+    },
+
+    _palabraConocida: function(vocab, t) {
+        if (vocab[t] || vocab[t + 's']) return true;
+        return t.length > 4 && t.charAt(t.length - 1) === 's' && !!vocab[t.slice(0, -1)];
+    },
+
+    // Cuando no hubo ninguna publicación, distingue 3 casos (ver bitácora, sección 4.1):
+    //  'sin_resultados' -> alguna palabra se conoce como producto (o no hay palabras): "no hay publicaciones de eso".
+    //  'sin_sentido'    -> ninguna se conoce Y la IA marcó entendido:false: "no entendí qué buscas".
+    //  'no_escribio'    -> ninguna se conoce pero la IA sí entendió (o no hubo IA): "¿lo escribiste bien?".
+    clasificarSinResultados: function(tokens, entendido) {
+        if (!tokens || !tokens.length) return 'sin_resultados';
+        var vocab = this._vocabularioConocido(), self = this;
+        var alguna = tokens.some(function(t) { return self._palabraConocida(vocab, t); });
+        if (alguna) return 'sin_resultados';
+        return entendido === false ? 'sin_sentido' : 'no_escribio';
+    },
+
     // Aplica el orden final a una lista de resultados ya filtrada. Si el usuario pidió un orden
     // explícito (precio_asc / precio_desc), se respeta tal cual -- no se fuerzan patrocinados
     // arriba, porque el usuario mandó a decir cómo lo quiere ver. Si no pidió orden, se usa el
@@ -381,7 +418,7 @@ var BuscadorMotor = {
         // El nombre del lugar se saca de la frase para el puntaje de texto -- son dos criterios
         // distintos (qué buscas / dónde), no se debe mezclar "peru" como si fuera parte del producto.
         var queryProducto = (lugar && !lugarEsPropio) ? query.replace(new RegExp(lugar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ') : query;
-        var tokens = this.tokenizar(queryProducto);
+        var tokens = this.tokenizar(queryProducto).filter(function(tk) { return !self.GENERICAS.has(tk); });
         // Si la consulta menciona una subcategoría/tipo de producto (ej: "zapatos"), se agrega el
         // nombre de su categoría real como token extra -- así también aparecen productos de esa
         // categoría aunque su título no diga la palabra exacta. calcularPuntaje ya da más puntaje
@@ -393,6 +430,13 @@ var BuscadorMotor = {
             if (tokens.indexOf(tokenCategoria) === -1) tokens = tokens.concat([tokenCategoria]);
         }
         var presupuesto = this.extraerPresupuesto(query);
+
+        // Pedido general ("búscame productos", "qué cosas hay"): no quedó ninguna palabra específica y tampoco
+        // hay lugar, orden, modalidad ni presupuesto. Se muestra lo último publicado, sin ir a internet.
+        if (!tokens.length && !lugar && !opciones.orden && !opciones.modalidad && presupuesto === null) {
+            var recientesGeneral = this.obtenerRecientes(12);
+            return { resultados: recientesGeneral, total: this.catalogo.length, coincidencias: recientesGeneral.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, tipo: 'general' };
+        }
 
         var mapear = function(art, puntaje) {
             return { usuario_id: art.usuario_id, titulo: art.titulo, categoria: art.categoria, descripcion: art.descripcion, precio: art.precio, modalidad: art.modalidad, pais: art.pais, ciudad: art.ciudad, distancia_km: art.distancia_km, icono: art.icono, imagen_url: art.imagen_url, es_patrocinado: !!art.es_patrocinado, _puntaje: puntaje, _es_expandido: false, _es_externo: false };
@@ -438,17 +482,22 @@ var BuscadorMotor = {
             return { resultados: resultadosLocales, total: this.catalogo.length, coincidencias: resultadosLocales.length, query: query, es_expandido: false, es_hibrido: false, resultados_web: null, resultados_videos: null, lugar_aplicado: lugar, lugar_es_propio: lugarEsPropio, orden_aplicado: opciones.orden || null };
         }
 
-        var externo = await this.buscarEnInternetYVideo(query);
+        // Antes aquí se completaba SIEMPRE con internet y YouTube (por eso "buscame productos" mostraba videos).
+        // Ahora se devuelve solo lo del catálogo, con el tipo de caso, y el internet queda como un botón que la
+        // persona pulsa (BuscadorMotor.buscarEnInternetYVideo lo hace cuando lo pide).
+        var tipoBusqueda = resultadosLocales.length ? 'pocos' : this.clasificarSinResultados(tokens, opciones.entendido);
         return {
             resultados: resultadosLocales,
             total: this.catalogo.length,
             coincidencias: resultadosLocales.length,
             query: query,
-            es_expandido: resultadosLocales.length === 0,
-            es_hibrido: true,
-            resultados_web: externo.resultados_web,
-            resultados_videos: externo.resultados_videos,
-            lugar_aplicado: lugar
+            es_expandido: false,
+            es_hibrido: false,
+            resultados_web: null,
+            resultados_videos: null,
+            lugar_aplicado: lugar,
+            tipo: tipoBusqueda,
+            puede_buscar_internet: true
         };
     }
 };

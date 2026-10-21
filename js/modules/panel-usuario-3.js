@@ -1801,7 +1801,7 @@ Object.assign(PanelUsuario, {
         // Mismos filtros que usa la página principal (event-controller.js) -- antes el panel los
         // ignoraba por completo, así que "lo más barato cerca de mí" o "solo trueque" se
         // buscaban sin orden, sin ubicación ni modalidad.
-        var opciones = { orden: datos.orden || null, ubicacionPropia: datos.ubicacion === 'propia', modalidad: datos.modalidad || null };
+        var opciones = { orden: datos.orden || null, ubicacionPropia: datos.ubicacion === 'propia', modalidad: datos.modalidad || null, entendido: datos.entendido !== false };
 
         // "A nivel mundial" / "a nivel nacional": igual que la página principal (event-controller.js, "nivel_matriz"
         // manda por encima de cualquier otra acción), pero la matriz se dibuja dentro del muro del panel. Si la IA no
@@ -2009,7 +2009,19 @@ Object.assign(PanelUsuario, {
     // aquí porque no tienen un vendedor real con quien contactar ni likes/comentarios propios.
     renderResultadoBusquedaEnFeed: async function(resultado) {
         var container = document.getElementById('userFeedContainer');
+        // Pedido general ("búscame productos"): lo último publicado es el feed normal del panel (con likes y
+        // comentarios), igual que cuando la IA responde con la acción RECIENTES.
+        if (resultado.tipo === 'general') { this.cargarFeed(); return; }
+        this._ultimoResultadoFeed = resultado;
         var productosReales = (resultado.resultados || []).filter(function(p) { return !!p.usuario_id; });
+        // Sin publicaciones y sin nada externo: mensaje según el caso (sin resultados / no escribió bien / sin sentido)
+        // con sus botones. Si ya hay internet o YouTube pedido por la persona, sigue el camino de siempre.
+        var vacioPorTipo = (resultado.tipo === 'sin_resultados' || resultado.tipo === 'no_escribio' || resultado.tipo === 'sin_sentido');
+        var hayExternoFeed = !!((resultado.resultados_web && resultado.resultados_web.length) || (resultado.resultados_videos && resultado.resultados_videos.length));
+        if (vacioPorTipo && !productosReales.length && !hayExternoFeed) {
+            container.innerHTML = this.htmlSinResultadosFeed(resultado);
+            return;
+        }
 
         if (!productosReales.length && !(resultado.resultados_web && resultado.resultados_web.length) && !(resultado.resultados_videos && resultado.resultados_videos.length)) {
             // {q} y {lugar} se reemplazan con el texto ya escapado (con una función, para que un "$&" escrito por la persona no se interprete).
@@ -2041,10 +2053,49 @@ Object.assign(PanelUsuario, {
                 html += self.renderPost(productosReales[i], autor, yaLike);
             }
         }
+        if (resultado.aviso_externo) html += '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌐 ' + this.escHtml(obtenerTextoChrome('chrome_aviso_externo')) + '</div>';
+        if (resultado.tipo === 'pocos') {
+            if (resultado.puede_buscar_internet) html += this.htmlAvisoPocosFeed(resultado);
+            else if (resultado.internet_vacio) html += '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">🌐 ' + this.escHtml(obtenerTextoChrome('chrome_internet_vacio')) + '</div>';
+        }
         container.innerHTML = html;
 
         if (resultado.resultados_web && resultado.resultados_web.length) this.renderExternoEnFeed(resultado.resultados_web, '🌐 ' + this.escHtml(this._t('panel_titulo_internet', 'Resultados de internet')), '', true);
         if (resultado.resultados_videos && resultado.resultados_videos.length) this.renderExternoEnFeed(resultado.resultados_videos, '🎬 ' + this.escHtml(this._t('panel_titulo_videos', 'Videos de YouTube')), '', true);
+    },
+
+    // === BÚSQUEDA INTELIGENTE, FASE 1 (BITACORA-BUSQUEDA-INTELIGENTE-FASES.md) ===
+    // Mensaje y botones cuando no hubo publicaciones. El texto buscado se escapa antes de ponerlo en el HTML y en
+    // data-q (el delegado de clics lo lee con dataset, nunca como código).
+    htmlSinResultadosFeed: function(r) {
+        var q = this.escHtml(r.query || '');
+        var clave = r.tipo === 'sin_sentido' ? 'chrome_busq_sin_sentido' : (r.tipo === 'no_escribio' ? 'chrome_busq_no_escribio' : 'chrome_busq_sin_resultados');
+        var msg = this.escHtml(obtenerTextoChrome(clave)).replace('{q}', function() { return q; });
+        var h = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🔎</div><p>' + msg + '</p>';
+        if (r.internet_vacio) h += '<p>' + this.escHtml(obtenerTextoChrome('chrome_internet_vacio')) + '</p>';
+        h += '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px;">';
+        h += '<button class="btn-publicar" data-pu-accion="ver-recientes">' + this.escHtml(obtenerTextoChrome('chrome_btn_ultimo')) + '</button>';
+        h += '<button class="btn-publicar" data-pu-accion="ver-categorias">' + this.escHtml(obtenerTextoChrome('chrome_btn_categorias')) + '</button>';
+        if (r.tipo !== 'sin_sentido' && r.puede_buscar_internet && !r.internet_vacio) h += '<button class="btn-publicar" data-pu-accion="buscar-internet" data-q="' + q + '">' + this.escHtml(obtenerTextoChrome('chrome_btn_internet')) + '</button>';
+        return h + '</div></div>';
+    },
+    htmlAvisoPocosFeed: function(r) {
+        return '<div style="padding:14px 4px;text-align:center;font-size:13px;color:var(--texto-secundario);"><p>' + this.escHtml(obtenerTextoChrome('chrome_busq_pocos')) + '</p>' +
+            '<button class="btn-publicar" data-pu-accion="buscar-internet" data-q="' + this.escHtml(r.query || '') + '">' + this.escHtml(obtenerTextoChrome('chrome_btn_internet')) + '</button></div>';
+    },
+    // Botón "¿Buscar también en internet?": pide la web y YouTube y vuelve a pintar el mismo resultado con ellos debajo.
+    buscarInternetEnFeed: async function(q, boton) {
+        var base = this._ultimoResultadoFeed;
+        if (boton) { boton.disabled = true; boton.textContent = obtenerTextoChrome('chrome_buscando_internet'); }
+        var externo = await BuscadorMotor.buscarEnInternetYVideo(q);
+        // Si la persona ya cambió de vista mientras esperaba, no se pisa lo que está viendo.
+        if (this._ultimoResultadoFeed !== base || (boton && !boton.isConnected)) return;
+        var hay = !!((externo.resultados_web && externo.resultados_web.length) || (externo.resultados_videos && externo.resultados_videos.length));
+        var nuevo = Object.assign({}, base || { resultados: [], query: q }, {
+            resultados_web: externo.resultados_web, resultados_videos: externo.resultados_videos,
+            puede_buscar_internet: false, aviso_externo: hay, internet_vacio: !hay
+        });
+        await this.renderResultadoBusquedaEnFeed(nuevo);
     },
 
     renderCategoriasEnFeed: function(categorias) {
@@ -2182,5 +2233,11 @@ document.addEventListener('click', function(ev) {
     } else if (accion === 'abrirlink') {
         // Solo http(s): un enlace "javascript:..." que llegue de una búsqueda externa no se abre.
         if (/^https?:\/\//i.test(d.url || '')) window.open(d.url, '_blank', 'noopener');
+    } else if (accion === 'buscar-internet') {
+        PanelUsuario.buscarInternetEnFeed(d.q || '', el);
+    } else if (accion === 'ver-recientes') {
+        PanelUsuario.cargarFeed();
+    } else if (accion === 'ver-categorias') {
+        PanelUsuario.renderCategoriasEnFeed(BuscadorMotor.obtenerCategoriasDisponibles());
     }
 });

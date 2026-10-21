@@ -14,7 +14,7 @@ var EventController = {
             accion = 'QUIENES_SOMOS';
         }
 
-        var opciones = { orden: datos.orden || null, ubicacionPropia: datos.ubicacion === 'propia', modalidad: datos.modalidad || null };
+        var opciones = { orden: datos.orden || null, ubicacionPropia: datos.ubicacion === 'propia', modalidad: datos.modalidad || null, entendido: datos.entendido !== false };
 
         // "nivel_matriz" manda por encima de cualquier otra acción -- si la IA entendió que el
         // usuario quiere la vista de matriz (mundial o por país), sin importar cómo lo haya
