@@ -218,7 +218,7 @@ footer{ background: linear-gradient(135deg,#1F2937 0%,#111827 100%); padding: 40
 .feed-post-carousel { position: relative; max-width: 380px; margin: 0 auto; }
 .feed-post-carousel-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .feed-post-carousel-track::-webkit-scrollbar { display: none; }
-.feed-post-carousel-track img { flex: 0 0 100%; scroll-snap-align: start; width: 100%; aspect-ratio: 1 / 1; height: auto; object-fit: cover; background: var(--fondo-terciario); display: block; }
+.feed-post-carousel-track img { flex: 0 0 100%; scroll-snap-align: start; width: 100%; aspect-ratio: 1 / 1; height: auto; object-fit: contain; background: var(--fondo-terciario); display: block; }
 .feed-post-carousel-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
 .feed-post-carousel-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.6); transition: background .2s; }
 .feed-post-carousel-dots .dot.active { background: #fff; }
@@ -230,7 +230,7 @@ footer{ background: linear-gradient(135deg,#1F2937 0%,#111827 100%); padding: 40
 .feed-post-name { font-weight: 700; font-size: 15px; color: var(--texto-principal); }
 .feed-post-time { font-size: 12px; color: var(--texto-secundario); }
 .feed-post-location { font-size: 12px; color: #7C3AED; }
-.feed-post-image { width: 100%; max-width: 380px; aspect-ratio: 1 / 1; height: auto; margin: 0 auto; object-fit: cover; background: var(--fondo-terciario); display: block; }
+.feed-post-image { width: 100%; max-width: 380px; aspect-ratio: 1 / 1; height: auto; margin: 0 auto; object-fit: contain; background: var(--fondo-terciario); display: block; }
 .feed-post-image-placeholder { width: 100%; height: 220px; background: linear-gradient(135deg, var(--verde-claro), var(--purpura-claro)); display: flex; align-items: center; justify-content: center; font-size: 64px; }
 .feed-post-body { padding: 0 16px 16px; }
 .feed-post-title { font-size: 18px; font-weight: 700; color: var(--texto-principal); margin-bottom: 6px; }
@@ -394,7 +394,7 @@ select.form-input { cursor: pointer; }
 #vpDescripcion { color: var(--texto-principal); -webkit-line-clamp: unset; overflow: visible; white-space: pre-line; }
 .preview-compartir-imagen { background: var(--fondo-terciario); min-height: 120px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--texto-terciario); overflow: hidden; }
 .preview-compartir-imagen img { max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto; }
-#vpImagen img { width: 100%; max-width: 100%; max-height: 420px; height: auto; aspect-ratio: auto; object-fit: cover; margin: 0; }
+#vpImagen img { width: 100%; max-width: 100%; max-height: 420px; height: auto; aspect-ratio: auto; object-fit: contain; margin: 0; }
 #vpImagen .feed-post-carousel { max-width: none; margin: 0; }
 
 .modal-fb-botones { display: flex; gap: 10px; margin-top: 16px; }
