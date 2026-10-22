@@ -372,6 +372,7 @@ function updateUIForUser(usuario) {
         window.usuarioActual = null;
         try { sessionStorage.removeItem('remarket_usuario'); } catch (e) {}
         PanelUsuario._bloqueadosCache = null;
+        try { PanelUsuario.limpiarCacheFeed(); } catch (e) {}
         toggleVistaUsuario(false);
         btn.innerHTML = '';
         btn.textContent = 'Mi Cuenta';
@@ -475,6 +476,7 @@ function expandirChatFlotante() {
 async function logout() {
     if (confirm('¿Cerrar sesión?')) {
         await logAccess('logout', usuarioActual ? usuarioActual.correo_electronico : null);
+        try { PanelUsuario.limpiarCacheFeed(); } catch (e) {}
         await supabase.auth.signOut();
         updateUIForUser(null);
         window.location.reload();
