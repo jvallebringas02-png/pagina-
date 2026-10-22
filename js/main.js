@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         var productosAPI = await cargarProductosAPI();
         BuscadorMotor.construirIndice(Database.articulos.concat(productosSupabase).concat(productosAPI));
     })();
+    window._cargaPesada = cargaPesada; // el buscador espera esto si alguien busca antes de que termine
     if (!(haySesionLocal || haySesionSupabase)) {
         // no hay sesión: se quita la pantalla de "cargando cuenta" (por si el token guardado ya había vencido)
         document.documentElement.classList.remove('con-sesion');
@@ -56,7 +57,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         var catalogoEl = document.getElementById('catalogContainer');
         if (catalogoEl) catalogoEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--texto-secundario);">Cargando tu cuenta...</div>';
     } else {
-        await cargaPesada; // el catálogo de invitado sí necesita los productos
         await ContenidoInfo.mostrarEnMuro(idioma);
     }
     Institucional.cargarPatrocinadores();
