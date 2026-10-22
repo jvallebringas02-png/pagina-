@@ -19,13 +19,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     aplicarTraduccionUI(idioma);
     
     UIController.init();
-    await UbicacionUsuario.detectarPorIP();
-    
-    var productosSupabase = await cargarProductosSupabase();
-    var productosAPI = await cargarProductosAPI();
-    var productosTotales = Database.articulos.concat(productosSupabase).concat(productosAPI);
-    
-    BuscadorMotor.construirIndice(productosTotales);
 
     // Antes esta pregunta ("¿hay sesión?") se hacía dos veces por separado -- una vez aquí y otra
     // más abajo -- y si Supabase tardaba un instante en confirmar la sesión guardada, esta primera
@@ -40,6 +33,21 @@ document.addEventListener("DOMContentLoaded", async function() {
     } catch (e) { /* si falla, asumimos que no hay sesión */ }
     var haySesionSupabase = !!(sesionSupabaseInicial && sesionSupabaseInicial.user);
 
+    // La carga lenta (ubicación por IP, productos de Supabase y de la API externa) ya NO bloquea la sesión:
+    // antes se esperaba ANTES de preguntar si había sesión, y por eso se veía la página de invitado varios segundos.
+    var cargaPesada = (async function() {
+        await UbicacionUsuario.detectarPorIP();
+        // la ciudad guardada por la persona tiene prioridad sobre la detectada por IP
+        if (window.usuarioActual) aplicarLocalidadGuardada(window.usuarioActual);
+        var productosSupabase = await cargarProductosSupabase();
+        var productosAPI = await cargarProductosAPI();
+        BuscadorMotor.construirIndice(Database.articulos.concat(productosSupabase).concat(productosAPI));
+    })();
+    if (!(haySesionLocal || haySesionSupabase)) {
+        // no hay sesión: se quita la pantalla de "cargando cuenta" (por si el token guardado ya había vencido)
+        document.documentElement.classList.remove('con-sesion');
+    }
+
     if (haySesionLocal || haySesionSupabase) {
         // Ya sabemos que hay sesión: NO se pinta el catálogo de invitado aquí, porque se alcanzaría
         // a ver un instante (con productos de prueba incluidos) antes de que el panel de usuario lo
@@ -48,6 +56,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         var catalogoEl = document.getElementById('catalogContainer');
         if (catalogoEl) catalogoEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--texto-secundario);">Cargando tu cuenta...</div>';
     } else {
+        await cargaPesada; // el catálogo de invitado sí necesita los productos
         await ContenidoInfo.mostrarEnMuro(idioma);
     }
     Institucional.cargarPatrocinadores();
