@@ -497,6 +497,7 @@ var PanelUsuario = {
         else if (action === 'buscarpersonas') this.cargarBuscarPersonas();
         else if (action === 'mensajes') { this.cargarConversaciones(this._convIdParaExpandir); this._convIdParaExpandir = null; }
         else if (action === 'favoritos') this.cargarFavoritos();
+        else if (action === 'bloqueados') this.cargarBloqueados();
         else if (action === 'config') this.abrirModalConfiguracion();
     },
 
@@ -734,6 +735,61 @@ var PanelUsuario = {
             container.innerHTML = html;
         } catch (e) {
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar tus favoritos.</p></div>';
+        }
+    },
+
+    // === USUARIOS BLOQUEADOS: ver la lista y desbloquear ===
+    cargarBloqueados: async function() {
+        if (!usuarioActual) { toggleAuthModal(true); return; }
+        var container = document.getElementById('userFeedContainer');
+        if (this._scrollObserver) this._scrollObserver.disconnect();
+        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando usuarios bloqueados...</p></div>';
+        try {
+            var { data: filas, error } = await supabase.from('bloqueados').select('bloqueado_id').eq('bloqueador_id', usuarioActual.id);
+            if (error) throw error;
+            var titulo = '<h3 style="margin:0 0 4px;color:var(--texto-principal);">🚫 Usuarios bloqueados</h3><p style="margin:0 0 14px;font-size:13px;color:var(--texto-secundario);">No ves sus publicaciones. Si desbloqueas a alguien, volverá a aparecer en tu muro.</p>';
+            if (!filas || !filas.length) {
+                container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">🚫</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">No tienes usuarios bloqueados</h3><p>Cuando bloquees a alguien desde el menú ⋯ de una publicación, aparecerá aquí.</p></div>';
+                return;
+            }
+            var ids = filas.map(function(f) { return f.bloqueado_id; });
+            var { data: perfiles } = await supabase.from('perfiles_publicos').select('id, nombres, apellidos, foto_perfil').in('id', ids);
+            var mapa = {};
+            (perfiles || []).forEach(function(p) { mapa[p.id] = p; });
+            var self = this;
+            var html = ids.map(function(id) {
+                var p = mapa[id] || {};
+                var nombre = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim() || 'Usuario';
+                var inicial = (nombre.charAt(0) || 'U').toUpperCase();
+                var avatar = p.foto_perfil
+                    ? '<img src="' + self.escHtml(p.foto_perfil) + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+                    : '<div style="width:44px;height:44px;border-radius:50%;background:#7C3AED;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">' + self.escHtml(inicial) + '</div>';
+                return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;background:#fff;">' + avatar +
+                    '<div style="flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + self.escHtml(nombre) + '</div>' +
+                    '<button class="btn-auth" style="width:auto;padding:6px 12px;font-size:13px;" onclick="PanelUsuario.desbloquearUsuario(\'' + self.escHtml(id) + '\')">Desbloquear</button></div>';
+            }).join('');
+            container.innerHTML = '<div style="background:#fff;border-radius:12px;padding:16px;">' + titulo + html + '</div>';
+        } catch (e) {
+            console.warn('No se pudo cargar la lista de bloqueados:', e);
+            container.innerHTML = '<div class="feed-empty"><p>No se pudo cargar la lista de usuarios bloqueados.</p></div>';
+        }
+    },
+
+    desbloquearUsuario: async function(uid) {
+        if (!usuarioActual || !uid) return;
+        if (!confirm('¿Desbloquear a este usuario? Volverás a ver sus publicaciones.')) return;
+        try {
+            // .select() devuelve las filas borradas: si viene vacío, Supabase no permitió el borrado (falta la política DELETE).
+            var { data, error } = await supabase.from('bloqueados').delete().eq('bloqueador_id', usuarioActual.id).eq('bloqueado_id', uid).select();
+            if (error) throw error;
+            if (!data || !data.length) { this.mostrarToast('⚠️ No se pudo desbloquear (permisos en Supabase)'); return; }
+            this._bloqueadosCache = null;
+            this.limpiarCacheFeed();
+            this.mostrarToast('✅ Usuario desbloqueado');
+            this.cargarBloqueados();
+        } catch (e) {
+            console.warn('No se pudo desbloquear:', e);
+            this.mostrarToast('⚠️ No se pudo desbloquear');
         }
     },
 
