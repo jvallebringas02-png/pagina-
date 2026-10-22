@@ -219,6 +219,8 @@ var EventController = {
         if (!query) return;
         var codigoIdioma = detectarCambioIdiomaEnMensaje(query);
         if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; }
+        // Si la persona busca antes de que termine la carga de productos, se espera a que el índice esté listo.
+        if (window._cargaPesada) { try { await window._cargaPesada; } catch (e) {} }
         if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(query); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); }
         if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(query)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; }
         // En el panel el atajo de la matriz se salta: dibujaría en la zona oculta y la persona no vería nada (decisión de BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md; la IA responde en su lugar).
