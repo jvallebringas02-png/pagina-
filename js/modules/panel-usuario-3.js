@@ -1,3 +1,20 @@
+// Carga un script externo SOLO cuando se necesita (y una sola vez). Se usa para tesseract.js (OCR) y jsQR (lector de QR),
+// que antes se descargaban en todas las visitas aunque casi nadie suba fotos.
+var _scriptsExternosCargados = {};
+function cargarScriptExterno(url) {
+    if (_scriptsExternosCargados[url]) return _scriptsExternosCargados[url];
+    _scriptsExternosCargados[url] = new Promise(function(resolve, reject) {
+        var sc = document.createElement('script');
+        sc.src = url;
+        sc.onload = resolve;
+        sc.onerror = function() { delete _scriptsExternosCargados[url]; reject(new Error('No se pudo cargar ' + url)); };
+        document.head.appendChild(sc);
+    });
+    return _scriptsExternosCargados[url];
+}
+var URL_TESSERACT = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+var URL_JSQR = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+
 Object.assign(PanelUsuario, {
     // Abre el modal de Publicar ya con el título sugerido por el Asistente (y marca "servicio"
     // si detecta esa palabra), para cuando el usuario dice "doy servicio de transporte" en vez de buscar.
@@ -106,6 +123,7 @@ Object.assign(PanelUsuario, {
     obtenerWorkerOCR: async function() {
         if (this._workerOCR) return this._workerOCR;
         try {
+            await cargarScriptExterno(URL_TESSERACT);
             this._workerOCR = await Tesseract.createWorker('spa+eng');
             return this._workerOCR;
         } catch (e) {
@@ -251,6 +269,7 @@ Object.assign(PanelUsuario, {
             ctx.drawImage(img, 0, 0);
             var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             URL.revokeObjectURL(img.src);
+            await cargarScriptExterno(URL_JSQR);
             var resultado = jsQR(imageData.data, imageData.width, imageData.height);
             if (!resultado || !resultado.data) return { resultado: 'segura', qrTexto: null }; // no tiene ningún QR
             var texto = resultado.data.toLowerCase();

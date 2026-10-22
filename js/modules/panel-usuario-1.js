@@ -275,14 +275,28 @@ var PanelUsuario = {
         var html = '';
         var idsVistos = [];
         var idsProductosLote = items.map(function(it) { return it.producto && it.producto.id; }).filter(Boolean);
-        var misLikes = await this.obtenerMisLikes(idsProductosLote);
+        // Antes los autores (y los que compartieron) se pedían UNO POR UNO dentro del bucle, esperando cada respuesta.
+        // Ahora se piden todos a la vez, junto con los "me gusta", y el bucle solo usa lo ya traído.
+        var idsAutores = [];
+        var self = this;
+        items.forEach(function(it) {
+            [it.producto && it.producto.usuario_id, it.tipo === 'repost' ? it.resharerUid : null].forEach(function(id) {
+                if (id && idsAutores.indexOf(id) === -1) idsAutores.push(id);
+            });
+        });
+        var lotes = await Promise.all([this.obtenerMisLikes(idsProductosLote)].concat(idsAutores.map(function(id) {
+            return self.obtenerAutor(id).catch(function() { return null; });
+        })));
+        var misLikes = lotes[0];
+        var autoresMapa = {};
+        idsAutores.forEach(function(id, k) { autoresMapa[id] = lotes[k + 1] || null; });
         for (var i = 0; i < items.length; i++) {
             var entry = items[i];
-            var autor = await this.obtenerAutor(entry.producto.usuario_id);
+            var autor = autoresMapa[entry.producto.usuario_id] || null;
             if (entry.producto.id) idsVistos.push(entry.producto.id);
             var yaLike = misLikes.indexOf(entry.producto.id) !== -1;
             if (entry.tipo === 'repost') {
-                var resharer = await this.obtenerAutor(entry.resharerUid);
+                var resharer = autoresMapa[entry.resharerUid] || null;
                 var nombreResharer = resharer ? ((resharer.nombres || '') + ' ' + (resharer.apellidos || '')).trim() : 'Alguien';
                 html += '<div class="feed-repost-wrapper"><div class="feed-repost-header">🔄 <strong>' + this.escHtml(nombreResharer) + '</strong> compartió esto · ' + this.tiempoRelativo(entry.fecha) + (entry.comentario ? '<div style="margin-top:6px;color:var(--texto-principal);font-size:14px;">' + this.escHtml(entry.comentario) + '</div>' : '') + '</div>' + this.renderPost(entry.producto, autor, yaLike) + '</div>';
             } else {
