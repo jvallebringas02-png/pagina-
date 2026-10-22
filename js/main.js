@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", async function() {
+    // Se resuelve cuando el muro del panel termina de cargar (lo llama PanelUsuario.cargarFeed). Sirve para dejar
+    // las cargas pesadas (productos, IP) para DESPUÉS del muro cuando la persona ya tiene sesión.
+    window._feedListo = new Promise(function(resolver) { window._resolverFeedListo = resolver; });
     var idioma = obtenerIdiomaPreferido();
     // Antes de acá, este archivo tenía sus propias copias cortas de estos 2 diccionarios (con
     // 16/17 y 7/17 idiomas nada más). Ahora usa las mismas variables globales que ya define
@@ -33,17 +36,37 @@ document.addEventListener("DOMContentLoaded", async function() {
     } catch (e) { /* si falla, asumimos que no hay sesión */ }
     var haySesionSupabase = !!(sesionSupabaseInicial && sesionSupabaseInicial.user);
 
-    // La carga lenta (ubicación por IP, productos de Supabase y de la API externa) ya NO bloquea la sesión:
-    // antes se esperaba ANTES de preguntar si había sesión, y por eso se veía la página de invitado varios segundos.
-    var cargaPesada = (async function() {
-        await UbicacionUsuario.detectarPorIP();
-        // la ciudad guardada por la persona tiene prioridad sobre la detectada por IP
-        if (window.usuarioActual) aplicarLocalidadGuardada(window.usuarioActual);
-        var productosSupabase = await cargarProductosSupabase();
-        var productosAPI = await cargarProductosAPI();
-        BuscadorMotor.construirIndice(Database.articulos.concat(productosSupabase).concat(productosAPI));
-    })();
-    window._cargaPesada = cargaPesada; // el buscador espera esto si alguien busca antes de que termine
+    // Carga lenta (ubicación por IP, productos de Supabase y de la API externa). Solo sirve para el buscador y el
+    // asistente. No bloquea la sesión, y se inicia UNA sola vez (iniciarCargaPesada es idempotente).
+    var _cargaPesadaPromesa = null;
+    function iniciarCargaPesada() {
+        if (_cargaPesadaPromesa) return _cargaPesadaPromesa;
+        _cargaPesadaPromesa = (async function() {
+            await UbicacionUsuario.detectarPorIP();
+            // la ciudad guardada por la persona tiene prioridad sobre la detectada por IP
+            if (window.usuarioActual) {
+                aplicarLocalidadGuardada(window.usuarioActual);
+                // la tarjeta "Tu Alcance" se pintó antes de que llegara la ciudad por IP: se refresca
+                try { if (typeof PanelUsuario !== 'undefined' && PanelUsuario.cargarLocalidad) PanelUsuario.cargarLocalidad(); } catch (e) {}
+            }
+            var productosSupabase = await cargarProductosSupabase();
+            var productosAPI = await cargarProductosAPI();
+            BuscadorMotor.construirIndice(Database.articulos.concat(productosSupabase).concat(productosAPI));
+        })();
+        return _cargaPesadaPromesa;
+    }
+    window._asegurarCargaPesada = iniciarCargaPesada;
+    // Para buscador/asistente: esperan la carga pero como máximo `ms` (por si la red está muy lenta).
+    window._esperarCargaPesada = function(ms) {
+        return Promise.race([iniciarCargaPesada(), new Promise(function(r) { setTimeout(r, ms || 5000); })]);
+    };
+    var cargaPesada = null;
+    if (haySesionLocal || haySesionSupabase) {
+        // Con sesión: primero el muro; la carga pesada empieza cuando el muro ya se pintó (o a los 8 s como máximo).
+        Promise.race([window._feedListo, new Promise(function(r) { setTimeout(r, 8000); })]).then(function() { iniciarCargaPesada(); });
+    } else {
+        cargaPesada = iniciarCargaPesada();
+    }
     if (!(haySesionLocal || haySesionSupabase)) {
         // no hay sesión: se quita la pantalla de "cargando cuenta" (por si el token guardado ya había vencido)
         document.documentElement.classList.remove('con-sesion');
