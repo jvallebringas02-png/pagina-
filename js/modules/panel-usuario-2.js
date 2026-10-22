@@ -1035,6 +1035,7 @@ Object.assign(PanelUsuario, {
         try {
             await supabase.from('bloqueados').insert({ bloqueador_id: usuarioActual.id, bloqueado_id: autorUid });
             this._bloqueadosCache = null;
+            this.limpiarCacheFeed();
             this.mostrarToast('🚫 Usuario bloqueado');
             this.toggleMenuAutor(postId);
             this.cargarFeed();

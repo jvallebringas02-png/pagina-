@@ -128,6 +128,7 @@ var EventController = {
     // guía que se muestran al saludar o cuando no se entendió el mensaje. Así el usuario tiene
     // algo que tocar de inmediato, sin depender de que escriba (ni de que la IA lo entienda).
     ejecutarAccionGuia: async function(tipo) {
+        if (window._esperarCargaPesada) { try { await window._esperarCargaPesada(5000); } catch (e) {} }
         if (tipo === 'zona') {
             UIController.mostrarRespuestaIA(obtenerMensajeGuia('zona'));
             var matrizGuia = BuscadorMotor.obtenerMatrizPorLocalidad();
@@ -156,6 +157,7 @@ var EventController = {
 
     manejarEnvioMensaje: async function(event) {
         event.preventDefault();
+        if (window._esperarCargaPesada) { try { await window._esperarCargaPesada(5000); } catch (e) {} }
         var input = document.getElementById('assistantInput');
         var mensaje = input.value.trim();
         if (!mensaje) return;
@@ -220,7 +222,7 @@ var EventController = {
         var codigoIdioma = detectarCambioIdiomaEnMensaje(query);
         if (codigoIdioma) { aplicarCambioIdiomaDesdeChat(codigoIdioma); input.value = ''; return; }
         // Si la persona busca antes de que termine la carga de productos, se espera a que el índice esté listo.
-        if (window._cargaPesada) { try { await window._cargaPesada; } catch (e) {} }
+        if (window._esperarCargaPesada) { try { await window._esperarCargaPesada(5000); } catch (e) {} }
         if (typeof detectarIdiomaEscritoEnMensaje === 'function') { var idiomaEscrito = detectarIdiomaEscritoEnMensaje(query); if (idiomaEscrito) aplicarIdiomaSilencioso(idiomaEscrito); }
         if (typeof detectarPreguntaHora === 'function' && detectarPreguntaHora(query)) { UIController.mostrarRespuestaIA(responderHoraLocal()); return; }
         // En el panel el atajo de la matriz se salta: dibujaría en la zona oculta y la persona no vería nada (decisión de BITACORA-PANEL-IGUAL-QUE-PAGINA-PRINCIPAL.md; la IA responde en su lugar).

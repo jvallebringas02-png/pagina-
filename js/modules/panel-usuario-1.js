@@ -390,13 +390,43 @@ var PanelUsuario = {
     },
 
     // pagina (opcional, desde 1). Sin argumento carga la primera página: así la llaman publicar, bloquear, "Volver al inicio", etc.
+    // === CACHÉ DEL MURO (solo la 1.ª carga tras abrir/refrescar el panel) ===
+    // Se guarda el HTML de la página 1 del muro; al refrescar se pinta al instante y luego se reemplaza por lo nuevo.
+    _primerFeed: true,
+    _claveCacheFeed: function() { return (typeof usuarioActual !== 'undefined' && usuarioActual && usuarioActual.id) ? 'remarket_feed_cache_' + usuarioActual.id : null; },
+    _leerCacheFeed: function() {
+        try {
+            var k = this._claveCacheFeed(); if (!k) return null;
+            var c = JSON.parse(localStorage.getItem(k) || 'null');
+            if (!c || !c.html || (Date.now() - c.t) > 24 * 60 * 60 * 1000) return null; // máximo 24 h
+            return c.html;
+        } catch (e) { return null; }
+    },
+    _guardarCacheFeed: function(html) {
+        try {
+            var k = this._claveCacheFeed(); if (!k) return;
+            if (!html || html.length > 400000) { localStorage.removeItem(k); return; }
+            localStorage.setItem(k, JSON.stringify({ t: Date.now(), html: html }));
+        } catch (e) { /* sin espacio o bloqueado: simplemente no se guarda */ }
+    },
+    limpiarCacheFeed: function() {
+        try {
+            Object.keys(localStorage).forEach(function(k) { if (k.indexOf('remarket_feed_cache_') === 0) localStorage.removeItem(k); });
+        } catch (e) {}
+    },
+
     cargarFeed: async function(pagina) {
         pagina = (typeof pagina === 'number' && pagina >= 1) ? Math.floor(pagina) : 1;
         var container = document.getElementById('userFeedContainer');
         if (!container) return;
         if (this._scrollObserver) this._scrollObserver.disconnect();
         var tamano = this.feedTamanoPagina;
-        container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>';
+        // Solo la primera carga (al abrir o refrescar) usa la copia guardada; publicar, bloquear, cambiar de página, etc. no.
+        var usarCache = (pagina === 1 && this._primerFeed);
+        this._primerFeed = false;
+        var htmlPintado = usarCache ? this._leerCacheFeed() : null;
+        if (htmlPintado) container.innerHTML = htmlPintado;
+        else container.innerHTML = '<div class="feed-loading"><div class="search-loading-spinner"></div><p>Cargando publicaciones...</p></div>';
         try {
             var res = await this.obtenerPaginaFeed(pagina);
             var totalPaginas = null, hayMas = false;
@@ -410,13 +440,23 @@ var PanelUsuario = {
             }
             this.feedPagina = pagina;
             if (!res.items.length) {
+                if (pagina === 1) this._guardarCacheFeed(null);
+                if (window._resolverFeedListo) window._resolverFeedListo();
                 container.innerHTML = '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">📭</div><h3 style="color:var(--texto-principal);margin-bottom:8px;">No hay publicaciones aún</h3><p>Sé el primero en publicar en tu zona.</p><button class="btn-publicar" style="margin-top:16px;" onclick="PanelUsuario.abrirModalPublicar()">📦 Publicar ahora</button></div>';
                 return;
             }
             var html = await this.renderItemsFeed(res.items);
-            container.innerHTML = html + this.renderPaginacionFeed(pagina, totalPaginas, hayMas);
+            var htmlFinal = html + this.renderPaginacionFeed(pagina, totalPaginas, hayMas);
+            if (pagina === 1) this._guardarCacheFeed(htmlFinal);
+            // Si se pintó la copia, no se pisa mientras la persona escribe algo dentro del muro, ni si no cambió nada.
+            var activo = document.activeElement;
+            var escribiendo = !!(htmlPintado && activo && container.contains(activo) && /^(INPUT|TEXTAREA)$/.test(activo.tagName));
+            if (!escribiendo && htmlFinal !== htmlPintado) container.innerHTML = htmlFinal;
+            if (window._resolverFeedListo) window._resolverFeedListo();
         } catch (e) {
             console.warn('Error cargando feed:', e);
+            if (window._resolverFeedListo) window._resolverFeedListo();
+            if (htmlPintado) return; // se queda la copia guardada en vez de un mensaje de error
             container.innerHTML = '<div class="feed-empty"><p>No se pudieron cargar las publicaciones.</p><button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Reintentar</button></div>';
         }
     },
