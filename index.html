@@ -13,6 +13,29 @@ tailwind.config = {
 <!-- Font Awesome para íconos estilo Facebook -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilos.css">
+<!-- Anti-parpadeo: si el navegador ya tiene una sesión guardada, se oculta la página de invitado
+     desde el primer instante (antes de que cargue el resto del JS) y se muestra "Cargando tu cuenta...". -->
+<script>
+(function () {
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('sb-') === 0 && k.slice(-11) === '-auth-token') { document.documentElement.classList.add('con-sesion'); break; }
+    }
+  } catch (e) {}
+  // Red de seguridad: si en 10 s el panel no apareció, se muestra la página normal.
+  setTimeout(function () {
+    var panel = document.getElementById('userPanelView');
+    if (!panel || !panel.classList.contains('active')) document.documentElement.classList.remove('con-sesion');
+  }, 10000);
+})();
+</script>
+<style>
+html.con-sesion #publicView { display: none !important; }
+html.con-sesion body::after { content: "Cargando tu cuenta..."; display: block; text-align: center; padding: 80px 0; color: #7C3AED; font-family: sans-serif; }
+html.con-sesion body:has(#userPanelView.active)::after { display: none; }
+</style>
+
 
 <!-- ✅ Supabase conectado -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
