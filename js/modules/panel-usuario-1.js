@@ -491,6 +491,9 @@ var PanelUsuario = {
         var btn = document.querySelector('.user-menu-item[data-action="' + action + '"]');
         if (btn) btn.classList.add('active');
         this.cerrarMenuMobile();
+        // Al cambiar de sección se vuelve arriba: si la página estaba bajada (por haber mirado el muro), el contenido nuevo es más corto
+        // y quedaba fuera de pantalla, y había que subir a mano para ver el buscador, la lista, etc.
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
         if (action === 'inicio') this.cargarFeed();
         else if (action === 'perfil') this.cargarMiPerfilFB();
         else if (action === 'publicaciones') this.cargarMisPublicaciones();
