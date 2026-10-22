@@ -34,6 +34,7 @@ tailwind.config = {
 html.con-sesion #publicView { display: none !important; }
 html.con-sesion body::after { content: "Cargando tu cuenta..."; display: block; text-align: center; padding: 80px 0; color: #7C3AED; font-family: sans-serif; }
 html.con-sesion body:has(#userPanelView.active)::after { display: none; }
+html.con-sesion body:not(:has(#userPanelView.active)) footer { display: none; }
 </style>
 
 
