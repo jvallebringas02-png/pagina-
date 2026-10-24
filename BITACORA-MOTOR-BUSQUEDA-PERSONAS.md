@@ -95,7 +95,7 @@ Código nuevo en `js/modules/panel-usuario-4.js`. El código viejo no se borra h
 - [ ] Apellidos como "Armas": ¿se dejan pasar cuando la palabra está solo en el nombre? (`riesgo.soloNombre`)
 - [ ] ¿"Lugar" se compara por texto o por `localidades`? (depende de las columnas)
 - [ ] ¿Se muestra el correo en los resultados?
-- [ ] ¿Esta versión del intérprete o la de la otra sesión?
+- [x] ¿Esta versión del intérprete o la de la otra sesión? **Resuelto 24/10:** una sola versión (v3), hecha sobre la de esta bitácora (riesgo, lugares, oferta, rol, "nuevos") sumándole iniciales, `@usuario`, precio, "qué hace" y `sanear()` del intérprete de la otra sesión. No debe cargarse ningún otro intérprete: ambos usaban la misma variable global.
 
 ## 9. Pasos para construirlo (método: datos, funciones, visual, textos)
 
@@ -116,3 +116,20 @@ El motor vive en un archivo nuevo y el código viejo no se borra: se desconecta 
 | Fecha | Cambio | Resultado |
 |---|---|---|
 | 24/10/2026 | Diseño del motor y su lógica | Documento; sin código del motor. Falta confirmar columnas con la consulta de solo lectura |
+| 24/10/2026 | Intérprete v3: unión de los dos intérpretes | `js/modules/interprete-busqueda-personas.js` (v3) y `pruebas/interprete-busqueda-personas.test.js`: 121 pruebas pasan (las 66 anteriores más 55 nuevas). Sigue sin conectar a ninguna pantalla |
+
+## 12. Intérprete v3 (24/10/2026)
+
+**Qué se agregó a la versión 2** (la ficha crece, los campos anteriores no cambian):
+- `usuario` (de `@jvalle`), `iniciales` (de "j", "J P", "jp", "J.P.", "j y p") y `necesita_segunda_pista` (una sola letra sola no lista a nadie).
+- `hace` (`vende`, `servicios`, `regala`, `cambia`) y `hace_no_soportado` (`compra`: se detecta y se avisa, hoy la página no guarda lo que alguien quiere comprar). "Que venda o compre o de servicios" ya no deja basura en `oferta`.
+- `precio` `{ min, max, orden, moneda, ambiguo }`: "menos de 500 soles", "entre 100 y 300 dólares", "más baratos". "Por precio" suelto queda `ambiguo` y se ordena del más barato. "Caro" y "Sol" siguen siendo nombres.
+- `intencion: 'usuario'` para `@usuario` solo; las iniciales cuentan como `'nombre'`.
+- `sanear(fichaExterna)`: valida la ficha que llene la IA (solo campos conocidos, textos cortos y limpios) y vuelve a aplicar la lista de riesgo.
+- "quién vende laptops..." ya no deja "quien" como nombre.
+- Riesgo: "vende / compra / busco drogas" ahora **bloquea** (antes solo avisaba); "drogas" suelta sigue solo avisando. `@usuario` también pasa por la lista de riesgo.
+- `describir()` no repite una búsqueda bloqueada, y muestra usuario, iniciales, qué hace y precio.
+
+**Apellido "Armas" (decisión pendiente, ahora con interruptor):** por defecto "Carlos Armas" sigue **bloqueado** (modo estricto). Con `contexto.permitirApellidos === true` pasa como búsqueda de persona (`riesgo.permitidoComoApellido`), solo si la frase es un nombre sin oferta, sin verbos de pedido ("compro", "busco", "venta") y sin otra palabra de riesgo antes. Quien lo active debe buscar **solo por nombre** y nunca por oferta.
+
+**Límites:** un lugar nombrado fuera de la lista (`LUGARES_CONOCIDOS`) solo se reconoce después de "en"; servicios sin la palabra "servicio" ("da clases de inglés") quedan como `oferta`; el intérprete solo entiende español; probado con Node, no en el navegador.
