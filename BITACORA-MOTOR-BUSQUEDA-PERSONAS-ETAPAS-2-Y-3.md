@@ -1,4 +1,6 @@
-> **Estado (24/10/2026): CÓDIGO HECHO Y PROBADO CON NODE, SIN CONECTAR A NINGUNA PANTALLA.** Hay intérprete (v3.1), motor con constructor de consulta y capa de datos. 142 + 86 + 19 pruebas pasan, todas con datos de ejemplo y un Supabase de mentira. **Nada se probó en el navegador ni contra tu Supabase real.** Ningún archivo viejo se tocó.
+> **Estado (24/10/2026, actualizado): MOTOR CONECTADO A UNA PANTALLA ("Buscar personas" del panel), PROBADO SOLO CON NODE.** Las otras 4 pantallas siguen sin conectar. Lo de abajo describe lo hecho antes; la sección 10 describe lo hecho después.
+>
+> *(Estado original:* **CÓDIGO HECHO Y PROBADO CON NODE, SIN CONECTAR A NINGUNA PANTALLA.** Hay intérprete (v3.1), motor con constructor de consulta y capa de datos. 142 + 86 + 19 pruebas pasan, todas con datos de ejemplo y un Supabase de mentira. **Nada se probó en el navegador ni contra tu Supabase real.** Ningún archivo viejo se tocó (hasta la sección 10).)
 
 # Bitácora — Motor de búsqueda de personas: etapas 2 y 3
 
@@ -155,3 +157,34 @@ Los tres archivos nuevos no cambian nada por sí solos: si no se cargan en `inde
 | 24/10/2026 | Consulta de reglas de lectura (`pg_policies`) | `bloqueados` solo permite ver los míos; el bloqueo en los dos sentidos necesita una función en la base |
 | 24/10/2026 | `motor-busqueda-personas-datos.js`: lectura de Supabase, caché, respuestas tardías | 19 pruebas pasan, con cliente de mentira |
 | 24/10/2026 | Esta bitácora | Sin conectar a ninguna pantalla |
+
+## 10. Continuación (24/10/2026, segunda sesión)
+
+**Lo que se encontró al retomar:**
+- El zip **no traía** `motor-busqueda-personas-datos.js` ni su prueba (la bitácora los daba por hechos). Se **reconstruyeron** desde la descripción: caché de 60 s, canal con versión para descartar respuestas tardías, `personas_ocultas()` opcional, lectura solo de `perfiles_publicos`, `productos` aprobados, `localidades` y `bloqueados` propios. Son archivos nuevos, no el original: **conviene compararlos con el tuyo si lo conservas**.
+- Las pruebas venían dentro de `js/modules/` y esperan estar en `pruebas/`. Se copiaron a `pruebas/` (las de `js/modules/` quedan duplicadas y pueden borrarse).
+- El motor dice 86 pruebas, el zip daba 85 (ahora 86 tras el arreglo siguiente).
+- **Error del motor:** con el texto vacío y un botón de zona activo, devolvía "Escribe qué o a quién buscas" en vez de listar la gente de esa zona (lo que decía la sección 2). La prueba que lo cubría (`length >= 0`) no podía fallar. Corregido en `construirPlan` y la prueba ahora es real.
+
+**Conectado:**
+| Dónde | Qué cambió |
+|---|---|
+| `index.html` | Carga intérprete, motor y capa de datos antes de `panel-usuario-1.js` |
+| `panel-usuario-3.js` · `buscarUsuariosPorNombre(q, nivelZona, usarMotor, opciones)` | Interruptor nuevo (por defecto apagado). Apagado = código de siempre. Si el motor falla, cae al código de siempre. El resultado trae `.motor` (plan, avisos, mensaje) |
+| `panel-usuario-1.js` · `buscarEnPanelPersonas` | Usa el motor; dibuja "🤖 Entendí:" con etiquetas, ✕ para quitar un criterio, avisos, mensaje de 0 resultados, botón "Define tu localidad", @usuario y hasta 3 ofertas. Sin correo. Todo escapado |
+| `panel-usuario-1.js` · `_renderTarjetasPanelPersonas` | Se corrigió un `this.avatarHtml` dentro de un `.map` (debía ser `self`), que habría fallado al dibujar |
+
+**Pruebas:** 142 + 86 + 17 pasan. Además hubo una prueba de humo en Node con un navegador simulado: la frase "quien vende piano en mi ciudad" dibuja etiquetas y tarjeta, "quien da clases de piano" dice que todavía no hay servicios, y un título con HTML sale escapado. **Sigue sin probarse en navegador real ni contra tu Supabase.**
+
+**Riesgos nuevos a revisar:**
+- La capa de datos pide `productos` con `select('*')` (hasta 1000) y `perfiles_publicos` con `select('*')` (hasta 500): si la vista tuviera columnas sensibles, saldrían al navegador. Hay que confirmar que `perfiles_publicos` no trae correo/teléfono.
+- `perfiles_publicos` quizá no tiene `pais`, `nombre_usuario` o `created_at`: si faltan, la ubicación por país y el orden por recientes pierden precisión (no rompe).
+- Quitar el criterio de zona con ✕ también apaga el botón Local/Regional/País; si no, la etiqueta volvería a aparecer.
+
+**Siguiente (en este orden):** selector de Compartir y Nuevo mensaje (`buscarPersonaPicker`, mismo patrón), chat del panel, chat de la página principal, botones de zona del muro; luego textos en los 15 idiomas, "Ver más" y pruebas con 3 cuentas.
+
+| Fecha | Cambio | Resultado |
+|---|---|---|
+| 24/10/2026 | Reconstrucción de `motor-busqueda-personas-datos.js` y su prueba | 17 pruebas pasan |
+| 24/10/2026 | Zona sin texto en `construirPlan` + prueba real | 86 pruebas pasan |
+| 24/10/2026 | Conexión de "Buscar personas" (interruptor + pantalla) | Prueba de humo en Node correcta |
