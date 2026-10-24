@@ -77,8 +77,10 @@ var EventController = {
             PanelUsuario.iniciarPublicacionDesdeAsistente(tituloSugerido);
         } else if (accion === 'BUSCAR_PERSONA') {
             var nombre = datos.nombre || queryOriginal;
-            var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre);
-            if ((!usuarios || !usuarios.length) && usuarioActual) {
+            // Motor nuevo: busca con la frase completa (si el motor no está cargado o falla, se usa la búsqueda de siempre)
+            var usuarios = await PanelUsuario.buscarPersonasDesdeAsistente(queryOriginal, datos.nombre || null, null, 'paginaChat');
+            if (usuarios && usuarios.descartada) return;
+            if ((!usuarios || !usuarios.length) && usuarioActual && !usuarios.motor) {
                 // Sin coincidencia por nombre: probamos la misma expansión por zona/categoría que usa Compartir
                 var resultadoIA = await PanelUsuario.consultarAsistenteCompartir(nombre, null);
                 if (resultadoIA.tipo === 'busqueda') usuarios = await PanelUsuario.buscarUsuariosCompartir(resultadoIA.categoria, resultadoIA.nivel_zona);

@@ -377,8 +377,12 @@ if (resultado.aviso_externo) { html += '<div class="ai-context-banner expandido"
             '<button type="button" id="filtroZona-regional-resultados" class="compartir-filtro-zona ' + activo('regional') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'regional\')">🗺️ Regional</button>' +
             '<button type="button" id="filtroZona-pais-resultados" class="compartir-filtro-zona ' + activo('pais') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'pais\')">🌎 País</button>' +
             '</div>';
+        var rMotor = usuarios.motor || null;
+        if (rMotor && typeof PanelUsuario !== 'undefined' && PanelUsuario._entendiMotorHtml) html += PanelUsuario._entendiMotorHtml(rMotor, 'font-size:12px;color:var(--texto-secundario);margin-bottom:6px;');
         if (!usuarios.length) {
-            html += '<div style="text-align:center;padding:40px;"><p>No encontramos a nadie con ese nombre o zona. Prueba con otro nombre, iniciales, o quita el filtro.</p></div>';
+            var textoVacioP = rMotor ? escHtml(rMotor.mensaje || 'No encontré a nadie con esos criterios.') : 'No encontramos a nadie con ese nombre o zona. Prueba con otro nombre, iniciales, o quita el filtro.';
+            html += '<div style="text-align:center;padding:40px;"><p>' + textoVacioP + '</p>' +
+                ((rMotor && rMotor.requiere === 'localidad') ? '<button type="button" class="btn-contactar" onclick="PanelUsuario.abrirModalConfiguracion()">📍 Define tu localidad</button>' : '') + '</div>';
         } else {
             var self = this;
             html += usuarios.map(function(u) {
@@ -386,7 +390,8 @@ if (resultado.aviso_externo) { html += '<div class="ai-context-banner expandido"
                 var iniciales = (u.nombre_completo || 'U').trim().charAt(0).toUpperCase();
                 var avatar = u.foto_perfil ? '<img src="' + escHtml(u.foto_perfil) + '" class="result-img" alt="' + nombreSeguro + '">' : '<div class="result-icon-fallback">' + iniciales + '</div>';
                 return '<div class="result-item" data-ui-accion="vistaprevia" data-id="' + escVal(u.id) + '">' + avatar +
-                    '<div class="result-info"><div class="result-title">' + nombreSeguro + '</div><div class="result-category">Usuario de remarket-db</div></div>' +
+                    '<div class="result-info"><div class="result-title">' + nombreSeguro + '</div><div class="result-category">' + (u.nombre_usuario ? '@' + escHtml(u.nombre_usuario) : 'Usuario de remarket-db') + '</div>' +
+                    (u.ofertas || []).map(function(o) { return '<div class="result-category">🏷️ ' + escHtml(o.titulo || '') + (o.ciudad ? ' · ' + escHtml(o.ciudad) : '') + '</div>'; }).join('') + '</div>' +
                     '<div class="result-actions">' +
                     '<button class="btn-contactar" data-ui-accion="vistaprevia" data-id="' + escVal(u.id) + '">👁️ Vista previa</button>' +
                     '<button class="btn-contactar" data-ui-accion="mensajepersona" data-id="' + escVal(u.id) + '">💬 Mensaje</button>' +
@@ -401,7 +406,13 @@ if (resultado.aviso_externo) { html += '<div class="ai-context-banner expandido"
         var yaActivo = btn && btn.classList.contains('activo');
         var nuevoNivel = yaActivo ? null : nivel;
         var nombre = this._ultimaBusquedaPersonaNombre || '';
-        var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre, nuevoNivel);
+        // con el motor nuevo se repite la frase completa de la búsqueda anterior (no solo el nombre), para no perder "vende piano", etc.
+        var previa = this._ultimasPersonas && this._ultimasPersonas.usuarios;
+        if (previa && previa.motor && previa.motor.ficha && previa.motor.ficha.texto) nombre = previa.motor.ficha.texto;
+        var motorOk = PanelUsuario._motorPersonasListo && PanelUsuario._motorPersonasListo();
+        // con el motor se repite la frase completa (la zona del botón manda cuando la frase no trae lugar); sin motor, la búsqueda de siempre
+        var usuarios = await PanelUsuario.buscarUsuariosPorNombre(nombre, nuevoNivel, !!motorOk, { canal: 'paginaZona' });
+        if (usuarios.descartada) return;
         this.mostrarResultadosPersonas(nombre, usuarios, nuevoNivel);
     },
     // Vuelve a dibujar lo que esté en pantalla en ese momento (resultados de búsqueda, "Ver mi
