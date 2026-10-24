@@ -1,4 +1,4 @@
-> **Estado (24/10/2026): PASO 1 DE 7 SUBIDO, SIN PROBAR EN NAVEGADOR. SOLO "BUSCAR PERSONAS" USA EL MOTOR.** Las demás pantallas siguen con la búsqueda de siempre. Probado únicamente con Node y un navegador simulado; **nada se probó en un navegador real ni contra tu Supabase real.**
+> **Estado (24/10/2026, actualizado): TODAS LAS PANTALLAS ESTÁN CONECTADAS EN EL CÓDIGO (pasos 2, 4, 5 y 6 hechos). Falta subir los 3 archivos nuevos y probar en navegador real (pasos 3 y 7).** Probado únicamente con Node y un navegador simulado; **nada se probó en un navegador real ni contra tu Supabase real.**
 
 # Bitácora — Conexión de las pantallas al motor de búsqueda de personas (parte 1)
 
@@ -13,11 +13,11 @@
 | Pantalla | ¿Usa el motor? | Cómo busca hoy |
 |---|---|---|
 | **Buscar personas** (panel) | ✅ Sí (subido, falta probar) | Frases, etiquetas con ✕, avisos, ofertas |
-| **Compartir** | ❌ No | Nombre, apellido o iniciales; botones Local/Regional/País; filtro de rubro |
-| **Nuevo mensaje** | ❌ No | Igual que Compartir |
-| **Chat del panel** | ❌ No | Búsqueda vieja |
-| **Asistente y buscador principal** (página principal) | ❌ No | Acción `BUSCAR_PERSONA`: manda solo `datos.nombre` |
-| **Botones de zona de los resultados** (página principal) | ❌ No | Vuelven a llamar a la búsqueda vieja con el último nombre |
+| **Compartir** | ✅ Sí (código listo, falta subir) | Compacto; si no hay nadie y era solo un nombre, sigue el flujo viejo de "interesados en…"; el filtro de rubro sigue aparte |
+| **Nuevo mensaje** | ✅ Sí (código listo, falta subir) | Igual que Compartir |
+| **Chat del panel** | ✅ Sí (código listo, falta subir) | Frase completa + respaldo con el nombre del asistente |
+| **Asistente y buscador principal** (página principal) | ✅ Sí (código listo, falta subir) | Acción `BUSCAR_PERSONA`: ahora manda la frase completa; si no sale nadie, reintenta con `datos.nombre` |
+| **Botones de zona de los resultados** (página principal) | ✅ Sí (código listo, falta subir) | Repiten la frase completa de la búsqueda anterior |
 
 Todas llaman a la misma función, `buscarUsuariosPorNombre` (`panel-usuario-3.js`). El interruptor `usarMotor` (tercer parámetro, apagado por defecto) ya existe: **solo "Buscar personas" lo enciende.**
 
@@ -50,11 +50,11 @@ Cada paso se prueba antes del siguiente. Si algo falla, se sabe cuál fue.
 | # | Paso | Quién | Archivos | Estado |
 |---|---|---|---|---|
 | 1 | Probar "Buscar personas" ya subida y contar qué se ve | Tú | — | ⏳ **Pendiente** |
-| 2 | Conectar **Compartir** y **Nuevo mensaje**, versión compacta | Claude | `panel-usuario-3.js` | ⬜ |
-| 3 | Subir y probar con 2 cuentas | Tú | — | ⬜ |
-| 4 | Conectar el **chat del panel** | Claude | `panel-usuario-3.js` (quizá `panel-usuario-2.js`) | ⬜ |
-| 5 | Conectar **asistente y buscador principal**: pasar la frase completa (`queryOriginal`) al motor; dibujar etiquetas, avisos y ofertas | Claude | `event-controller.js`, `ui-controller.js` | ⬜ |
-| 6 | Conectar los **botones de zona** de resultados | Claude | `ui-controller.js` | ⬜ |
+| 2 | Conectar **Compartir** y **Nuevo mensaje**, versión compacta | Claude | `panel-usuario-3.js` | ✅ Hecho (sin probar en navegador) |
+| 3 | Subir y probar con 2 cuentas | Tú | — | ⏳ Pendiente |
+| 4 | Conectar el **chat del panel** | Claude | `panel-usuario-3.js` | ✅ Hecho (sin probar en navegador) |
+| 5 | Conectar **asistente y buscador principal**: pasar la frase completa (`queryOriginal`) al motor; dibujar etiquetas, avisos y ofertas | Claude | `event-controller.js`, `ui-controller.js` | ✅ Hecho (sin probar en navegador) |
+| 6 | Conectar los **botones de zona** de resultados | Claude | `ui-controller.js` | ✅ Hecho (sin probar en navegador) |
 | 7 | Probar todo con 3 cuentas (sin sesión, la propia y otra), en computadora y celular | Tú | — | ⬜ |
 
 **Opcionales (después de los 7):** textos en los 15 idiomas (hoy los avisos y etiquetas están en español dentro del motor); "Ver más" (el motor trae máximo 20 y no recibe desplazamiento); función `personas_ocultas()` en Supabase para ocultar también a quien te bloqueó (hoy solo se oculta a quien tú bloqueaste).
@@ -117,3 +117,30 @@ En Panel de usuario → **Buscar personas**, con sesión iniciada:
 | 24/10/2026 | Paso 1: "Buscar personas" conectada al motor y subida | Pruebas en Node: 142 + 86 + 17 pasan; falta probar en navegador |
 | 24/10/2026 | Revisión de Compartir, Nuevo mensaje, chat, asistente y botones de zona | No existen grupos; el asistente manda solo el nombre; la decisión de "buscar persona" vive en `chat-ia` (no revisada) |
 | 24/10/2026 | Esta bitácora | Plan de 7 pasos definido; solo el paso 1 está hecho |
+
+## 11. Segunda entrega: pasos 2, 4, 5 y 6 (24/10/2026)
+
+**Archivos a reemplazar** (los otros ya los subiste en el paso 1):
+
+| Archivo | Dónde | Qué cambió |
+|---|---|---|
+| `panel-usuario-3.js` | `js/modules/` | `buscarPersonaPicker` (Compartir y Nuevo mensaje) usa el motor; helpers nuevos `_motorPersonasListo`, `buscarPersonasDesdeAsistente`, `_entendiMotorHtml`, `_pintarPickerMotor`; chat del panel y `renderResultadosPersonasEnFeed` dibujan etiquetas, avisos, @usuario y ofertas |
+| `event-controller.js` | `js/modules/` | Rama `BUSCAR_PERSONA` pasa la frase completa (`queryOriginal`) al motor |
+| `ui-controller.js` | `js/modules/` | `mostrarResultadosPersonas` dibuja "Entendí", avisos, mensaje del motor y ofertas; los botones de zona repiten la frase completa |
+
+**Cómo se comporta cada pantalla**
+- **Compartir y Nuevo mensaje:** línea compacta "🤖 Entendí: …" y la lista con @usuario y la primera oferta. Si no hay nadie y la frase pedía publicaciones (vende, da clases, precio, lugar…), se muestra el mensaje honesto del motor. Si no hay nadie y la frase era solo un nombre, sigue el flujo de siempre (la IA de Compartir: "interesados en…"). El **filtro de rubro** no cambió.
+- **Chat del panel y asistente de la página principal:** se busca con la frase completa. Si no sale nadie y la frase no pedía publicaciones, se reintenta con el nombre que sacó el asistente (ej. "quiero hablar con Carlos Vega" → "Carlos Vega").
+- **Botones de zona (página principal):** repiten la frase de la búsqueda anterior. Si la frase ya trae su propia zona ("en mi ciudad") o un lugar, esa manda sobre el botón.
+- **Respaldo:** si el motor no está cargado o lanza un error, todas las pantallas usan la búsqueda de siempre.
+- **Respuestas tardías:** cada pantalla tiene su propio canal; la respuesta vieja se descarta si ya hay una más nueva.
+
+**Pruebas:** 142 + 86 + 17 pasan. Prueba de humo en Node con navegador simulado: selector con frase, con servicio (aviso "todavía no hay servicios"), con nombre y con nombre inexistente (cae al flujo viejo); asistente con frase y con respaldo; chat del panel con resultado y vacío; respuesta tardía descartada; HTML en títulos sale escapado. **No se pudo simular `ui-controller.js` completo ni `event-controller.js`** (dependen de muchas partes de la página): esas dos están revisadas por sintaxis y por lectura, no ejecutadas.
+
+**Hallazgo (no es un error, es una decisión tuya ya registrada):** el apellido **"Armas"** está bloqueado por la lista de riesgo ("Carlos Armas" no se puede buscar). Existe el interruptor `permitirApellidos` en el intérprete, pero **ninguna pantalla lo activa**. Si quieres que se pueda buscar a personas con ese apellido, hay que decidirlo y activarlo.
+
+**Pendientes después de probar:** textos en 15 idiomas, "Ver más", función `personas_ocultas()`, revisar que el asistente (`chat-ia`) use `BUSCAR_PERSONA` con frases largas, filtro de rubro de Compartir, grupos o varias personas (no existen hoy).
+
+| Fecha | Cambio | Resultado |
+|---|---|---|
+| 24/10/2026 | Pasos 2, 4, 5 y 6: Compartir, Nuevo mensaje, chat del panel, asistente y botones de zona conectados al motor | Pruebas en Node correctas; falta subir y probar en navegador |
