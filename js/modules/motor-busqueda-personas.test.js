@@ -169,7 +169,8 @@ es('con el interruptor, "Carlos Armas" es una persona', ids(M.buscar('Carlos Arm
 es('personas de Callao (por perfil)', ids(buscar('personas de Callao')), ['u-ana', 'u-maria']);
 es('personas en Callao (por perfil)', ids(buscar('personas en Callao')), ['u-ana', 'u-maria']);
 es('personas de mi localidad, yo en Callao', ids(buscar('personas de mi localidad', datosBase([], { localidad_id: 2, pais: 'Perú' }))), ['u-ana', 'u-maria']);
-es('el botón Local sin texto lista a la gente de mi zona', ids(buscar('', dLima, { ficha: { zona: 'local' }, nivelZona: 'local' })).length >= 0, true);
+es('el botón Local sin texto NO pide escribir algo (antes era una prueba que no podía fallar)', buscar('', dLima, { nivelZona: 'local' }).plan.tipo, 'busqueda');
+es('sin texto y sin botón sigue pidiendo escribir', buscar('', dLima, {}).plan.tipo, 'vacia');
 
 // --- quién nunca aparece ---
 es('no aparece quien busca', ids(buscar('Yo Mismo')).indexOf(YO), -1);

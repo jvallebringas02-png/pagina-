@@ -169,7 +169,7 @@ var MotorBusquedaPersonas = (function () {
             tipo: 'busqueda', criterios: [], avisos: [], limite: LIMITE, orden: ficha && ficha.orden === 'recientes' ? 'recientes' : 'relevancia',
             entendi: '', mensaje: null
         };
-        if (!ficha || ficha.intencion === 'vacia' && !ficha.condicion) { plan.tipo = 'vacia'; plan.mensaje = 'Escribe qué o a quién buscas: un nombre, @usuario, lo que vende o un lugar.'; return plan; }
+        if (!ficha || ficha.intencion === 'vacia' && !ficha.condicion && !contexto.nivelZona) { plan.tipo = 'vacia'; plan.mensaje = 'Escribe qué o a quién buscas: un nombre, @usuario, lo que vende o un lugar.'; return plan; }
         if (ficha.bloqueada) {
             plan.tipo = 'bloqueada'; plan.mensaje = 'Esta búsqueda va contra las normas de la página, así que no se realizó.'; return plan;
         }

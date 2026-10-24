@@ -641,7 +641,7 @@ var PanelUsuario = {
         clearTimeout(this._debouncePanelPersonas);
         this._debouncePanelPersonas = setTimeout(function() { PanelUsuario.buscarEnPanelPersonas(valor); }, 350);
     },
-    buscarEnPanelPersonas: async function(valorForzado, nivelClickeado) {
+    buscarEnPanelPersonas: async function(valorForzado, nivelClickeado, fichaForzada) {
         var inputEl = document.getElementById('panelPersonasBuscarInput');
         if (nivelClickeado) {
             var btn = document.getElementById('filtroZona-' + nivelClickeado + '-panelPersonas');
@@ -653,12 +653,16 @@ var PanelUsuario = {
         var nivelZona = this._obtenerNivelZonaActivo('panelPersonas');
         var resultadosEl = document.getElementById('panelPersonasResultados');
         if (!resultadosEl) return;
-        if (!texto.trim() && !nivelZona) {
+        if (!texto.trim() && !nivelZona && !fichaForzada) {
             resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
             return;
         }
         resultadosEl.innerHTML = '<div style="text-align:center;padding:20px;"><div class="search-loading-spinner" style="margin:0 auto;"></div></div>';
-        var usuarios = await this.buscarUsuariosPorNombre(texto, nivelZona);
+        // Motor nuevo (intérprete + plan + datos). Si no está cargado o falla, buscarUsuariosPorNombre usa la búsqueda de siempre.
+        var motorListo = typeof MotorBusquedaPersonasDatos !== 'undefined' && typeof MotorBusquedaPersonas !== 'undefined' && typeof InterpreteBusquedaPersonas !== 'undefined';
+        var usuarios = await this.buscarUsuariosPorNombre(texto, nivelZona, motorListo, { ficha: fichaForzada || null, canal: 'panelPersonas' });
+        if (usuarios && usuarios.descartada) return; // llegó tarde: ya hay una búsqueda más nueva
+        if (usuarios && usuarios.motor) { this._pintarResultadoMotorPanelPersonas(usuarios, resultadosEl); return; }
         if (usuarios && usuarios.length) {
             this._renderTarjetasPanelPersonas(usuarios, resultadosEl);
             return;
@@ -694,16 +698,53 @@ var PanelUsuario = {
         }
         resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">😕 No encontramos a nadie en esa zona. Prueba con otro filtro.</div>';
     },
+    // Pinta el resultado del motor nuevo: línea "Entendí…" con etiquetas (✕ quita un criterio), avisos, mensaje y tarjetas.
+    _pintarResultadoMotorPanelPersonas: function(lista, el) {
+        var self = this, r = lista.motor, h = '';
+        this._fichaPanelPersonas = r.ficha || null;
+        var plan = r.plan || {};
+        var criterios = (plan.criterios || []).filter(function(c) { return c.aplicado; });
+        if (criterios.length && (plan.tipo === 'busqueda' || plan.tipo === 'nuevos')) {
+            h += '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">🤖 Entendí:' +
+                criterios.map(function(c) {
+                    var quitar = c.id === 'nuevos' ? '' : ' <button type="button" aria-label="Quitar" style="border:0;background:transparent;cursor:pointer;padding:0 0 0 2px;color:inherit;" onclick="PanelUsuario.quitarCriterioPanelPersonas(\'' + self.escHtml(c.id) + '\')">✕</button>';
+                    return '<span title="' + self.escHtml(c.nota || '') + '" style="border:1px solid var(--borde);border-radius:999px;padding:2px 10px;">' + self.escHtml(c.etiqueta) + quitar + '</span>';
+                }).join('') + '</div>';
+        }
+        (r.avisos || []).forEach(function(a) { h += '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">ℹ️ ' + self.escHtml(a) + '</div>'; });
+        if (!lista.length) {
+            h += '<div class="user-picker-empty">' + self.escHtml(r.mensaje || 'No encontré a nadie con esos criterios.') + '</div>';
+            if (r.requiere === 'localidad') h += '<div style="text-align:center;margin-top:8px;"><button type="button" class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.abrirModalConfiguracion()">📍 Define tu localidad</button></div>';
+            el.innerHTML = h; return;
+        }
+        if (r.total > lista.length) h += '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:8px;">Mostrando ' + lista.length + ' de ' + r.total + ' personas.</div>';
+        el.innerHTML = h;
+        this._renderTarjetasPanelPersonas(lista, el, false);
+    },
+    // ✕ de una etiqueta: busca otra vez sin ese criterio. Si era la zona o el lugar, también se apaga el botón de zona.
+    quitarCriterioPanelPersonas: function(idCriterio) {
+        if (!this._fichaPanelPersonas || typeof MotorBusquedaPersonas === 'undefined') return;
+        var ficha = MotorBusquedaPersonas.fichaSin(this._fichaPanelPersonas, idCriterio);
+        if (idCriterio === 'zona' || idCriterio === 'lugar') document.querySelectorAll('.compartir-filtro-zona[data-contexto="panelPersonas"]').forEach(function(b) { b.classList.remove('activo'); });
+        var inputEl = document.getElementById('panelPersonasBuscarInput');
+        if (inputEl && ficha.intencion === 'vacia') inputEl.value = '';
+        this.buscarEnPanelPersonas(inputEl ? inputEl.value : '', null, ficha);
+    },
     // Pinta las tarjetas de resultados de la sección "Buscar Personas" (usadas tanto en la búsqueda directa como en la sugerencia de la IA).
     _renderTarjetasPanelPersonas: function(usuarios, resultadosEl, esSugerenciaIA) {
         var self = this;
         resultadosEl.innerHTML += usuarios.map(function(u) {
             var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var fotoHtml = this.avatarHtml(u.foto_perfil, nombre, { tam: 48, claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:18px;' });
+            var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 48, claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:18px;' });
             var subtitulo = esSugerenciaIA
                 ? '<div style="font-size:12px;color:var(--texto-secundario);">✨ Sugerido por el asistente</div>'
                 : (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '');
+            if (u.nombre_usuario) subtitulo += '<div style="font-size:12px;color:var(--texto-secundario);">@' + self.escHtml(u.nombre_usuario) + '</div>';
+            (u.ofertas || []).forEach(function(o) {
+                var extra = [o.precio != null ? ((o.moneda || '') + ' ' + o.precio).trim() : '', o.ciudad || ''].filter(Boolean).join(' · ');
+                subtitulo += '<div style="font-size:12px;color:var(--texto-secundario);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏷️ ' + self.escHtml(o.titulo || '') + (extra ? ' · ' + self.escHtml(extra) : '') + '</div>';
+            });
             return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;">' +
                 fotoHtml +
                 '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;">' + self.escHtml(nombre) + '</div>' + subtitulo + '</div>' +

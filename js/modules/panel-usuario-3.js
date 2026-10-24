@@ -1288,8 +1288,27 @@ Object.assign(PanelUsuario, {
     // Motor único de búsqueda de personas. Reutilizado por: Compartir, Nuevo mensaje, Buscador principal y el Chat IA.
     // - q: texto escrito (nombre completo, nombre parcial o INICIALES, ej: "J P", "JP", "J.P.")
     // - nivelZona: 'local' | 'regional' | 'pais' | null -> combinable con el texto
-    buscarUsuariosPorNombre: async function(q, nivelZona) {
+    // usarMotor (opcional, por defecto false): true = motor nuevo (intérprete + plan + datos). Si el motor no está cargado o falla,
+    // cae al código de abajo, que sigue siendo el de siempre. opciones: { ficha, canal }.
+    // Con el motor, el array devuelto trae además la propiedad `motor` (plan, mensaje, avisos, requiere...) para que la pantalla la muestre.
+    buscarUsuariosPorNombre: async function(q, nivelZona, usarMotor, opciones) {
         if (!usuarioActual) return [];
+        if (usarMotor && typeof MotorBusquedaPersonasDatos !== 'undefined' && typeof MotorBusquedaPersonas !== 'undefined' && typeof InterpreteBusquedaPersonas !== 'undefined') {
+            try {
+                opciones = opciones || {};
+                var r = await MotorBusquedaPersonasDatos.buscar(q, { supabase: supabase, yo: usuarioActual, nivelZona: nivelZona || null, ficha: opciones.ficha || null, canal: opciones.canal || 'general' });
+                var lista = [];
+                if (r.descartada) { lista.descartada = true; return lista; }
+                lista = (r.personas || []).map(function(p) {
+                    p.nombre_completo = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim() || 'Usuario';
+                    return p;
+                });
+                lista.motor = r;
+                return lista;
+            } catch (eMotor) {
+                console.warn('Motor de búsqueda de personas falló; uso la búsqueda de siempre:', eMotor);
+            }
+        }
         var termino = (q || '').trim().toLowerCase().replace(/\./g, '');
         if (!termino && !nivelZona) return [];
         var bloqueados = await this.obtenerBloqueados();
