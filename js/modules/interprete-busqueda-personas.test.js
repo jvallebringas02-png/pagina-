@@ -118,7 +118,7 @@ es('miles con coma', f('vende autos desde 1,500 dólares').precio.min, 1500);
 es('regala o cambia', pick('pedro que regale o cambie', ['nombre', 'hace', 'oferta']), ['pedro', ['regala', 'cambia'], null]);
 es('"compra" se detecta y se ignora', pick('luis que compre', ['nombre', 'hace', 'hace_no_soportado']), ['luis', [], ['compra']]);
 es('servicios con la palabra', pick('Ana que da servicios de diseño', ['nombre', 'hace', 'oferta']), ['Ana', ['servicios'], 'diseño']);
-es('servicios sin la palabra queda como oferta', pick('juan que da clases de ingles', ['nombre', 'oferta']), ['juan', 'clases de ingles']);
+es('"da clases de X" es un servicio y X es lo que se ofrece', pick('juan que da clases de ingles', ['nombre', 'oferta', 'hace']), ['juan', 'ingles', ['servicios']]);
 es('varias ofertas se conservan', f('Pedro que vende laptops o celulares').oferta, 'laptops o celulares');
 es('describir con verbos y precio', I.describir(f('Juan que vende o da servicios hasta 100 soles')), 'Busqué: Juan · vende o da servicios · precio: hasta 100');
 
@@ -155,6 +155,33 @@ es('sanear: no deja campos extra', [sn.campo_raro, sn.sql], [undefined, undefine
 es('sanear: aplica el riesgo', [I.sanear({ oferta: 'cocaína' }).bloqueada, I.sanear({ oferta: 'cocaína' }).riesgo.motivo], [true, 'drogas']);
 es('sanear: entrada rara', [I.sanear(null).intencion, I.sanear('hola').intencion], ['vacia', 'vacia']);
 es('sanear: zona y oferta válidas', [I.sanear({ zona: 'local', oferta: 'ropa' }).intencion, I.sanear({ usuario: '@jvalle' }).usuario], ['filtro', 'jvalle']);
+
+
+// --- Consultas más amplias (25/10): tipo de oferta, segunda mano, "con nombre", "mi ciudad" ---
+function g(t, campos) { var x = I.interpretar(t); var o = {}; campos.forEach(function (c) { o[c] = x[c]; }); return o; }
+es('búscame lo que vende piano en mi ciudad', g('búscame lo que vende piano en mi ciudad', ['nombre', 'oferta', 'zona', 'hace', 'intencion']),
+    { nombre: null, oferta: 'piano', zona: 'local', hace: ['vende'], intencion: 'filtro' });
+es('quien vende piano en mi región', g('quien vende piano en mi región', ['oferta', 'zona']), { oferta: 'piano', zona: 'regional' });
+es('personas que venden piano en mi país', g('personas que venden piano en mi país', ['oferta', 'zona']), { oferta: 'piano', zona: 'pais' });
+es('"en la ciudad" es la zona local, no un lugar', g('usuario que venda pelota en la ciudad por precio', ['lugar', 'zona', 'oferta']), { lugar: null, zona: 'local', oferta: 'pelota' });
+es('con nombre Juan se separa de lo que vende', g('vende piano en mi ciudad con nombre Juan', ['nombre', 'oferta', 'zona']), { nombre: 'Juan', oferta: 'piano', zona: 'local' });
+es('llamado Juan Pérez', g('quien vende piano llamado Juan Pérez', ['nombre', 'oferta']), { nombre: 'Juan Pérez', oferta: 'piano' });
+es('quien da clases de piano en mi ciudad', g('quien da clases de piano en mi ciudad', ['nombre', 'oferta', 'hace', 'zona', 'intencion']),
+    { nombre: null, oferta: 'piano', hace: ['servicios'], zona: 'local', intencion: 'filtro' });
+es('quien da clases (sin objeto)', g('quien da clases', ['nombre', 'oferta', 'hace', 'intencion']), { nombre: null, oferta: null, hace: ['servicios'], intencion: 'filtro' });
+es('quien ofrece servicio de plomería', g('quien ofrece servicio de plomería en mi país', ['oferta', 'hace', 'zona']), { oferta: 'plomería', hace: ['servicios'], zona: 'pais' });
+es('quien hace trueque de herramientas', g('quien hace trueque de herramientas', ['nombre', 'oferta', 'hace']), { nombre: null, oferta: 'herramientas', hace: ['cambia'] });
+es('quien regala o cambia (sin objeto)', g('quien regala o cambia', ['nombre', 'oferta', 'hace', 'intencion']), { nombre: null, oferta: null, hace: ['regala', 'cambia'], intencion: 'filtro' });
+es('que cambie o done libros', g('que cambie o done libros', ['oferta', 'hace']), { oferta: 'libros', hace: ['cambia', 'regala'] });
+es('que regale muebles en mi región', g('que regale muebles en mi región', ['oferta', 'hace', 'zona']), { oferta: 'muebles', hace: ['regala'], zona: 'regional' });
+es('ropa de segunda mano en Lima', g('quien vende ropa de segunda mano en Lima', ['oferta', 'condicion', 'lugar']), { oferta: 'ropa', condicion: 'usado', lugar: 'Lima' });
+es('que venda usado un piano', g('que venda usado un piano', ['oferta', 'condicion']), { oferta: 'piano', condicion: 'usado' });
+es('"segunda mano" sola es un filtro', g('segunda mano', ['condicion', 'intencion']), { condicion: 'usado', intencion: 'filtro' });
+es('describir muestra segunda mano', I.describir(I.interpretar('ropa de segunda mano en Lima')).indexOf('segunda mano') !== -1, true);
+es('todas las personas no es un nombre', g('todas las personas', ['nombre', 'intencion']), { nombre: null, intencion: 'vacia' });
+es('sanear: una inicial sola pide segunda pista', I.sanear({ iniciales: ['j'] }).necesita_segunda_pista, true);
+es('sanear: condicion usado', I.sanear({ oferta: 'piano', condicion: 'usado' }).condicion, 'usado');
+es('Dan y Dona siguen siendo nombres', [g('Dan Smith', ['nombre']).nombre, g('Dona Flores', ['nombre']).nombre], ['Dan Smith', 'Dona Flores']);
 
 console.log(fallos === 0 ? 'TODO BIEN: ' + total + ' de ' + total + ' pruebas' : fallos + ' FALLOS de ' + total + ' pruebas');
 process.exit(fallos === 0 ? 0 : 1);

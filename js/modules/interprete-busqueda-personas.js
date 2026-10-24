@@ -105,7 +105,7 @@ var InterpreteBusquedaPersonas = (function () {
     }
 
     function fichaNueva(texto) {
-        return { texto: texto, nombre: null, usuario: null, iniciales: null, zona: null, lugar: null, oferta: null,
+        return { texto: texto, nombre: null, usuario: null, iniciales: null, zona: null, lugar: null, oferta: null, condicion: null,
             hace: [], hace_no_soportado: [], precio: null, rol: null, orden: null,
             riesgo: { nivel: null, motivo: null }, bloqueada: false, necesita_segunda_pista: false, intencion: 'vacia' };
     }
@@ -125,11 +125,11 @@ var InterpreteBusquedaPersonas = (function () {
         { tipo: 'vende', re: /^(vend\w*|venta|ventas)$/ },
         { tipo: 'compra', re: /^(compr\w*|adquir\w*)$/ },
         { tipo: 'servicios', re: /^(servicio|servicios)$/ },
-        { tipo: 'regala', re: /^(regal\w*|dona\w*|donacion\w*|donaciones)$/ },
+        { tipo: 'regala', re: /^(regal\w*|dona\w*|done\w*|donacion\w*|donaciones)$/ },
         { tipo: 'cambia', re: /^(cambi\w*|trueque\w*|intercambi\w*|permut\w*)$/ }
     ];
     var HACE_NO_SOPORTADO = ['compra'];
-    var RELLENO_BORDE = /^(?:o|y|e|u|de|que|da|dan|con|para|por|a)$/;
+    var RELLENO_BORDE = /^(?:o|y|e|u|de|que|da|dan|con|para|por|a|un|una|unos|unas|el|la|los|las)$/;
     function anotarHace(ficha, tipo) {
         var lista = HACE_NO_SOPORTADO.indexOf(tipo) !== -1 ? ficha.hace_no_soportado : ficha.hace;
         if (lista.indexOf(tipo) === -1) lista.push(tipo);
@@ -185,11 +185,18 @@ var InterpreteBusquedaPersonas = (function () {
         // 0) @usuario
         tomar(/(?:^|\s)@([a-z0-9_.]{2,30})(?=\s|$)/, function (m) { ficha.usuario = m[1]; });
 
+        // 0b) "con nombre Juan", "llamado Juan Pérez": el nombre se dice de forma explícita y no se mezcla con lo que se vende
+        tomar(/\b(?:con nombre|de nombre|llamad[oa]s?|que se llama[n]?)\s+(?:de\s+)?([a-z]+(?: [a-z]+){0,3})(?=\s+(?:en|que|quien|vend\w*|ofrec\w*|por|con)\b|\s*$)/, function (m) {
+            var ini = m.index + m[0].indexOf(m[1]);
+            var n = limpiarNombre(tramoVivo(ini, ini + m[1].length));
+            ficha.nombre = n || null;
+        });
+
         // 1) zona
         if (tomar(/\b(a nivel mundial|en todo el mundo|todo el mundo|mundial(es)?|del mundo)\b/)) ficha.zona = 'mundial';
         else if (tomar(/\b(a nivel nacional|nacional(es)?|en mi pais|de mi pais|mi pais)\b/)) ficha.zona = 'pais';
         else if (tomar(/\b(en mi region|de mi region|mi region|regional(es)?)\b/)) ficha.zona = 'regional';
-        else if (tomar(/\b(a nivel local|de mi ciudad|en mi ciudad|mi ciudad|de mi zona|en mi zona|mi zona|mi localidad|cerca de mi)\b/)) ficha.zona = 'local';
+        else if (tomar(/\b(a nivel local|de mi ciudad|en mi ciudad|mi ciudad|en la ciudad|de la ciudad|de mi zona|en mi zona|mi zona|mi localidad|cerca de mi)\b/)) ficha.zona = 'local';
 
         // 1b) precio. Va antes que "lugar" y "qué vende" para que "menos de 500 soles" no se pegue a lo que se vende.
         //     "caro" suelto NO cuenta (es un nombre: "Caro Pérez"); solo "más caro", "caros", "caras".
@@ -202,6 +209,9 @@ var InterpreteBusquedaPersonas = (function () {
         // "por precio" suelto es ambiguo (¿ordenar? ¿con precio publicado? ¿un rango?). Se ordena del más barato y se marca.
         tomar(/\b(?:por\s+)?precios?\b/, function () { if (!hayPrecio) { precio.orden = 'asc'; precio.ambiguo = true; hayPrecio = true; } });
         if (hayPrecio) ficha.precio = precio;
+
+        // 1c) segunda mano: la página no tiene un campo de condición, así que solo se anota que se pidió (se busca por texto)
+        tomar(/\b(?:de\s+)?(?:segunda mano|usad[oa]s?|seminuev[oa]s?)\b/, function () { ficha.condicion = 'usado'; });
 
         // 2) lugar nombrado, qué vende y otra vez lugar (el orden de la frase puede variar)
         function sacarLugar() {
@@ -224,7 +234,7 @@ var InterpreteBusquedaPersonas = (function () {
         sacarLugar();
         // "da", "dan", "hace", "tiene" solo cuentan después de "que" ("que da clases"): sin eso, "Dan Smith" sería un verbo
         // Además de vender, se reconocen regalar, cambiar, comprar y servicios; lo de después puede traer más verbos ("o compre o de servicios")
-        tomar(/\b(?:que\s+(?:vend\w*|ofrec\w*|da|dan|hace|hacen|tiene|tienen|regal\w*|dona\w*|cambi\w*|trueque\w*|intercambi\w*|compr\w*|brind\w*|prest\w*)|vend(?:e|en|iendo)|ofrec(?:e|en))(?:\s+(?:de\s+)?(.+))?$/, function (m) {
+        tomar(/\b(?:(?:lo\s+)?(?:que|quien(?:es)?)\s+(?:vend\w*|ofrec\w*|da|dan|dicta\w*|imparte\w*|hace|hacen|tiene|tienen|regal\w*|dona\w*|cambi\w*|trueque\w*|intercambi\w*|compr\w*|brind\w*|prest\w*)|vend(?:e|en|iendo)|ofrec(?:e|en))(?:\s+(?:de\s+)?(.+))?$/, function (m) {
             var cola = m[1] || '';
             var prefijo = m[0].slice(0, m[0].length - cola.length);
             prefijo.split(/\s+/).forEach(function (w) {
@@ -233,6 +243,15 @@ var InterpreteBusquedaPersonas = (function () {
             if (cola) {
                 var ini = m.index + m[0].length - cola.length;
                 ficha.oferta = separarHace(ficha, limpiarNombre(tramoVivo(ini, ini + cola.length)));
+                // "da clases de piano", "hace reparación de laptops": es un servicio y lo que se ofrece es lo que sigue
+                if (ficha.oferta) {
+                    var sv = /^(?:clases?|talleres?|asesorias?|reparacion(?:es)?|instalacion(?:es)?|mantenimiento|asistencia tecnica)(?:\s+(?:de|en|para)\s+(.+))?$/.exec(normalizar(ficha.oferta));
+                    if (sv) {
+                        anotarHace(ficha, 'servicios');
+                        var pal = ficha.oferta.split(' ').filter(Boolean);
+                        ficha.oferta = sv[1] ? (limpiarNombre(pal.slice(pal.length - sv[1].split(' ').length).join(' ')) || null) : null;
+                    }
+                }
             }
         });
         tomar(/\bvendedor(?:es)?\s+de\s+(.+)$/, function (m) {
@@ -261,6 +280,7 @@ var InterpreteBusquedaPersonas = (function () {
 
         // 5) rol ("emprendedores", "vendedores") y palabras genéricas sueltas
         tomar(ROLES, function (m) { ficha.rol = m[0]; });
+        tomar(/\b(?:todas?|todos)\s+(?:las|los)\b/); // "todas las personas": no es un nombre (y no lista a nadie)
         tomar(/\b(usuarios?|personas?|gente|alguien)\b/);
         tomar(/\b(quien(?:es)?|cual(?:es)?)\b/); // "quién vende laptops": "quién" no es un nombre
 
@@ -284,14 +304,14 @@ var InterpreteBusquedaPersonas = (function () {
         if (palabras.length && palabras.every(function (p) { return vocab.indexOf(p) !== -1; })) {
             if (!ficha.oferta) ficha.oferta = rest; rest = '';
         }
-        ficha.nombre = rest || null;
+        ficha.nombre = rest || ficha.nombre || null;
 
         // 8) si el lugar es el país de quien busca, es la zona "país"
         if (ficha.lugar && contexto.pais && normalizar(ficha.lugar) === normalizar(contexto.pais)) { ficha.zona = ficha.zona || 'pais'; ficha.lugar = null; }
 
         ficha.intencion = (ficha.nombre || ficha.iniciales) ? 'nombre'
             : (ficha.usuario ? 'usuario'
-            : ((ficha.oferta || ficha.rol || ficha.zona || ficha.lugar || ficha.hace.length || ficha.precio) ? 'filtro' : 'vacia'));
+            : ((ficha.oferta || ficha.rol || ficha.zona || ficha.lugar || ficha.hace.length || ficha.precio || ficha.condicion) ? 'filtro' : 'vacia'));
         // Una sola letra sola obliga a dar una segunda pista (evita listar a todos los usuarios)
         if (ficha.iniciales && ficha.iniciales.length === 1 && !ficha.zona && !ficha.lugar && !ficha.oferta && !ficha.rol &&
             !ficha.hace.length && !ficha.precio && !ficha.usuario) ficha.necesita_segunda_pista = true;
@@ -336,6 +356,7 @@ var InterpreteBusquedaPersonas = (function () {
             partes.push(ficha.hace.map(function (h) { return HACE[h] || h; }).join(' o '));
         }
         if (ficha.oferta) partes.push('ofrece ' + ficha.oferta);
+        if (ficha.condicion) partes.push('de segunda mano');
         if (ficha.precio) {
             var p = ficha.precio, txt = [];
             if (p.min !== null) txt.push('desde ' + p.min);
@@ -366,6 +387,7 @@ var InterpreteBusquedaPersonas = (function () {
         if (['local', 'regional', 'pais', 'mundial'].indexOf(externa.zona) !== -1) f.zona = externa.zona;
         if (typeof externa.rol === 'string' && ROLES.test(normalizar(externa.rol))) f.rol = normalizar(externa.rol).match(ROLES)[0];
         if (externa.orden === 'recientes') f.orden = 'recientes';
+        if (externa.condicion === 'usado') f.condicion = 'usado';
         if (Array.isArray(externa.hace)) {
             externa.hace.forEach(function (h) { if (['vende', 'servicios', 'regala', 'cambia'].indexOf(h) !== -1 && f.hace.indexOf(h) === -1) f.hace.push(h); });
         }
@@ -381,8 +403,10 @@ var InterpreteBusquedaPersonas = (function () {
         if (f.usuario) { var ru = evaluarRiesgo(f.usuario.replace(/[._]+/g, ' ')); if (ru.nivel && f.riesgo.nivel !== 'alto') f.riesgo = ru; }
         f.bloqueada = f.riesgo.nivel === 'alto';
         f.intencion = (f.nombre || f.iniciales) ? 'nombre' : (f.usuario ? 'usuario'
-            : ((f.oferta || f.rol || f.zona || f.lugar || f.hace.length || f.precio) ? 'filtro' : (f.orden === 'recientes' ? 'nuevos' : 'vacia')));
+            : ((f.oferta || f.rol || f.zona || f.lugar || f.hace.length || f.precio || f.condicion) ? 'filtro' : (f.orden === 'recientes' ? 'nuevos' : 'vacia')));
         if (f.orden === 'recientes' && f.intencion === 'vacia') f.intencion = 'nuevos';
+        // una sola inicial sola no lista a nadie (también por el camino de la IA)
+        if (f.iniciales && f.iniciales.length === 1 && !f.zona && !f.lugar && !f.oferta && !f.rol && !f.hace.length && !f.precio && !f.usuario && !f.condicion) f.necesita_segunda_pista = true;
         return f;
     }
 
