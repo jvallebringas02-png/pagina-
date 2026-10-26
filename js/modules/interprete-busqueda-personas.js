@@ -139,6 +139,7 @@ var InterpreteBusquedaPersonas = (function () {
         var palabras = String(textoOferta || '').split(' ').filter(Boolean), dejar = [];
         palabras.forEach(function (w) {
             var nw = normalizar(w), tipo = null;
+            if (/^(?:da|dan|den|hace\w*|hagan|tien\w*|tengan|ofrec\w*|ofrezcan|brind\w*|prest\w*)$/.test(nw)) return; // verbo de relleno, no es lo que se ofrece
             for (var v = 0; v < VERBOS_HACE.length; v++) { if (VERBOS_HACE[v].re.test(nw)) { tipo = VERBOS_HACE[v].tipo; break; } }
             if (tipo) anotarHace(ficha, tipo); else dejar.push(w);
         });
@@ -234,7 +235,7 @@ var InterpreteBusquedaPersonas = (function () {
         sacarLugar();
         // "da", "dan", "hace", "tiene" solo cuentan después de "que" ("que da clases"): sin eso, "Dan Smith" sería un verbo
         // Además de vender, se reconocen regalar, cambiar, comprar y servicios; lo de después puede traer más verbos ("o compre o de servicios")
-        tomar(/\b(?:(?:lo\s+)?(?:que|quien(?:es)?)\s+(?:vend\w*|ofrec\w*|da|dan|dicta\w*|imparte\w*|hace|hacen|tiene|tienen|regal\w*|dona\w*|cambi\w*|trueque\w*|intercambi\w*|compr\w*|brind\w*|prest\w*)|vend(?:e|en|iendo)|ofrec(?:e|en))(?:\s+(?:de\s+)?(.+))?$/, function (m) {
+        tomar(/\b(?:(?:lo\s+)?(?:que|quien(?:es)?)\s+(?:vend\w*|ofrec\w*|da|dan|den|hagan|tengan|dicta\w*|imparte\w*|hace|hacen|tiene|tienen|regal\w*|dona\w*|cambi\w*|trueque\w*|intercambi\w*|compr\w*|brind\w*|prest\w*)|vend(?:e|en|iendo)|ofrec(?:e|en))(?:\s+(?:de\s+)?(.+))?$/, function (m) {
             var cola = m[1] || '';
             var prefijo = m[0].slice(0, m[0].length - cola.length);
             prefijo.split(/\s+/).forEach(function (w) {
@@ -265,7 +266,10 @@ var InterpreteBusquedaPersonas = (function () {
         }
 
         // 3) frases de arranque ("búscame a", "quiero encontrar a", "persona llamada")
-        tomar(/^\s*(?:por favor\s+)?(?:(?:quiero|necesito|puedes|podrias|podria)\s+)?(?:busca(?:r|me)?|encuentra(?:me)?|encontrar|muestrame|mostrar|dame|ver)\s+(?:a\s+)?/);
+        tomar(/^\s*(?:por favor\s+)?(?:(?:quiero|necesito|deseo|puedes|podrias|podria|me gustaria|estoy|ando)\s+)?(?:busca(?:r|me|ndo)?|busco|encuentra(?:me)?|encontrar|encuentro|muestrame|mostrar|dame|ver|comprar|conseguir|consigo)\s+(?:(?:a|al|un|una|unos|unas)\s+)?/);
+        // "quiero zapatos", "necesito un plomero", "donde consigo zapatos", "tienen zapatos": solo expresan la intención, no son parte del nombre
+        tomar(/^\s*(?:por favor\s+)?(?:quiero|necesito|deseo|me gustaria|me interesa)\s+(?:(?:a|al|un|una|unos|unas)\s+)?/);
+        tomar(/^\s*(?:donde\s+(?:consigo|encuentro|compro|venden|hay)|tienen|tiene|hay)\s+(?:(?:un|una|unos|unas)\s+)?/);
         tomar(/\b(?:usuarios?|personas?|gente|alguien)\s+(?:llamad[oa]s?|de nombre|que se llama[n]?)\b/);
 
         // 4) "nuevo usuario" / "usuarios recientes": se piden los últimos registrados, no a alguien llamado "Nuevo"
@@ -295,13 +299,14 @@ var InterpreteBusquedaPersonas = (function () {
         if (tokIni.length >= 1 && tokIni.length <= 4 && tokIni.every(function (t) { return t.length === 1 && /[a-z]/.test(t); })) {
             ficha.iniciales = tokIni; rest = '';
         }
-        rest = limpiarNombre(rest).replace(/^(?:(?:a|que|de|y|con|para)\s+)+/i, '').replace(/(?:\s+(?:a|que|de|y|con|para))+$/i, '').trim();
-        if (/^(?:a|que|de|y|con|para)$/i.test(rest)) rest = '';
+        rest = limpiarNombre(rest).replace(/^(?:(?:a|que|de|y|con|para|por)\s+)+/i, '').replace(/(?:\s+(?:a|que|de|y|con|para|por))+$/i, '').trim();
+        if (/^(?:a|que|de|y|con|para|por)$/i.test(rest)) rest = '';
 
         // 7) "laptops en Trujillo": si lo que queda son solo nombres de productos, es lo que vende, no un nombre
-        var vocab = PRODUCTOS_COMUNES.concat((contexto.palabrasProducto || []).map(normalizar));
+        function sing(p) { return p.replace(/(?:es|s)$/, ''); } // zapato = zapatos
+        var vocab = PRODUCTOS_COMUNES.concat((contexto.palabrasProducto || []).map(normalizar)).map(sing);
         var palabras = rest ? normalizar(rest).split(' ') : [];
-        if (palabras.length && palabras.every(function (p) { return vocab.indexOf(p) !== -1; })) {
+        if (palabras.length && palabras.every(function (p) { return vocab.indexOf(sing(p)) !== -1; })) {
             if (!ficha.oferta) ficha.oferta = rest; rest = '';
         }
         ficha.nombre = rest || ficha.nombre || null;

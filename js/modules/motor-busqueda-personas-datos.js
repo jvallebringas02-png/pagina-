@@ -47,6 +47,38 @@ var MotorBusquedaPersonasDatos = (function () {
 
     function invalidarCache() { cache = { t: 0, dueno: null, datos: null }; }
 
+    // Sinónimos del buscador principal (zapato = zapatilla = tenis...), si esa pieza está cargada en la página.
+    function sinonimosPagina() {
+        if (typeof BuscadorMotor === 'undefined' || !BuscadorMotor || typeof BuscadorMotor.obtenerGrupoSinonimos !== 'function') return null;
+        return function (palabra) { return BuscadorMotor.obtenerGrupoSinonimos(palabra); };
+    }
+
+    // Lee (o reutiliza de la caché) lo que el motor necesita.
+    function datosVigentes(sb, yo, opciones) {
+        var t = ahora(opciones);
+        var vigente = cache.datos && cache.dueno === yo.id && (t - cache.t) < TTL_MS && !opciones.forzar;
+        return vigente ? Promise.resolve({ datos: cache.datos, fallos: [], ocultasDisponible: null, deCache: true })
+            : cargar(sb, yo).then(function (c) {
+                // solo se guarda si se leyó lo esencial: con fallos no se cachea para reintentar en la próxima
+                if (!c.fallos.length) cache = { t: t, dueno: yo.id, datos: c.datos };
+                return c;
+            });
+    }
+
+    // Búsquedas sugeridas para tocar, con cuántas personas da cada una. Devuelve [] si no hay sesión o no hay datos.
+    // opciones: { supabase, yo, Motor, Interprete, max, forzar, ahora }
+    function sugerencias(opciones) {
+        opciones = opciones || {};
+        var sb = opciones.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+        var yo = opciones.yo || (typeof usuarioActual !== 'undefined' ? usuarioActual : null);
+        var Motor = opciones.Motor || (typeof MotorBusquedaPersonas !== 'undefined' ? MotorBusquedaPersonas : null);
+        if (!sb || !Motor || typeof Motor.sugerencias !== 'function' || !yo || !yo.id) return Promise.resolve([]);
+        return datosVigentes(sb, yo, opciones).then(function (c) {
+            c.datos.yo = yo;
+            return Motor.sugerencias(c.datos, { Interprete: opciones.Interprete, sinonimos: sinonimosPagina(), max: opciones.max });
+        });
+    }
+
     // opciones: { supabase, yo, nivelZona, ficha, canal, Motor, Interprete, forzar, ahora }
     function buscar(texto, opciones) {
         opciones = opciones || {};
@@ -60,21 +92,14 @@ var MotorBusquedaPersonasDatos = (function () {
         var miVersion = (versiones[canal] || 0) + 1;
         versiones[canal] = miVersion;
 
-        var t = ahora(opciones);
-        var vigente = cache.datos && cache.dueno === yo.id && (t - cache.t) < TTL_MS && !opciones.forzar;
-        var pDatos = vigente ? Promise.resolve({ datos: cache.datos, fallos: [], ocultasDisponible: null, deCache: true })
-            : cargar(sb, yo).then(function (c) {
-                // solo se guarda si se leyó lo esencial: con fallos no se cachea para reintentar en la próxima
-                if (!c.fallos.length) cache = { t: t, dueno: yo.id, datos: c.datos };
-                return c;
-            });
+        var pDatos = datosVigentes(sb, yo, opciones);
 
         return pDatos.then(function (c) {
             if (versiones[canal] !== miVersion) return { descartada: true };
             var datos = c.datos;
             // el perfil propio puede haber cambiado (localidad nueva) aunque la caché sea vieja
             datos.yo = yo;
-            var r = Motor.buscar(texto, datos, { nivelZona: opciones.nivelZona || null, ficha: opciones.ficha || null, Interprete: opciones.Interprete });
+            var r = Motor.buscar(texto, datos, { nivelZona: opciones.nivelZona || null, ficha: opciones.ficha || null, Interprete: opciones.Interprete, sinonimos: opciones.sinonimos || sinonimosPagina() });
             if (c.fallos.length && !(r.personas && r.personas.length)) {
                 r.avisos = (r.avisos || []).concat(['No pude leer todos los datos (' + c.fallos.join(', ') + '). Intenta de nuevo en un momento.']);
             }
@@ -83,7 +108,7 @@ var MotorBusquedaPersonasDatos = (function () {
         });
     }
 
-    return { buscar: buscar, invalidarCache: invalidarCache, TTL_MS: TTL_MS };
+    return { buscar: buscar, sugerencias: sugerencias, invalidarCache: invalidarCache, TTL_MS: TTL_MS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = MotorBusquedaPersonasDatos;

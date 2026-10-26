@@ -632,10 +632,50 @@ var PanelUsuario = {
                 '<button type="button" id="filtroZona-regional-panelPersonas" data-nivel="regional" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'regional\')">🗺️ Regional</button>' +
                 '<button type="button" id="filtroZona-pais-panelPersonas" data-nivel="pais" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'pais\')">🌎 País</button>' +
             '</div>' +
-            '<input type="search" id="panelPersonasBuscarInput" name="buscar-personas-panel" class="form-input" placeholder="Nombre, apellido o iniciales (ej: J P)..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" data-protonpass-ignore="true" oninput="PanelUsuario.onBuscarPanelPersonasInput(this.value)">' +
+            '<input type="search" id="panelPersonasBuscarInput" name="buscar-personas-panel" class="form-input" placeholder="Nombre, iniciales o lo que vende (ej: zapatos en Lima)..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" data-protonpass-ignore="true" oninput="PanelUsuario.onBuscarPanelPersonasInput(this.value)">' +
             '<div id="panelPersonasResultados" style="margin-top:16px;"></div>' +
             '</div>';
-        document.getElementById('panelPersonasResultados').innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
+        this._pintarVacioPanelPersonas(document.getElementById('panelPersonasResultados'));
+    },
+    // Estado sin búsqueda: una línea de ayuda y búsquedas para tocar, armadas con lo que hay publicado (cada una con cuántas personas da).
+    _pintarVacioPanelPersonas: function(el) {
+        if (!el) return;
+        el.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px 20px 8px;">💡 Escribe un nombre, iniciales o lo que vende alguien, o elige una zona. Por ejemplo:</div>' +
+            '<div id="panelPersonasSugerencias" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:0 12px 16px;"></div>';
+        this._cargarSugerenciasPanelPersonas();
+    },
+    _estiloBotonPanelPersonas: 'border:1px solid var(--borde);background:transparent;color:inherit;border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer;',
+    _cargarSugerenciasPanelPersonas: async function() {
+        var self = this;
+        if (typeof MotorBusquedaPersonasDatos === 'undefined' || typeof MotorBusquedaPersonasDatos.sugerencias !== 'function' || typeof InterpreteBusquedaPersonas === 'undefined') return;
+        try {
+            var lista = await MotorBusquedaPersonasDatos.sugerencias({ supabase: supabase, yo: usuarioActual });
+            var el = document.getElementById('panelPersonasSugerencias'); // la pantalla pudo cambiar mientras se leía
+            if (!el || !lista || !lista.length) return;
+            this._sugerenciasPanelPersonas = lista;
+            el.innerHTML = lista.map(function(sg, i) {
+                return '<button type="button" style="' + self._estiloBotonPanelPersonas + '" onclick="PanelUsuario.usarSugerenciaPanelPersonas(' + i + ')">' + self.escHtml(sg.etiqueta) + ' <span style="opacity:.6;">(' + sg.total + ')</span></button>';
+            }).join('');
+        } catch (e) { console.warn('No se pudieron armar las sugerencias de búsqueda de personas:', e); }
+    },
+    usarSugerenciaPanelPersonas: function(i) {
+        var sg = (this._sugerenciasPanelPersonas || [])[i];
+        if (!sg) return;
+        var inputEl = document.getElementById('panelPersonasBuscarInput');
+        if (inputEl) inputEl.value = sg.texto;
+        this.buscarEnPanelPersonas(sg.texto);
+    },
+    // Botón de "Pero puedo mostrarte": vuelve a buscar con la ficha que armó el motor (zona más amplia, sin el precio, otra lectura...).
+    usarAlternativaPanelPersonas: function(i) {
+        var alt = (this._alternativasPanelPersonas || [])[i];
+        if (!alt || !alt.ficha) return;
+        if (alt.tipo === 'ampliar' || alt.id === 'zona' || alt.id === 'lugar') {
+            document.querySelectorAll('.compartir-filtro-zona[data-contexto="panelPersonas"]').forEach(function(b) { b.classList.remove('activo'); });
+            var btn = alt.tipo === 'ampliar' ? document.getElementById('filtroZona-' + alt.zona + '-panelPersonas') : null;
+            if (btn) btn.classList.add('activo');
+        }
+        var inputEl = document.getElementById('panelPersonasBuscarInput');
+        this.buscarEnPanelPersonas(inputEl ? inputEl.value : '', null, alt.ficha);
     },
     onBuscarPanelPersonasInput: function(valor) {
         clearTimeout(this._debouncePanelPersonas);
@@ -654,7 +694,7 @@ var PanelUsuario = {
         var resultadosEl = document.getElementById('panelPersonasResultados');
         if (!resultadosEl) return;
         if (!texto.trim() && !nivelZona && !fichaForzada) {
-            resultadosEl.innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
+            this._pintarVacioPanelPersonas(resultadosEl);
             return;
         }
         resultadosEl.innerHTML = '<div style="text-align:center;padding:20px;"><div class="search-loading-spinner" style="margin:0 auto;"></div></div>';
@@ -715,7 +755,22 @@ var PanelUsuario = {
         if (!lista.length) {
             h += '<div class="user-picker-empty">' + self.escHtml(r.mensaje || 'No encontré a nadie con esos criterios.') + '</div>';
             if (r.requiere === 'localidad') h += '<div style="text-align:center;margin-top:8px;"><button type="button" class="btn-auth" style="width:auto;padding:8px 14px;font-size:13px;" onclick="PanelUsuario.abrirModalConfiguracion()">📍 Define tu localidad</button></div>';
-            el.innerHTML = h; return;
+            // Salidas: búsquedas parecidas que sí dan resultados (el motor ya las probó), o ejemplos si no hay ninguna
+            var alts = r.alternativas || [];
+            this._alternativasPanelPersonas = alts;
+            var sinSalida = !alts.length && !r.requiere && plan.tipo !== 'bloqueada';
+            if (alts.length) {
+                h += '<div style="font-size:12px;color:var(--texto-secundario);margin:12px 0 6px;text-align:center;">Pero puedo mostrarte:</div>' +
+                    '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">' + alts.map(function(a, i) {
+                        return '<button type="button" style="' + self._estiloBotonPanelPersonas + '" onclick="PanelUsuario.usarAlternativaPanelPersonas(' + i + ')">' + self.escHtml(a.etiqueta) + ' <span style="opacity:.6;">(' + a.total + ')</span></button>';
+                    }).join('') + '</div>';
+            } else if (sinSalida) {
+                h += '<div style="font-size:12px;color:var(--texto-secundario);margin:12px 0 6px;text-align:center;">Prueba con alguna de estas:</div>' +
+                    '<div id="panelPersonasSugerencias" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;"></div>';
+            }
+            el.innerHTML = h;
+            if (sinSalida) this._cargarSugerenciasPanelPersonas();
+            return;
         }
         if (r.total > lista.length) h += '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:8px;">Mostrando ' + lista.length + ' de ' + r.total + ' personas.</div>';
         el.innerHTML = h;
