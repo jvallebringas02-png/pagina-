@@ -632,7 +632,7 @@ var PanelUsuario = {
                 '<button type="button" id="filtroZona-regional-panelPersonas" data-nivel="regional" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'regional\')">🗺️ Regional</button>' +
                 '<button type="button" id="filtroZona-pais-panelPersonas" data-nivel="pais" data-contexto="panelPersonas" class="compartir-filtro-zona" onclick="PanelUsuario.buscarEnPanelPersonas(null,\'pais\')">🌎 País</button>' +
             '</div>' +
-            '<input type="text" id="panelPersonasBuscarInput" class="form-input" placeholder="Nombre, apellido o iniciales (ej: J P)..." autocomplete="off" oninput="PanelUsuario.onBuscarPanelPersonasInput(this.value)">' +
+            '<input type="search" id="panelPersonasBuscarInput" name="buscar-personas-panel" class="form-input" placeholder="Nombre, apellido o iniciales (ej: J P)..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" data-protonpass-ignore="true" oninput="PanelUsuario.onBuscarPanelPersonasInput(this.value)">' +
             '<div id="panelPersonasResultados" style="margin-top:16px;"></div>' +
             '</div>';
         document.getElementById('panelPersonasResultados').innerHTML = '<div style="color:var(--texto-secundario);font-size:13px;text-align:center;padding:20px;">💡 Escribe un nombre, iniciales, o elige una zona para empezar a buscar.</div>';
