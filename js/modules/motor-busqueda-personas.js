@@ -274,6 +274,10 @@ var MotorBusquedaPersonas = (function () {
         if (ficha.hace_no_soportado && ficha.hace_no_soportado.length) {
             plan.avisos.push('La página no guarda lo que alguien quiere comprar, así que no se aplicó esa parte.');
         }
+        // "dame el teléfono de juan": se busca a la persona, pero la página no muestra datos de contacto
+        if (ficha.pide_dato) {
+            plan.avisos.push('Por privacidad no mostramos teléfonos ni correos. Puedes escribirle un mensaje desde su perfil.');
+        }
         // solo "compra" y nada más: no hay nada que buscar
         plan.criterios.forEach(function (c) { if (!c.aplicado && c.nota) plan.avisos.push('No se aplicó "' + c.etiqueta + '": ' + c.nota + '.'); });
         if (!plan.criterios.some(function (c) { return c.aplicado; })) {

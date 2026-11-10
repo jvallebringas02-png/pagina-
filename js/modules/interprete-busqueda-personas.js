@@ -1,4 +1,4 @@
-// Intérprete de la búsqueda de personas (versión 3, 24/10/2026: une la versión 2 con las piezas del intérprete de la otra sesión) -- NO está conectado a ninguna pantalla todavía.
+// Intérprete de la búsqueda de personas (versión 3, 24/10/2026; ampliado el 10/11/2026: tenga, ofrezca, un/una, regalar, mi vecino, contactar, teléfono). Conectado a la pantalla de personas vía MotorBusquedaPersonas.
 // Función pura: recibe lo que la persona escribió y devuelve una "ficha" con lo que se entendió. No usa la IA,
 // no consulta Supabase y no toca la página. Pruebas: pruebas/interprete-busqueda-personas.test.js
 //
@@ -105,7 +105,7 @@ var InterpreteBusquedaPersonas = (function () {
     }
 
     function fichaNueva(texto) {
-        return { texto: texto, nombre: null, usuario: null, iniciales: null, zona: null, lugar: null, oferta: null, condicion: null,
+        return { texto: texto, nombre: null, usuario: null, iniciales: null, zona: null, lugar: null, oferta: null, condicion: null, pide_dato: null,
             hace: [], hace_no_soportado: [], precio: null, rol: null, orden: null,
             riesgo: { nivel: null, motivo: null }, bloqueada: false, necesita_segunda_pista: false, intencion: 'vacia' };
     }
@@ -139,7 +139,7 @@ var InterpreteBusquedaPersonas = (function () {
         var palabras = String(textoOferta || '').split(' ').filter(Boolean), dejar = [];
         palabras.forEach(function (w) {
             var nw = normalizar(w), tipo = null;
-            if (/^(?:da|dan|den|hace\w*|hagan|tien\w*|tengan|ofrec\w*|ofrezcan|brind\w*|prest\w*)$/.test(nw)) return; // verbo de relleno, no es lo que se ofrece
+            if (/^(?:da|dan|den|dar|hace\w*|hagan|tien\w*|teng\w*|ofrec\w*|ofrez\w*|brind\w*|prest\w*)$/.test(nw)) return; // verbo de relleno, no es lo que se ofrece
             for (var v = 0; v < VERBOS_HACE.length; v++) { if (VERBOS_HACE[v].re.test(nw)) { tipo = VERBOS_HACE[v].tipo; break; } }
             if (tipo) anotarHace(ficha, tipo); else dejar.push(w);
         });
@@ -235,7 +235,9 @@ var InterpreteBusquedaPersonas = (function () {
         sacarLugar();
         // "da", "dan", "hace", "tiene" solo cuentan después de "que" ("que da clases"): sin eso, "Dan Smith" sería un verbo
         // Además de vender, se reconocen regalar, cambiar, comprar y servicios; lo de después puede traer más verbos ("o compre o de servicios")
-        tomar(/\b(?:(?:lo\s+)?(?:que|quien(?:es)?)\s+(?:vend\w*|ofrec\w*|da|dan|den|hagan|tengan|dicta\w*|imparte\w*|hace|hacen|tiene|tienen|regal\w*|dona\w*|cambi\w*|trueque\w*|intercambi\w*|compr\w*|brind\w*|prest\w*)|vend(?:e|en|iendo)|ofrec(?:e|en))(?:\s+(?:de\s+)?(.+))?$/, function (m) {
+        // 10/11: también "tenga/tengan" y "ofrezca" (subjuntivo: "ofrec-" se vuelve "ofrez-"), los infinitivos "regalar/donar/dar/vender"
+        // y "quien me puede regalar ropa" / "que me regale ropa" (el "me puede" no cambia lo que se pide)
+        tomar(/\b(?:(?:lo\s+)?(?:que|quien(?:es)?)\s+(?:(?:me\s+)?(?:puede|pueden|pueda|puedan|podria|podrian)\s+|me\s+)?(?:vend\w*|ofrec\w*|ofrez\w*|da|dan|den|dar|hagan|teng\w*|dicta\w*|imparte\w*|hace|hacen|tiene|tienen|regal\w*|don[ae]\w*|cambi\w*|trueque\w*|intercambi\w*|compr\w*|brind\w*|prest\w*)|vend(?:e|en|iendo)|ofrec(?:e|en))(?:\s+(?:de\s+)?(.+))?$/, function (m) {
             var cola = m[1] || '';
             var prefijo = m[0].slice(0, m[0].length - cola.length);
             prefijo.split(/\s+/).forEach(function (w) {
@@ -266,11 +268,22 @@ var InterpreteBusquedaPersonas = (function () {
         }
 
         // 3) frases de arranque ("búscame a", "quiero encontrar a", "persona llamada")
+        // 10/11: "dame el teléfono de juan" -> se busca a "juan" y se anota que pidió un dato de contacto (la página no los muestra).
+        //        Hace falta un verbo de pedido ("dame", "necesito"...) para no confundir "celular de juan" ni "numero de..." con el dato.
+        tomar(/^\s*(?:por favor\s+)?(?:(?:quiero|necesito|busco)\s+|(?:me\s+)?(?:das|pasas)\s+|dame\s+|dime\s+|pasame\s+)(?:el|la|su)\s+(telefono|numero|contacto|correo|email|whatsapp|direccion)\s+(?:de|del)\s+(?=\S)/,
+            function (m) { ficha.pide_dato = m[1]; });
+        // 10/11: "contactar a america", "escribirle a juan", "hablar con juan": solo expresan que quiere comunicarse
+        tomar(/^\s*(?:por favor\s+)?(?:(?:quiero|necesito|deseo|puedes|podrias|podria|me gustaria|estoy|ando)\s+)?(?:contact\w*|escribir(?:le)?|escribele|llamar(?:le)?|hablar(?:le)?(?:\s+con)?|comunicarme\s+con|mensaje\s+a)\s+(?:(?:a|al)\s+)?(?=\S)/);
+        // 10/11: "busco UN gasfitero" / "necesito UNA laptop" (un/una) pide algo; "busco A Juan" (a/al) pide a una persona.
+        //        Se mira antes de quitar la frase de arranque, porque al quitarla se pierde ese artículo.
+        var pideProducto = /^\s*(?:por favor\s+)?(?:(?:quiero|necesito|deseo|puedes|podrias|podria|me gustaria|estoy|ando)\s+)?(?:busca(?:r|me|ndo)?|busco|necesito|quiero|deseo|me gustaria|me interesa|encuentra(?:me)?|encontrar|encuentro|consigo|conseguir|comprar|compro)\s+(?:un|una|unos|unas)\s+(?=\S)/.test(vivo());
         tomar(/^\s*(?:por favor\s+)?(?:(?:quiero|necesito|deseo|puedes|podrias|podria|me gustaria|estoy|ando)\s+)?(?:busca(?:r|me|ndo)?|busco|encuentra(?:me)?|encontrar|encuentro|muestrame|mostrar|dame|ver|comprar|conseguir|consigo)\s+(?:(?:a|al|un|una|unos|unas)\s+)?/);
         // "quiero zapatos", "necesito un plomero", "donde consigo zapatos", "tienen zapatos": solo expresan la intención, no son parte del nombre
         tomar(/^\s*(?:por favor\s+)?(?:quiero|necesito|deseo|me gustaria|me interesa)\s+(?:(?:a|al|un|una|unos|unas)\s+)?/);
         tomar(/^\s*(?:donde\s+(?:consigo|encuentro|compro|venden|hay)|tienen|tiene|hay)\s+(?:(?:un|una|unos|unas)\s+)?/);
-        tomar(/\b(?:usuarios?|personas?|gente|alguien)\s+(?:llamad[oa]s?|de nombre|que se llama[n]?)\b/);
+        // 10/11: "mi vecino juan", "mi amiga ana": quien es para la persona que busca no es parte del nombre
+        tomar(/^\s*(?:mi|mis)\s+(?:vecin[oa]s?|amig[oa]s?|conocid[oa]s?|compadre|comadre|primo|prima|hermano|hermana|tio|tia|colega|companer[oa])\s+(?:(?:el|la)\s+)?(?=\S)/);
+        if (tomar(/\b(?:usuarios?|personas?|gente|alguien)\s+(?:llamad[oa]s?|de nombre|que se llama[n]?)\b/)) pideProducto = false; // "busco una persona llamada ana": ana es un nombre
 
         // 4) "nuevo usuario" / "usuarios recientes": se piden los últimos registrados, no a alguien llamado "Nuevo"
         var vNuevos = vivo();
@@ -305,6 +318,8 @@ var InterpreteBusquedaPersonas = (function () {
         // 7) "laptops en Trujillo": si lo que queda son solo nombres de productos, es lo que vende, no un nombre
         function sing(p) { return p.replace(/(?:es|s)$/, ''); } // zapato = zapatos
         var vocab = PRODUCTOS_COMUNES.concat((contexto.palabrasProducto || []).map(normalizar)).map(sing);
+        // 10/11: "necesito un gasfitero": con "un/una" lo que sigue es lo que se busca, aunque nadie lo haya publicado todavía
+        if (pideProducto && rest && !ficha.oferta && !ficha.nombre && !ficha.iniciales && !ficha.usuario) { ficha.oferta = rest; rest = ''; }
         var palabras = rest ? normalizar(rest).split(' ') : [];
         if (palabras.length && palabras.every(function (p) { return vocab.indexOf(sing(p)) !== -1; })) {
             if (!ficha.oferta) ficha.oferta = rest; rest = '';
