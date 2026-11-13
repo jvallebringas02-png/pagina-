@@ -193,6 +193,13 @@ var InterpreteBusquedaPersonas = (function () {
             ficha.nombre = n || null;
         });
 
+        // 0c) "con inicial J", "iniciales J P", "nombre empieza con M", "que empiece con la letra J": son LETRAS para filtrar, no un nombre (13/11/2026).
+        //     Pasan por el camino de las iniciales (una sola letra sola sigue pidiendo una segunda pista, igual que "J").
+        tomar(/\b(?:(?:con|de|cuyo|cuya)\s+)?(?:(?:su|el)\s+)?(?:nombre\s+)?(?:(?:empieza|empiezan|empiece|empiecen|comienza|comienzan|comience|comiencen|inicia|inician)\s+(?:con|por)|inicial(?:es)?(?:\s+(?:de|del)\s+(?:su\s+|el\s+)?nombre)?)\s+(?:(?:la|las)\s+(?:letra|letras)\s+)?([a-z](?:\s+(?:y\s+)?[a-z]){0,3})(?=\s|$)/, function (m) {
+            var letras = m[1].split(/\s+/).filter(function (x) { return x !== 'y'; });
+            if (letras.length) ficha.iniciales = letras;
+        });
+
         // 1) zona
         if (tomar(/\b(a nivel mundial|en todo el mundo|todo el mundo|mundial(es)?|del mundo)\b/)) ficha.zona = 'mundial';
         else if (tomar(/\b(a nivel nacional|nacional(es)?|en mi pais|de mi pais|mi pais)\b/)) ficha.zona = 'pais';

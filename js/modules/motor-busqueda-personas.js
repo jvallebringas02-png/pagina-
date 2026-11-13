@@ -459,7 +459,7 @@ var MotorBusquedaPersonas = (function () {
         var Interprete = contexto.Interprete || (typeof InterpreteBusquedaPersonas !== 'undefined' ? InterpreteBusquedaPersonas : null);
         if (!Interprete) throw new Error('Falta cargar interprete-busqueda-personas.js antes del motor');
         var ficha = contexto.ficha ? Interprete.sanear(contexto.ficha)
-            : Interprete.interpretar(texto, { pais: datos && datos.yo && datos.yo.pais, palabrasProducto: contexto.palabrasProducto || vocabularioDe(datos) });
+            : Interprete.interpretar(texto, { pais: datos && datos.yo && datos.yo.pais, palabrasProducto: contexto.palabrasProducto || vocabularioDe(datos), permitirApellidos: contexto.permitirApellidos === true });
         var plan = construirPlan(ficha, contexto);
         var r = ejecutar(plan, datos);
         r.ficha = ficha;

@@ -17,6 +17,7 @@
 //   - 'descartada'       : llegó una búsqueda más nueva en el mismo canal; no hay que dibujar esta.
 // BusquedaPorCapas.buscarPersonas(frase, contexto): igual, pero siempre en personas (Buscar Personas, Compartir, Mensajes).
 // contexto: { superficie:'principal'|'asistente'|'panel'|'personas', canal, nivelZona, yo, supabase, forzar, esTerminoProducto,
+//             permitirApellidos (true SOLO en Buscar Personas: deja buscar un apellido como "Armas"; por defecto false),
 //             Datos, Motor, Interprete (para pruebas; por defecto los de la página) }
 // INTERRUPTORES: se apagan por capa desde la consola o desde un <script> sin tocar el resto:
 //   BusquedaPorCapas.interruptores.entrada = false   -> todo vuelve al código de siempre (respaldo:true)
@@ -103,7 +104,7 @@ var BusquedaPorCapas = (function () {
                 if (!Datos || !Interprete) return enRespaldo(r, 'falta el motor de personas');
                 var tm = textoParaMotor(l, intencion, Interprete);
                 if (tm.riesgoPorLimpieza) intencion.riesgoPorLimpieza = true;
-                var opciones = { nivelZona: contexto.nivelZona || null, canal: contexto.canal || 'general', forzar: !!contexto.forzar };
+                var opciones = { nivelZona: contexto.nivelZona || null, canal: contexto.canal || 'general', forzar: !!contexto.forzar, permitirApellidos: contexto.permitirApellidos === true };
                 if (contexto.supabase) opciones.supabase = contexto.supabase;
                 if ('yo' in contexto) opciones.yo = contexto.yo;
                 var Motor = contexto.Motor || global_('MotorBusquedaPersonas') || dep('', './motor-busqueda-personas.js');

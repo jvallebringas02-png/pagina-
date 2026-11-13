@@ -79,7 +79,7 @@ var MotorBusquedaPersonasDatos = (function () {
         });
     }
 
-    // opciones: { supabase, yo, nivelZona, ficha, canal, Motor, Interprete, forzar, ahora }
+    // opciones: { supabase, yo, nivelZona, ficha, canal, Motor, Interprete, forzar, ahora, permitirApellidos }  (permitirApellidos: solo Buscar Personas; deja buscar "Carlos Armas" como nombre)
     function buscar(texto, opciones) {
         opciones = opciones || {};
         var sb = opciones.supabase || (typeof supabase !== 'undefined' ? supabase : null);
@@ -99,7 +99,7 @@ var MotorBusquedaPersonasDatos = (function () {
             var datos = c.datos;
             // el perfil propio puede haber cambiado (localidad nueva) aunque la caché sea vieja
             datos.yo = yo;
-            var r = Motor.buscar(texto, datos, { nivelZona: opciones.nivelZona || null, ficha: opciones.ficha || null, Interprete: opciones.Interprete, sinonimos: opciones.sinonimos || sinonimosPagina() });
+            var r = Motor.buscar(texto, datos, { nivelZona: opciones.nivelZona || null, ficha: opciones.ficha || null, Interprete: opciones.Interprete, sinonimos: opciones.sinonimos || sinonimosPagina(), permitirApellidos: opciones.permitirApellidos === true });
             if (c.fallos.length && !(r.personas && r.personas.length)) {
                 r.avisos = (r.avisos || []).concat(['No pude leer todos los datos (' + c.fallos.join(', ') + '). Intenta de nuevo en un momento.']);
             }
