@@ -223,5 +223,19 @@ es('"necesito una pistola" sigue bloqueada', f('necesito una pistola').bloqueada
 es('"quien me puede regalar marihuana" sigue bloqueada', f('quien me puede regalar marihuana').bloqueada, true);
 
 
+// --- 13/11/2026: "inicial J" y "empieza con M" son letras para filtrar, no un nombre ---
+es('\"usuarios con inicial J\": iniciales, no nombre', [f('usuarios con inicial J').nombre, f('usuarios con inicial J').iniciales], [null, ['j']]);
+es('\"nombre empieza con M\"', [f('nombre empieza con M').nombre, f('nombre empieza con M').iniciales], [null, ['m']]);
+es('una sola letra sola sigue pidiendo segunda pista', f('usuarios con inicial J').necesita_segunda_pista, true);
+es('con lugar ya no pide segunda pista', [f('usuarios de Callao con inicial J').iniciales, f('usuarios de Callao con inicial J').lugar, f('usuarios de Callao con inicial J').necesita_segunda_pista], [['j'], 'Callao', false]);
+es('\"iniciales J P\"', f('iniciales J P').iniciales, ['j', 'p']);
+es('\"que empiece con la letra J\"', f('que empiece con la letra J').iniciales, ['j']);
+es('\"cuyo nombre comience con A y B\"', f('personas cuyo nombre comience con A y B').iniciales, ['a', 'b']);
+es('inicial con lo que vende', [f('con inicial J que venda ropa').iniciales, f('con inicial J que venda ropa').oferta], [['j'], 'ropa']);
+es('\"Inicial Juan\" sigue siendo un nombre', f('Inicial Juan').nombre, 'Inicial Juan');
+es('la palabra \"inicial\" sola sigue siendo un nombre', f('inicial').nombre, 'inicial');
+es('\"J P\" sigue igual', f('J P').iniciales, ['j', 'p']);
+es('una frase de oferta no cambia', [f('busca quien venda laptops').iniciales, f('busca quien venda laptops').oferta], [null, 'laptops']);
+
 console.log(fallos === 0 ? 'TODO BIEN: ' + total + ' de ' + total + ' pruebas' : fallos + ' FALLOS de ' + total + ' pruebas');
 process.exit(fallos === 0 ? 0 : 1);

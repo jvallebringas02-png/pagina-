@@ -199,5 +199,13 @@ es('dame el teléfono de juan: avisa por privacidad', M.construirPlan(I.interpre
 es('una búsqueda normal no trae ese aviso', M.construirPlan(I.interpretar('juan')).avisos.length, 0);
 es('el criterio es el nombre, no "telefono"', M.construirPlan(I.interpretar('dame el teléfono de juan')).criterios.map(function (c) { return c.etiqueta; }), ['Nombre: juan']);
 
+// --- 13/11/2026: permitirApellidos pasa directo por el contexto del motor (antes solo con un intérprete envuelto) ---
+es('permitirApellidos en el contexto: \"Carlos Armas\" es una persona', ids(buscar('Carlos Armas', null, { permitirApellidos: true })), ['u-carlos']);
+es('por defecto sigue bloqueado', buscar('Carlos Armas').ficha.bloqueada, true);
+es('permitirApellidos no es un permiso para buscar armas', buscar('quiero comprar armas', null, { permitirApellidos: true }).ficha.bloqueada, true);
+es('\"armas\" solo, con el permiso, sigue bloqueado', buscar('armas', null, { permitirApellidos: true }).ficha.bloqueada, true);
+es('\"quien vende armas\", con el permiso, sigue bloqueado', buscar('quien vende armas', null, { permitirApellidos: true }).ficha.bloqueada, true);
+es('permitirApellidos distinto de true no cuenta', buscar('Carlos Armas', null, { permitirApellidos: 'si' }).ficha.bloqueada, true);
+
 console.log(fallos === 0 ? 'TODO BIEN: ' + total + ' de ' + total + ' pruebas' : fallos + ' FALLOS de ' + total + ' pruebas');
 process.exit(fallos === 0 ? 0 : 1);

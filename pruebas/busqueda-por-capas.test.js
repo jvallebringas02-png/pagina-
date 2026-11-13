@@ -103,7 +103,19 @@ function ids(r) { return r.personas ? r.personas.lista.map(function (p) { return
     r = await B.buscarPersonas('Juan Pérez', ctx());
     es('un nombre normal no se bloquea', r.personas.ficha.bloqueada, false);
     r = await B.buscarPersonas('Carlos Armas', ctx());
-    es('Carlos Armas sigue bloqueado hoy (el permiso para Buscar Personas se agrega en el paso 4)', r.personas.ficha.bloqueada, true);
+    es('Carlos Armas: bloqueado por defecto', [ids(r), r.personas.ficha.bloqueada], [[], true]);
+    r = await B.buscarPersonas('Carlos Armas', ctx({ permitirApellidos: true }));
+    es('Carlos Armas: con permitirApellidos (Buscar Personas) es una persona', [ids(r), r.personas.ficha.bloqueada], [['u-carlos'], false]);
+    r = await B.buscarPersonas('quiero comprar armas', ctx({ permitirApellidos: true }));
+    es('permitirApellidos no deja buscar armas', r.personas.ficha.bloqueada, true);
+    r = await B.procesar('Carlos Armas', ctx({ permitirApellidos: 'si' }));
+    es('permitirApellidos solo vale con true', r.personas.ficha.bloqueada, true);
+
+    // --- Iniciales (hallazgo 1 de la bitácora) ---
+    r = await B.buscarPersonas('usuarios de Callao con inicial J', ctx());
+    es('inicial J en Callao: filtra por la letra', [ids(r), r.personas.ficha.iniciales, r.personas.ficha.nombre], [['u-juan'], ['j'], null]);
+    r = await B.buscarPersonas('usuarios con inicial J', ctx());
+    es('inicial J sola: pide una segunda pista, no busca un nombre inexistente', [ids(r), r.personas.ficha.nombre, /sola letra/.test(r.personas.mensaje)], [[], null, true]);
 
     // --- Sin sesión ---
     r = await B.buscarPersonas('Juan', ctx({ yo: null }));
