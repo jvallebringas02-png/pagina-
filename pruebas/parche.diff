@@ -1,0 +1,53 @@
+diff -u -r orig/js/modules/event-controller.js pagina--main/js/modules/event-controller.js
+--- a/js/modules/event-controller.js	2026-11-14 21:31:20.423995915 +0000
++++ b/js/modules/event-controller.js	2026-11-14 21:31:20.502349539 +0000
+@@ -80,7 +80,7 @@
+             // Motor nuevo: busca con la frase completa (si el motor no está cargado o falla, se usa la búsqueda de siempre)
+             var usuarios = await PanelUsuario.buscarPersonasDesdeAsistente(queryOriginal, datos.nombre || null, null, 'paginaChat');
+             if (usuarios && usuarios.descartada) return;
+-            if ((!usuarios || !usuarios.length) && usuarioActual && !usuarios.motor) {
++            if ((!usuarios || !usuarios.length) && usuarioActual && !(usuarios && usuarios.motor)) {
+                 // Sin coincidencia por nombre: probamos la misma expansión por zona/categoría que usa Compartir
+                 var resultadoIA = await PanelUsuario.consultarAsistenteCompartir(nombre, null);
+                 if (resultadoIA.tipo === 'busqueda') usuarios = await PanelUsuario.buscarUsuariosCompartir(resultadoIA.categoria, resultadoIA.nivel_zona);
+diff -u -r orig/js/modules/panel-usuario-1.js pagina--main/js/modules/panel-usuario-1.js
+--- a/js/modules/panel-usuario-1.js	2026-11-14 21:31:20.425742349 +0000
++++ b/js/modules/panel-usuario-1.js	2026-11-14 21:31:20.509902993 +0000
+@@ -794,7 +794,7 @@
+             var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 48, claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:18px;' });
+             var subtitulo = esSugerenciaIA
+                 ? '<div style="font-size:12px;color:var(--texto-secundario);">✨ Sugerido por el asistente</div>'
+-                : (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '');
++                : '';
+             if (u.nombre_usuario) subtitulo += '<div style="font-size:12px;color:var(--texto-secundario);">@' + self.escHtml(u.nombre_usuario) + '</div>';
+             (u.ofertas || []).forEach(function(o) {
+                 var extra = [o.precio != null ? ((o.moneda || '') + ' ' + o.precio).trim() : '', o.ciudad || ''].filter(Boolean).join(' · ');
+diff -u -r orig/js/modules/panel-usuario-3.js pagina--main/js/modules/panel-usuario-3.js
+--- a/js/modules/panel-usuario-3.js	2026-11-14 21:31:20.426370771 +0000
++++ b/js/modules/panel-usuario-3.js	2026-11-14 21:31:20.508936312 +0000
+@@ -1384,7 +1384,7 @@
+             }
+ 
+             return resultados.slice(0, 12).map(function(u) {
+-                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
++                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                 return u;
+             });
+         } catch (e) {
+@@ -1538,7 +1538,6 @@
+         var htmlTarjetas = usuarios.map(function(u) {
+             var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+             var inicial = nombre.charAt(0).toUpperCase() || 'U';
+-            var email = u.correo_electronico || '';
+             var extraMotor = '';
+             if (u.nombre_usuario) extraMotor += '@' + u.nombre_usuario;
+             if (u.ofertas && u.ofertas.length) extraMotor += (extraMotor ? ' · ' : '') + '🏷️ ' + u.ofertas[0].titulo + (u.ofertas[0].ciudad ? ' · ' + u.ofertas[0].ciudad : '');
+@@ -1548,7 +1547,7 @@
+                 ${fotoHtml}
+                 <div style="flex:1;">
+                     <div class="user-picker-name">${self.escHtml(nombre)}</div>
+-                    <div class="user-picker-email">${extraMotor ? self.escHtml(extraMotor) : (email ? '✉️ ' + self.escHtml(email) : '')}</div>
++                    <div class="user-picker-email">${extraMotor ? self.escHtml(extraMotor) : ''}</div>
+                 </div>
+             </div>`;
+         }).join('');
