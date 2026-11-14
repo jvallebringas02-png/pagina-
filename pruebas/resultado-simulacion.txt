@@ -37,8 +37,8 @@
    usuarios de Callao                  SIN IA  ["u-juan","u-maria","u-carlos","u-pedro"]
    usuarios de mi zona                 SIN IA  ["u-juan","u-maria","u-carlos","u-pedro"]
    laptops                             IA      null
-   Juan                                IA      null
-   María                               IA      null
+   Juan                                SIN IA  ["u-juan"]
+   María                               SIN IA  ["u-maria"]
    videos de gatos                     IA      null
    qué hora es                         IA      null
    hola                                IA      null
@@ -47,7 +47,7 @@
    quien vende bicicletas en Callao    SIN IA  ["u-pedro"]
   ok     principal "@jperez": sin IA y muestra a Juan
   ok     principal "laptops" (ambigua): IA
-  ok     principal "Juan" (nombre suelto): IA
+  ok     principal "Juan" (nombre suelto, ya conocido por los perfiles leídos): sin IA y muestra a Juan
   ok     principal "videos de gatos": IA
 
 === A5. asistente = true ===
@@ -91,7 +91,7 @@
   ok     la primera búsqueda queda descartada y la segunda sí responde
 
 === B5. Canal compartido paginaChat: caja principal + chat a la vez ===
-   caso 1 (las dos piden personas): mostradas=[{"nombre":"busca quien venda bicicletas","ids":["u-pedro"]}] contenido="RESULTADOS"
+   caso 1 (las dos piden personas): mostradas=[{"nombre":"@jperez","ids":["u-juan"]},{"nombre":"busca quien venda bicicletas","ids":["u-pedro"]}] contenido="RESULTADOS"
   ok     caso 1: la última búsqueda se muestra y no queda "buscando…" colgado
    caso 2 (principal pide personas, el chat va a la IA): mostradas=[{"nombre":"@jperez","ids":["u-juan"]}] contenido="RESULTADOS" IA=1
   ok     caso 2: la caja principal muestra a Juan y no queda colgada

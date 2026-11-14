@@ -1,53 +1,184 @@
-diff -u -r orig/js/modules/event-controller.js pagina--main/js/modules/event-controller.js
---- a/js/modules/event-controller.js	2026-11-14 21:31:20.423995915 +0000
-+++ b/js/modules/event-controller.js	2026-11-14 21:31:20.502349539 +0000
-@@ -80,7 +80,7 @@
-             // Motor nuevo: busca con la frase completa (si el motor no está cargado o falla, se usa la búsqueda de siempre)
-             var usuarios = await PanelUsuario.buscarPersonasDesdeAsistente(queryOriginal, datos.nombre || null, null, 'paginaChat');
-             if (usuarios && usuarios.descartada) return;
--            if ((!usuarios || !usuarios.length) && usuarioActual && !usuarios.motor) {
-+            if ((!usuarios || !usuarios.length) && usuarioActual && !(usuarios && usuarios.motor)) {
-                 // Sin coincidencia por nombre: probamos la misma expansión por zona/categoría que usa Compartir
-                 var resultadoIA = await PanelUsuario.consultarAsistenteCompartir(nombre, null);
-                 if (resultadoIA.tipo === 'busqueda') usuarios = await PanelUsuario.buscarUsuariosCompartir(resultadoIA.categoria, resultadoIA.nivel_zona);
-diff -u -r orig/js/modules/panel-usuario-1.js pagina--main/js/modules/panel-usuario-1.js
---- a/js/modules/panel-usuario-1.js	2026-11-14 21:31:20.425742349 +0000
-+++ b/js/modules/panel-usuario-1.js	2026-11-14 21:31:20.509902993 +0000
-@@ -794,7 +794,7 @@
-             var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 48, claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:18px;' });
-             var subtitulo = esSugerenciaIA
-                 ? '<div style="font-size:12px;color:var(--texto-secundario);">✨ Sugerido por el asistente</div>'
--                : (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '');
-+                : '';
-             if (u.nombre_usuario) subtitulo += '<div style="font-size:12px;color:var(--texto-secundario);">@' + self.escHtml(u.nombre_usuario) + '</div>';
-             (u.ofertas || []).forEach(function(o) {
-                 var extra = [o.precio != null ? ((o.moneda || '') + ' ' + o.precio).trim() : '', o.ciudad || ''].filter(Boolean).join(' · ');
-diff -u -r orig/js/modules/panel-usuario-3.js pagina--main/js/modules/panel-usuario-3.js
---- a/js/modules/panel-usuario-3.js	2026-11-14 21:31:20.426370771 +0000
-+++ b/js/modules/panel-usuario-3.js	2026-11-14 21:31:20.508936312 +0000
-@@ -1384,7 +1384,7 @@
-             }
+diff -ur -x '*.md' orig2/index.html pagina--main/index.html
+--- a/index.html	2026-11-14 21:52:22.994975514 +0000
++++ b/index.html	2026-11-14 21:53:18.867330917 +0000
+@@ -618,7 +618,7 @@
+ //   1) panelPersonas (Buscar Personas)   2) picker (Compartir y Nuevo mensaje)   3) paginaZona (filtro de zona de la página)
+ //   4) paginaChat + principal (caja principal)   5) paginaChat + asistente (chat de la página)   6) panelChat + panel (buscador y chat del panel)
+ // paginaChat y panelChat deciden CÓMO se busca (limpieza e intérprete); principal, asistente y panel deciden si una frase de personas se muestra SIN gastar IA.
+-window.BUSQUEDA_CAPAS = { panelPersonas: false, picker: false, paginaZona: false, paginaChat: false, principal: false, asistente: false, panelChat: false, panel: false };
++window.BUSQUEDA_CAPAS = { panelPersonas: true, picker: true, paginaZona: true, paginaChat: true, principal: true, asistente: true, panelChat: true, panel: true };
+ </script>
+ <script src="js/modules/panel-usuario-1.js"></script>
+ <script src="js/modules/panel-usuario-2.js"></script>
+diff -ur -x '*.md' orig2/js/modules/intencion-busqueda.js pagina--main/js/modules/intencion-busqueda.js
+--- a/js/modules/intencion-busqueda.js	2026-11-14 21:52:22.996302938 +0000
++++ b/js/modules/intencion-busqueda.js	2026-11-14 21:52:23.012074203 +0000
+@@ -16,6 +16,8 @@
+ // contexto (opcional):
+ //   superficie      : 'principal' | 'asistente' | 'panel' | 'personas'. En 'personas' (Buscar Personas, Compartir, Mensajes) SIEMPRE es personas.
+ //   esTerminoProducto(palabra) : función opcional; si se pasa (ej. con el catálogo), resuelve palabras sueltas como "Samsung".
++//   esNombreConocido(palabra)  : función opcional (14/11/2026); recibe una palabra comparable (minúsculas, sin tildes) y dice si es nombre o apellido de algún perfil.
++//                                Con ella, "Juan", "juan perez" o "maria torres" son personas sin ambigüedad (si no hay señal de producto ni es un producto conocido).
+ // Reglas por idioma: hoy solo español (REGLAS.es). Los otros idiomas se agregan en el paso 7 sin tocar el resto.
+ // NO decide la matriz de categorías (detectarIntencionMatriz necesita el catálogo): esa se queda donde está por ahora.
+ var IntencionBusqueda = (function () {
+@@ -107,6 +109,18 @@
+         var nombrePropio = mayus.length >= 2;
+         var inicialesSueltas = tokens.length >= 2 && tokens.length <= 4 && tokens.every(function (t) { return /^\p{L}$/u.test(t); });
+         var palabraSuelta = tokens.length === 1 && mayus.length === 1;
++        // Nombres y apellidos reales: 1 a 4 palabras (sin conectores como "de" o "la"), todas conocidas. Sin señal de producto.
++        var nombreConocido = false;
++        if (typeof contexto.esNombreConocido === 'function' && !producto) {
++            var CONECTORES = ['de', 'del', 'la', 'las', 'los', 'y', 'van', 'von'];
++            var util = palabras.filter(function (w) { return CONECTORES.indexOf(w) === -1; });
++            var conocida = function (w) {
++                try { if (contexto.esNombreConocido(w)) return true; } catch (e) { return false; }
++                var partes = w.split(/['’-]+/).filter(function (x) { return x.length >= 3; });
++                return partes.length > 0 && partes.every(function (x) { try { return contexto.esNombreConocido(x); } catch (e) { return false; } });
++            };
++            nombreConocido = util.length >= 1 && util.length <= 4 && util.every(conocida);
++        }
  
-             return resultados.slice(0, 12).map(function(u) {
--                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
-+                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-                 return u;
+         if (fuerte) {
+             salida.principal = 'personas';
+@@ -115,6 +129,9 @@
+             salida.pistas.persona.push(nombrePropio ? 'nombre propio' : 'iniciales');
+             if (producto) { salida.principal = 'personas'; salida.secundaria = 'productos'; salida.ambigua = true; salida.razon = 'nombre propio y también señal de producto'; }
+             else { salida.principal = 'personas'; salida.razon = 'parece un nombre o iniciales'; }
++        } else if (nombreConocido) {
++            salida.pistas.persona.push('nombre conocido');
++            salida.principal = 'personas'; salida.razon = 'coincide con nombres y apellidos de perfiles';
+         } else if (producto) {
+             salida.principal = 'productos';
+             // "laptops" a secas (una o dos palabras): producto, pero también puede haber quien lo venda (decisión 9.3: mostrar ambas)
+diff -ur -x '*.md' orig2/js/modules/motor-busqueda-personas-datos.js pagina--main/js/modules/motor-busqueda-personas-datos.js
+--- a/js/modules/motor-busqueda-personas-datos.js	2026-11-14 21:52:22.996632935 +0000
++++ b/js/modules/motor-busqueda-personas-datos.js	2026-11-14 21:52:23.011578528 +0000
+@@ -12,6 +12,9 @@
+     var MAX_PRODUCTOS = 1000;
+     var cache = { t: 0, dueno: null, datos: null };
+     var versiones = {};
++    // Nombres y apellidos de los perfiles públicos (sin tildes, en minúsculas), para que la capa de intención reconozca un nombre suelto ("Juan").
++    var NOMBRES_TTL_MS = 600000;
++    var nombresCache = { t: 0, dueno: null, set: null };
+ 
+     function ahora(o) { return (o && o.ahora) ? o.ahora() : Date.now(); }
+ 
+@@ -45,7 +48,29 @@
+         });
+     }
+ 
+-    function invalidarCache() { cache = { t: 0, dueno: null, datos: null }; }
++    function invalidarCache() { cache = { t: 0, dueno: null, datos: null }; nombresCache = { t: 0, dueno: null, set: null }; }
++
++    function normalizarPalabra(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
++
++    // Guarda las palabras de nombres y apellidos de los demás perfiles (no el mío). Solo palabras de 3 letras o más, solo letras.
++    function guardarNombres(datos, yo, t) {
++        var set = new Set();
++        (datos.perfiles || []).forEach(function (p) {
++            if (!p || p.id === yo.id) return;
++            [p.nombres, p.apellidos].forEach(function (campo) {
++                normalizarPalabra(campo).split(/[\s'’-]+/).forEach(function (w) { if (w.length >= 3 && /^[a-z]+$/.test(w)) set.add(w); });
++            });
++        });
++        nombresCache = { t: t, dueno: yo.id, set: set };
++    }
++
++    // Set de palabras de nombres/apellidos conocidos, o null si aún no se leyeron los perfiles (o pasaron 10 minutos) o es otro usuario.
++    function nombresConocidos(yo, opciones) {
++        yo = yo || (typeof usuarioActual !== 'undefined' ? usuarioActual : null);
++        if (!yo || !yo.id || !nombresCache.set || nombresCache.dueno !== yo.id) return null;
++        if ((ahora(opciones) - nombresCache.t) > NOMBRES_TTL_MS) return null;
++        return nombresCache.set;
++    }
+ 
+     // Sinónimos del buscador principal (zapato = zapatilla = tenis...), si esa pieza está cargada en la página.
+     function sinonimosPagina() {
+@@ -60,11 +85,22 @@
+         return vigente ? Promise.resolve({ datos: cache.datos, fallos: [], ocultasDisponible: null, deCache: true })
+             : cargar(sb, yo).then(function (c) {
+                 // solo se guarda si se leyó lo esencial: con fallos no se cachea para reintentar en la próxima
+-                if (!c.fallos.length) cache = { t: t, dueno: yo.id, datos: c.datos };
++                if (!c.fallos.length) { cache = { t: t, dueno: yo.id, datos: c.datos }; guardarNombres(c.datos, yo, t); }
+                 return c;
              });
-         } catch (e) {
-@@ -1538,7 +1538,6 @@
-         var htmlTarjetas = usuarios.map(function(u) {
-             var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
-             var inicial = nombre.charAt(0).toUpperCase() || 'U';
--            var email = u.correo_electronico || '';
-             var extraMotor = '';
-             if (u.nombre_usuario) extraMotor += '@' + u.nombre_usuario;
-             if (u.ofertas && u.ofertas.length) extraMotor += (extraMotor ? ' · ' : '') + '🏷️ ' + u.ofertas[0].titulo + (u.ofertas[0].ciudad ? ' · ' + u.ofertas[0].ciudad : '');
-@@ -1548,7 +1547,7 @@
-                 ${fotoHtml}
-                 <div style="flex:1;">
-                     <div class="user-picker-name">${self.escHtml(nombre)}</div>
--                    <div class="user-picker-email">${extraMotor ? self.escHtml(extraMotor) : (email ? '✉️ ' + self.escHtml(email) : '')}</div>
-+                    <div class="user-picker-email">${extraMotor ? self.escHtml(extraMotor) : ''}</div>
-                 </div>
-             </div>`;
-         }).join('');
+     }
+ 
++    // Lee los perfiles en segundo plano para que nombresConocidos() tenga con qué responder. Nunca rechaza la promesa.
++    // opciones: { supabase, yo, forzar, ahora }
++    function precargar(opciones) {
++        opciones = opciones || {};
++        var sb = opciones.supabase || (typeof supabase !== 'undefined' ? supabase : null);
++        var yo = opciones.yo || (typeof usuarioActual !== 'undefined' ? usuarioActual : null);
++        if (!sb || !yo || !yo.id) return Promise.resolve(false);
++        try { return datosVigentes(sb, yo, opciones).then(function () { return true; }, function () { return false; }); }
++        catch (e) { return Promise.resolve(false); }
++    }
++
+     // Búsquedas sugeridas para tocar, con cuántas personas da cada una. Devuelve [] si no hay sesión o no hay datos.
+     // opciones: { supabase, yo, Motor, Interprete, max, forzar, ahora }
+     function sugerencias(opciones) {
+@@ -108,7 +144,7 @@
+         });
+     }
+ 
+-    return { buscar: buscar, sugerencias: sugerencias, invalidarCache: invalidarCache, TTL_MS: TTL_MS };
++    return { buscar: buscar, sugerencias: sugerencias, precargar: precargar, nombresConocidos: nombresConocidos, invalidarCache: invalidarCache, TTL_MS: TTL_MS };
+ })();
+ 
+ if (typeof module !== 'undefined' && module.exports) module.exports = MotorBusquedaPersonasDatos;
+diff -ur -x '*.md' orig2/js/modules/panel-usuario-3.js pagina--main/js/modules/panel-usuario-3.js
+--- a/js/modules/panel-usuario-3.js	2026-11-14 21:52:22.997221134 +0000
++++ b/js/modules/panel-usuario-3.js	2026-11-14 21:52:23.013619041 +0000
+@@ -1474,7 +1474,15 @@
+             if (!usuarioActual || typeof IntencionBusqueda === 'undefined' || typeof LimpiezaBusqueda === 'undefined' || typeof BusquedaPorCapas === 'undefined') return false;
+             if (!window.BUSQUEDA_CAPAS || window.BUSQUEDA_CAPAS[interruptor] !== true || !this._motorPersonasListo()) return false;
+             if (BusquedaPorCapas.interruptores && (BusquedaPorCapas.interruptores.entrada === false || BusquedaPorCapas.interruptores.intencion === false)) return false;
+-            var i = IntencionBusqueda.decidir(frase, { superficie: 'principal' });
++            // Nombres sueltos ("Juan"): se reconocen con los perfiles ya leídos. Si aún no se leyeron, se leen en segundo plano
++            // y esta frase sigue a la IA como hoy; las siguientes ya los reconocen.
++            var contextoPuerta = { superficie: 'principal' };
++            if (typeof MotorBusquedaPersonasDatos !== 'undefined' && typeof MotorBusquedaPersonasDatos.nombresConocidos === 'function') {
++                var nombres = MotorBusquedaPersonasDatos.nombresConocidos(usuarioActual);
++                if (nombres) contextoPuerta.esNombreConocido = function(w) { return nombres.has(w); };
++                else if (typeof MotorBusquedaPersonasDatos.precargar === 'function') MotorBusquedaPersonasDatos.precargar({ supabase: supabase, yo: usuarioActual });
++            }
++            var i = IntencionBusqueda.decidir(frase, contextoPuerta);
+             return !i.directa && i.principal === 'personas' && !i.ambigua;
+         } catch (e) { return false; }
+     },
+diff -ur -x '*.md' orig2/pruebas/conexion-pantallas.test.js pagina--main/pruebas/conexion-pantallas.test.js
+--- a/pruebas/conexion-pantallas.test.js	2026-11-14 21:52:22.997690474 +0000
++++ b/pruebas/conexion-pantallas.test.js	2026-11-14 21:53:26.788952889 +0000
+@@ -13,7 +13,7 @@
+ es('las capas se cargan después del motor de personas y antes del panel', pos('motor-busqueda-personas-datos') < pos('limpieza-busqueda') && pos('busqueda-por-capas') < pos('panel-usuario-1'), true);
+ var bloque = (html.match(/window\.BUSQUEDA_CAPAS = (\{[^}]*\});/) || [])[1];
+ var porDefecto = bloque ? vm.runInNewContext('(' + bloque + ')') : null;
+-es('todos los interruptores existen y vienen apagados', porDefecto && Object.keys(porDefecto).sort().join() + '|' + Object.keys(porDefecto).every(function (k) { return porDefecto[k] === false; }),
++es('los 8 interruptores existen y valen true o false (el 14/11/2026 se prendieron todos en index.html)', porDefecto && Object.keys(porDefecto).sort().join() + '|' + Object.keys(porDefecto).every(function (k) { return typeof porDefecto[k] === 'boolean'; }),
+     'asistente,paginaChat,paginaZona,panel,panelChat,panelPersonas,picker,principal|true');
+ 
+ // --- Entorno simulado con los archivos reales ---
+Only in pagina--main/pruebas: nombres-conocidos.test.js
+diff -ur -x '*.md' orig2/pruebas/simulacion-paso6.js pagina--main/pruebas/simulacion-paso6.js
+--- a/pruebas/simulacion-paso6.js	2026-11-14 21:52:22.998222890 +0000
++++ b/pruebas/simulacion-paso6.js	2026-11-14 21:53:01.728228436 +0000
+@@ -112,7 +112,7 @@
+     tabla.forEach(function (t) { console.log('   ' + t[0].padEnd(36) + t[1].padEnd(8) + t[2]); });
+     es('principal "@jperez": sin IA y muestra a Juan', principal && tabla[0].slice(1), ['SIN IA', '["u-juan"]']);
+     es('principal "laptops" (ambigua): IA', tabla[5][1], 'IA');
+-    es('principal "Juan" (nombre suelto): IA', tabla[6][1], 'IA');
++    es('principal "Juan" (nombre suelto, ya conocido por los perfiles leídos): sin IA y muestra a Juan', tabla[6].slice(1), ['SIN IA', '["u-juan"]']);
+     es('principal "videos de gatos": IA', tabla[8][1], 'IA');
+ 
+     titulo('A5. asistente = true');
+@@ -179,7 +179,7 @@
+     }
+     var k1 = await carrera('@jperez', 'busca quien venda bicicletas');
+     console.log('   caso 1 (las dos piden personas): mostradas=' + JSON.stringify(k1.mostradas) + ' contenido=' + JSON.stringify(k1.contenido.slice(0, 40)));
+-    es('caso 1: la última búsqueda se muestra y no queda "buscando…" colgado', [k1.mostradas.length, k1.contenido.indexOf('search-loading') < 0], [1, true]);
++    es('caso 1: la última búsqueda se muestra y no queda "buscando…" colgado', [k1.mostradas.length >= 1 && k1.mostradas[k1.mostradas.length - 1].ids, k1.contenido.indexOf('search-loading') < 0], [['u-pedro'], true]);
+     var k2 = await carrera('@jperez', 'hola, qué tal');
+     console.log('   caso 2 (principal pide personas, el chat va a la IA): mostradas=' + JSON.stringify(k2.mostradas) + ' contenido=' + JSON.stringify(k2.contenido.slice(0, 40)) + ' IA=' + k2.ia);
+     es('caso 2: la caja principal muestra a Juan y no queda colgada', [k2.mostradas.length, k2.contenido.indexOf('search-loading') < 0], [1, true]);

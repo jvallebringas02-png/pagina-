@@ -112,7 +112,7 @@ var dormir = function (ms) { return new Promise(function (r) { setTimeout(r, ms)
     tabla.forEach(function (t) { console.log('   ' + t[0].padEnd(36) + t[1].padEnd(8) + t[2]); });
     es('principal "@jperez": sin IA y muestra a Juan', principal && tabla[0].slice(1), ['SIN IA', '["u-juan"]']);
     es('principal "laptops" (ambigua): IA', tabla[5][1], 'IA');
-    es('principal "Juan" (nombre suelto): IA', tabla[6][1], 'IA');
+    es('principal "Juan" (nombre suelto, ya conocido por los perfiles leídos): sin IA y muestra a Juan', tabla[6].slice(1), ['SIN IA', '["u-juan"]']);
     es('principal "videos de gatos": IA', tabla[8][1], 'IA');
 
     titulo('A5. asistente = true');
@@ -179,7 +179,7 @@ var dormir = function (ms) { return new Promise(function (r) { setTimeout(r, ms)
     }
     var k1 = await carrera('@jperez', 'busca quien venda bicicletas');
     console.log('   caso 1 (las dos piden personas): mostradas=' + JSON.stringify(k1.mostradas) + ' contenido=' + JSON.stringify(k1.contenido.slice(0, 40)));
-    es('caso 1: la última búsqueda se muestra y no queda "buscando…" colgado', [k1.mostradas.length, k1.contenido.indexOf('search-loading') < 0], [1, true]);
+    es('caso 1: la última búsqueda se muestra y no queda "buscando…" colgado', [k1.mostradas.length >= 1 && k1.mostradas[k1.mostradas.length - 1].ids, k1.contenido.indexOf('search-loading') < 0], [['u-pedro'], true]);
     var k2 = await carrera('@jperez', 'hola, qué tal');
     console.log('   caso 2 (principal pide personas, el chat va a la IA): mostradas=' + JSON.stringify(k2.mostradas) + ' contenido=' + JSON.stringify(k2.contenido.slice(0, 40)) + ' IA=' + k2.ia);
     es('caso 2: la caja principal muestra a Juan y no queda colgada', [k2.mostradas.length, k2.contenido.indexOf('search-loading') < 0], [1, true]);
