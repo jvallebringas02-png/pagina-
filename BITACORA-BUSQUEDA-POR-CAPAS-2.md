@@ -13,7 +13,7 @@
 | Paso | Qué es | Archivo | Estado |
 |---|---|---|---|
 | 1 | Capa 0, limpieza | `js/modules/limpieza-busqueda.js` | Hecho; **subido por ti** |
-| 2 | Capa 1, intención | `js/modules/intencion-busqueda.js` | Hecho; **subido por ti** |
+| 2 | Capa 1, intención | `js/modules/intencion-busqueda.js` | Hecho; **no aparece en el zip del 13/11: falta subirlo** |
 | 3 | Entrada única que encadena las capas | `js/modules/busqueda-por-capas.js` | Hecho; **subido por ti** (el del paso 4 lo reemplaza) |
 | 4 | Arreglos (inicial, "Armas", respaldo con `.or()`, pruebas en carpeta equivocada) | ver sección 3 | **Entregado; falta que lo subas** |
 | 5 | Conectar las pantallas, con interruptores y respaldo | — | Pendiente |
@@ -128,6 +128,6 @@ Corrigen o precisan lo dicho en la bitácora 1:
 |---|---|---|
 | 13/11/2026 | Revisión del código del zip del 10/11/2026 | Hallazgos de la sección 5 |
 | 13/11/2026 | Paso 1: capa de limpieza | Archivos nuevos; 53/53; subido por ti |
-| 13/11/2026 | Paso 2: capa de intención | Archivos nuevos; 191/191; subido por ti |
+| 13/11/2026 | Paso 2: capa de intención | Archivos nuevos; 191/191; **no aparecen en el zip del 13/11 (faltan por subir)** |
 | 13/11/2026 | Paso 3: entrada única con interruptores y respaldo | Archivos nuevos; 39 pruebas (44 con el paso 4); subido por ti |
 | 13/11/2026 | Paso 4: inicial, "Armas", respaldo con `.or()`, pruebas en su carpeta | 5 archivos modificados, 2 pruebas movidas, 5 archivos por borrar; 7 suites en verde; **falta que lo subas** |
