@@ -191,7 +191,16 @@ var EventController = {
         UIController.mostrarEstadoCarga();
         var panelActivoChat = document.getElementById('userPanelView').classList.contains('active');
         try {
-            if (panelActivoChat) {
+            if (panelActivoChat && PanelUsuario._fraseEsDePersonasPorCapas(mensaje, 'panel')) {
+                // Búsqueda por capas: pide personas con claridad, sin gastar IA (interruptor window.BUSQUEDA_CAPAS.panel).
+                UIController.quitarEstadoCarga();
+                await PanelUsuario._mostrarPersonasPorCapasEnFeed(mensaje);
+            } else if (!panelActivoChat && PanelUsuario._fraseEsDePersonasPorCapas(mensaje, 'asistente')) {
+                // Búsqueda por capas: lo mismo en el asistente de la página (interruptor window.BUSQUEDA_CAPAS.asistente).
+                UIController.quitarEstadoCarga();
+                var usuariosAsist = await PanelUsuario.buscarPersonasDesdeAsistente(mensaje, null, null, 'paginaChat');
+                if (!(usuariosAsist && usuariosAsist.descartada)) UIController.mostrarResultadosPersonas(mensaje, usuariosAsist || []);
+            } else if (panelActivoChat) {
                 // BITACORA-ASISTENTE-PANEL.md, sección 4: el panel ya usa el mismo camino
                 // estructurado que la página principal, en vez de leer un texto con [ACCION: ...].
                 var datosPanel = await AIService.enviarMensajeEstructurado(mensaje);
@@ -258,6 +267,13 @@ var EventController = {
         UIController.elementos.catalogContainer.style.display = 'none';
         content.innerHTML = '<div class="search-loading"><div class="search-loading-spinner"></div><p> El Asistente IA está buscando en tu zona y en el mundo...</p></div>';
         try {
+            // Búsqueda por capas: si las reglas ya saben que pide personas, se muestran sin gastar IA (interruptor window.BUSQUEDA_CAPAS.principal).
+            if (PanelUsuario._fraseEsDePersonasPorCapas(query, 'principal')) {
+                var usuariosCapas = await PanelUsuario.buscarPersonasDesdeAsistente(query, null, null, 'paginaChat');
+                if (usuariosCapas && usuariosCapas.descartada) return;
+                UIController.mostrarResultadosPersonas(query, usuariosCapas || []);
+                return;
+            }
             var datos = await AIService.enviarMensajeEstructurado(query);
             UIController.mostrarRespuestaIA(datos.mensaje_chat);
             await EventController.procesarAccionIA(datos, query);

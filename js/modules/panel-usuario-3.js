@@ -1296,7 +1296,16 @@ Object.assign(PanelUsuario, {
         if (usarMotor && typeof MotorBusquedaPersonasDatos !== 'undefined' && typeof MotorBusquedaPersonas !== 'undefined' && typeof InterpreteBusquedaPersonas !== 'undefined') {
             try {
                 opciones = opciones || {};
-                var r = await MotorBusquedaPersonasDatos.buscar(q, { supabase: supabase, yo: usuarioActual, nivelZona: nivelZona || null, ficha: opciones.ficha || null, canal: opciones.canal || 'general' });
+                var r = null;
+                // Búsqueda por capas (BITACORA-BUSQUEDA-POR-CAPAS-3.md): limpieza + intérprete + motor, con el interruptor window.BUSQUEDA_CAPAS[canal] en true.
+                // Sin ficha forzada y con texto. Si las capas fallan (respaldo) o el interruptor está apagado, sigue el motor de siempre, aquí abajo.
+                var canalCapas = String(opciones.canal || 'general').replace(/^picker-.*$/, 'picker');
+                if (!opciones.ficha && String(q || '').trim() && typeof BusquedaPorCapas !== 'undefined' && window.BUSQUEDA_CAPAS && window.BUSQUEDA_CAPAS[canalCapas] === true) {
+                    var rc = await BusquedaPorCapas.buscarPersonas(q, { supabase: supabase, yo: usuarioActual, nivelZona: nivelZona || null, canal: opciones.canal || 'general', permitirApellidos: canalCapas === 'panelPersonas' });
+                    if (rc.accion === 'descartada') { r = { descartada: true }; }
+                    else if (!rc.respaldo && rc.personas && rc.personas.motor) { r = rc.personas.motor; }
+                }
+                if (!r) r = await MotorBusquedaPersonasDatos.buscar(q, { supabase: supabase, yo: usuarioActual, nivelZona: nivelZona || null, ficha: opciones.ficha || null, canal: opciones.canal || 'general' });
                 var lista = [];
                 if (r.descartada) { lista.descartada = true; return lista; }
                 lista = (r.personas || []).map(function(p) {
@@ -1320,8 +1329,11 @@ Object.assign(PanelUsuario, {
                 .limit(60);
 
             if (termino) {
-                var primeraPalabra = termino.split(/\s+/)[0];
-                var soloLetras = termino.replace(/\s+/g, '');
+                // Limpieza para el filtro .or(): quita , ( ) % _ " \ * ` < > { } que lo rompen (13/11/2026)
+                var terminoSeguro = (typeof LimpiezaBusqueda !== 'undefined') ? LimpiezaBusqueda.limpiar(termino).limpio : termino.replace(/[,()%_"\\*`<>{}]/g, ' ').replace(/\s+/g, ' ').trim();
+                if (!terminoSeguro) return [];
+                var primeraPalabra = terminoSeguro.split(/\s+/)[0];
+                var soloLetras = terminoSeguro.replace(/\s+/g, '');
                 var primeraLetra = soloLetras.charAt(0);
                 // Se pide al servidor: nombre/apellido que contenga la primera palabra escrita,
                 // O que empiece con la primera letra (para no perder coincidencias por iniciales, ej: "J P").
@@ -1453,6 +1465,24 @@ Object.assign(PanelUsuario, {
 
     _motorPersonasListo: function() {
         return typeof MotorBusquedaPersonasDatos !== 'undefined' && typeof MotorBusquedaPersonas !== 'undefined' && typeof InterpreteBusquedaPersonas !== 'undefined';
+    },
+    // Búsqueda por capas (BITACORA-BUSQUEDA-POR-CAPAS-3.md): true si las reglas ya saben, sin la IA, que la frase pide PERSONAS con claridad.
+    // `interruptor` es la clave de window.BUSQUEDA_CAPAS ('principal', 'asistente' o 'panel'). Sin sesión, con el interruptor apagado,
+    // si falta algún archivo, si la frase es ambigua o es una acción directa (hora, reclamo...), devuelve false y sigue el camino de siempre (la IA).
+    _fraseEsDePersonasPorCapas: function(frase, interruptor) {
+        try {
+            if (!usuarioActual || typeof IntencionBusqueda === 'undefined' || typeof LimpiezaBusqueda === 'undefined' || typeof BusquedaPorCapas === 'undefined') return false;
+            if (!window.BUSQUEDA_CAPAS || window.BUSQUEDA_CAPAS[interruptor] !== true || !this._motorPersonasListo()) return false;
+            if (BusquedaPorCapas.interruptores && (BusquedaPorCapas.interruptores.entrada === false || BusquedaPorCapas.interruptores.intencion === false)) return false;
+            var i = IntencionBusqueda.decidir(frase, { superficie: 'principal' });
+            return !i.directa && i.principal === 'personas' && !i.ambigua;
+        } catch (e) { return false; }
+    },
+    // Muestra en el muro del panel las personas de una frase que las reglas ya reconocieron (no pasa por procesarAccionEnFeed, que desviaría "mi zona" a la matriz).
+    _mostrarPersonasPorCapasEnFeed: async function(frase) {
+        var usuarios = await this.buscarPersonasDesdeAsistente(frase, null, null, 'panelChat');
+        if (usuarios && usuarios.descartada) return;
+        this.renderResultadosPersonasEnFeed(usuarios || [], frase);
     },
     // Para el asistente (panel y página principal): busca con la FRASE completa; si no sale nadie y la frase no pedía nada de
     // publicaciones, reintenta con el nombre que sacó el asistente (ej. "quiero hablar con Carlos Armas" -> "Carlos Armas").
@@ -1858,6 +1888,11 @@ Object.assign(PanelUsuario, {
         // principal. "_fallo_tecnico" es ahora la única forma confiable de detectar que no hubo
         // respuesta real (antes se comparaba con textos fijos que ya no existían en ningún
         // archivo, así que el aviso de error nunca salía y el feed se recargaba en silencio).
+        // Búsqueda por capas: si las reglas ya saben que pide personas, se muestran sin gastar IA (interruptor window.BUSQUEDA_CAPAS.panel).
+        if (this._fraseEsDePersonasPorCapas(query, 'panel')) {
+            await this._mostrarPersonasPorCapasEnFeed(query);
+            return;
+        }
         var datos = await AIService.enviarMensajeEstructurado(query);
         if (datos._fallo_tecnico) {
             // Un solo aviso, en el chat (ya traducido: límite, servicio caído o sin conexión), y el feed busca
