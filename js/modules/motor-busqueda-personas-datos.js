@@ -12,6 +12,9 @@ var MotorBusquedaPersonasDatos = (function () {
     var MAX_PRODUCTOS = 1000;
     var cache = { t: 0, dueno: null, datos: null };
     var versiones = {};
+    // Nombres y apellidos de los perfiles públicos (sin tildes, en minúsculas), para que la capa de intención reconozca un nombre suelto ("Juan").
+    var NOMBRES_TTL_MS = 600000;
+    var nombresCache = { t: 0, dueno: null, set: null };
 
     function ahora(o) { return (o && o.ahora) ? o.ahora() : Date.now(); }
 
@@ -45,7 +48,29 @@ var MotorBusquedaPersonasDatos = (function () {
         });
     }
 
-    function invalidarCache() { cache = { t: 0, dueno: null, datos: null }; }
+    function invalidarCache() { cache = { t: 0, dueno: null, datos: null }; nombresCache = { t: 0, dueno: null, set: null }; }
+
+    function normalizarPalabra(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+    // Guarda las palabras de nombres y apellidos de los demás perfiles (no el mío). Solo palabras de 3 letras o más, solo letras.
+    function guardarNombres(datos, yo, t) {
+        var set = new Set();
+        (datos.perfiles || []).forEach(function (p) {
+            if (!p || p.id === yo.id) return;
+            [p.nombres, p.apellidos].forEach(function (campo) {
+                normalizarPalabra(campo).split(/[\s'’-]+/).forEach(function (w) { if (w.length >= 3 && /^[a-z]+$/.test(w)) set.add(w); });
+            });
+        });
+        nombresCache = { t: t, dueno: yo.id, set: set };
+    }
+
+    // Set de palabras de nombres/apellidos conocidos, o null si aún no se leyeron los perfiles (o pasaron 10 minutos) o es otro usuario.
+    function nombresConocidos(yo, opciones) {
+        yo = yo || (typeof usuarioActual !== 'undefined' ? usuarioActual : null);
+        if (!yo || !yo.id || !nombresCache.set || nombresCache.dueno !== yo.id) return null;
+        if ((ahora(opciones) - nombresCache.t) > NOMBRES_TTL_MS) return null;
+        return nombresCache.set;
+    }
 
     // Sinónimos del buscador principal (zapato = zapatilla = tenis...), si esa pieza está cargada en la página.
     function sinonimosPagina() {
@@ -60,9 +85,20 @@ var MotorBusquedaPersonasDatos = (function () {
         return vigente ? Promise.resolve({ datos: cache.datos, fallos: [], ocultasDisponible: null, deCache: true })
             : cargar(sb, yo).then(function (c) {
                 // solo se guarda si se leyó lo esencial: con fallos no se cachea para reintentar en la próxima
-                if (!c.fallos.length) cache = { t: t, dueno: yo.id, datos: c.datos };
+                if (!c.fallos.length) { cache = { t: t, dueno: yo.id, datos: c.datos }; guardarNombres(c.datos, yo, t); }
                 return c;
             });
+    }
+
+    // Lee los perfiles en segundo plano para que nombresConocidos() tenga con qué responder. Nunca rechaza la promesa.
+    // opciones: { supabase, yo, forzar, ahora }
+    function precargar(opciones) {
+        opciones = opciones || {};
+        var sb = opciones.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+        var yo = opciones.yo || (typeof usuarioActual !== 'undefined' ? usuarioActual : null);
+        if (!sb || !yo || !yo.id) return Promise.resolve(false);
+        try { return datosVigentes(sb, yo, opciones).then(function () { return true; }, function () { return false; }); }
+        catch (e) { return Promise.resolve(false); }
     }
 
     // Búsquedas sugeridas para tocar, con cuántas personas da cada una. Devuelve [] si no hay sesión o no hay datos.
@@ -108,7 +144,7 @@ var MotorBusquedaPersonasDatos = (function () {
         });
     }
 
-    return { buscar: buscar, sugerencias: sugerencias, invalidarCache: invalidarCache, TTL_MS: TTL_MS };
+    return { buscar: buscar, sugerencias: sugerencias, precargar: precargar, nombresConocidos: nombresConocidos, invalidarCache: invalidarCache, TTL_MS: TTL_MS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = MotorBusquedaPersonasDatos;

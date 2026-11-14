@@ -16,6 +16,8 @@
 // contexto (opcional):
 //   superficie      : 'principal' | 'asistente' | 'panel' | 'personas'. En 'personas' (Buscar Personas, Compartir, Mensajes) SIEMPRE es personas.
 //   esTerminoProducto(palabra) : función opcional; si se pasa (ej. con el catálogo), resuelve palabras sueltas como "Samsung".
+//   esNombreConocido(palabra)  : función opcional (14/11/2026); recibe una palabra comparable (minúsculas, sin tildes) y dice si es nombre o apellido de algún perfil.
+//                                Con ella, "Juan", "juan perez" o "maria torres" son personas sin ambigüedad (si no hay señal de producto ni es un producto conocido).
 // Reglas por idioma: hoy solo español (REGLAS.es). Los otros idiomas se agregan en el paso 7 sin tocar el resto.
 // NO decide la matriz de categorías (detectarIntencionMatriz necesita el catálogo): esa se queda donde está por ahora.
 var IntencionBusqueda = (function () {
@@ -107,6 +109,18 @@ var IntencionBusqueda = (function () {
         var nombrePropio = mayus.length >= 2;
         var inicialesSueltas = tokens.length >= 2 && tokens.length <= 4 && tokens.every(function (t) { return /^\p{L}$/u.test(t); });
         var palabraSuelta = tokens.length === 1 && mayus.length === 1;
+        // Nombres y apellidos reales: 1 a 4 palabras (sin conectores como "de" o "la"), todas conocidas. Sin señal de producto.
+        var nombreConocido = false;
+        if (typeof contexto.esNombreConocido === 'function' && !producto) {
+            var CONECTORES = ['de', 'del', 'la', 'las', 'los', 'y', 'van', 'von'];
+            var util = palabras.filter(function (w) { return CONECTORES.indexOf(w) === -1; });
+            var conocida = function (w) {
+                try { if (contexto.esNombreConocido(w)) return true; } catch (e) { return false; }
+                var partes = w.split(/['’-]+/).filter(function (x) { return x.length >= 3; });
+                return partes.length > 0 && partes.every(function (x) { try { return contexto.esNombreConocido(x); } catch (e) { return false; } });
+            };
+            nombreConocido = util.length >= 1 && util.length <= 4 && util.every(conocida);
+        }
 
         if (fuerte) {
             salida.principal = 'personas';
@@ -115,6 +129,9 @@ var IntencionBusqueda = (function () {
             salida.pistas.persona.push(nombrePropio ? 'nombre propio' : 'iniciales');
             if (producto) { salida.principal = 'personas'; salida.secundaria = 'productos'; salida.ambigua = true; salida.razon = 'nombre propio y también señal de producto'; }
             else { salida.principal = 'personas'; salida.razon = 'parece un nombre o iniciales'; }
+        } else if (nombreConocido) {
+            salida.pistas.persona.push('nombre conocido');
+            salida.principal = 'personas'; salida.razon = 'coincide con nombres y apellidos de perfiles';
         } else if (producto) {
             salida.principal = 'productos';
             // "laptops" a secas (una o dos palabras): producto, pero también puede haber quien lo venda (decisión 9.3: mostrar ambas)

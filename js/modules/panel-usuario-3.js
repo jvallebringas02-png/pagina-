@@ -1474,7 +1474,15 @@ Object.assign(PanelUsuario, {
             if (!usuarioActual || typeof IntencionBusqueda === 'undefined' || typeof LimpiezaBusqueda === 'undefined' || typeof BusquedaPorCapas === 'undefined') return false;
             if (!window.BUSQUEDA_CAPAS || window.BUSQUEDA_CAPAS[interruptor] !== true || !this._motorPersonasListo()) return false;
             if (BusquedaPorCapas.interruptores && (BusquedaPorCapas.interruptores.entrada === false || BusquedaPorCapas.interruptores.intencion === false)) return false;
-            var i = IntencionBusqueda.decidir(frase, { superficie: 'principal' });
+            // Nombres sueltos ("Juan"): se reconocen con los perfiles ya leídos. Si aún no se leyeron, se leen en segundo plano
+            // y esta frase sigue a la IA como hoy; las siguientes ya los reconocen.
+            var contextoPuerta = { superficie: 'principal' };
+            if (typeof MotorBusquedaPersonasDatos !== 'undefined' && typeof MotorBusquedaPersonasDatos.nombresConocidos === 'function') {
+                var nombres = MotorBusquedaPersonasDatos.nombresConocidos(usuarioActual);
+                if (nombres) contextoPuerta.esNombreConocido = function(w) { return nombres.has(w); };
+                else if (typeof MotorBusquedaPersonasDatos.precargar === 'function') MotorBusquedaPersonasDatos.precargar({ supabase: supabase, yo: usuarioActual });
+            }
+            var i = IntencionBusqueda.decidir(frase, contextoPuerta);
             return !i.directa && i.principal === 'personas' && !i.ambigua;
         } catch (e) { return false; }
     },
