@@ -794,7 +794,7 @@ var PanelUsuario = {
             var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 48, claseFallback: 'user-picker-avatar', estiloFallbackExtra: 'font-size:18px;' });
             var subtitulo = esSugerenciaIA
                 ? '<div style="font-size:12px;color:var(--texto-secundario);">✨ Sugerido por el asistente</div>'
-                : (u.correo_electronico ? '<div style="font-size:12px;color:var(--texto-secundario);">✉️ ' + self.escHtml(u.correo_electronico) + '</div>' : '');
+                : '';
             if (u.nombre_usuario) subtitulo += '<div style="font-size:12px;color:var(--texto-secundario);">@' + self.escHtml(u.nombre_usuario) + '</div>';
             (u.ofertas || []).forEach(function(o) {
                 var extra = [o.precio != null ? ((o.moneda || '') + ' ' + o.precio).trim() : '', o.ciudad || ''].filter(Boolean).join(' · ');

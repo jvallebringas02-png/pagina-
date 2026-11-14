@@ -1384,7 +1384,7 @@ Object.assign(PanelUsuario, {
             }
 
             return resultados.slice(0, 12).map(function(u) {
-                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || u.correo_electronico || 'Usuario';
+                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
                 return u;
             });
         } catch (e) {
@@ -1538,7 +1538,6 @@ Object.assign(PanelUsuario, {
         var htmlTarjetas = usuarios.map(function(u) {
             var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
-            var email = u.correo_electronico || '';
             var extraMotor = '';
             if (u.nombre_usuario) extraMotor += '@' + u.nombre_usuario;
             if (u.ofertas && u.ofertas.length) extraMotor += (extraMotor ? ' · ' : '') + '🏷️ ' + u.ofertas[0].titulo + (u.ofertas[0].ciudad ? ' · ' + u.ofertas[0].ciudad : '');
@@ -1548,7 +1547,7 @@ Object.assign(PanelUsuario, {
                 ${fotoHtml}
                 <div style="flex:1;">
                     <div class="user-picker-name">${self.escHtml(nombre)}</div>
-                    <div class="user-picker-email">${extraMotor ? self.escHtml(extraMotor) : (email ? '✉️ ' + self.escHtml(email) : '')}</div>
+                    <div class="user-picker-email">${extraMotor ? self.escHtml(extraMotor) : ''}</div>
                 </div>
             </div>`;
         }).join('');
