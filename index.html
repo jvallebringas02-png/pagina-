@@ -618,7 +618,7 @@ html.con-sesion body:not(:has(#userPanelView.active)) footer { display: none; }
 //   1) panelPersonas (Buscar Personas)   2) picker (Compartir y Nuevo mensaje)   3) paginaZona (filtro de zona de la página)
 //   4) paginaChat + principal (caja principal)   5) paginaChat + asistente (chat de la página)   6) panelChat + panel (buscador y chat del panel)
 // paginaChat y panelChat deciden CÓMO se busca (limpieza e intérprete); principal, asistente y panel deciden si una frase de personas se muestra SIN gastar IA.
-window.BUSQUEDA_CAPAS = { panelPersonas: false, picker: false, paginaZona: false, paginaChat: false, principal: false, asistente: false, panelChat: false, panel: false };
+window.BUSQUEDA_CAPAS = { panelPersonas: true, picker: true, paginaZona: true, paginaChat: true, principal: true, asistente: true, panelChat: true, panel: true };
 </script>
 <script src="js/modules/panel-usuario-1.js"></script>
 <script src="js/modules/panel-usuario-2.js"></script>
