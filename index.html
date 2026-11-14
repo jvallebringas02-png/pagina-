@@ -609,6 +609,17 @@ html.con-sesion body:not(:has(#userPanelView.active)) footer { display: none; }
 <script src="js/modules/interprete-busqueda-personas.js"></script>
 <script src="js/modules/motor-busqueda-personas.js"></script>
 <script src="js/modules/motor-busqueda-personas-datos.js"></script>
+<script src="js/modules/limpieza-busqueda.js"></script>
+<script src="js/modules/intencion-busqueda.js"></script>
+<script src="js/modules/busqueda-por-capas.js"></script>
+<script>
+// Interruptores de la búsqueda por capas (BITACORA-BUSQUEDA-POR-CAPAS-3.md). true = esa pantalla usa las capas; false = código de siempre.
+// Se prenden de a uno, en este orden, probando cada uno en la página publicada:
+//   1) panelPersonas (Buscar Personas)   2) picker (Compartir y Nuevo mensaje)   3) paginaZona (filtro de zona de la página)
+//   4) paginaChat + principal (caja principal)   5) paginaChat + asistente (chat de la página)   6) panelChat + panel (buscador y chat del panel)
+// paginaChat y panelChat deciden CÓMO se busca (limpieza e intérprete); principal, asistente y panel deciden si una frase de personas se muestra SIN gastar IA.
+window.BUSQUEDA_CAPAS = { panelPersonas: false, picker: false, paginaZona: false, paginaChat: false, principal: false, asistente: false, panelChat: false, panel: false };
+</script>
 <script src="js/modules/panel-usuario-1.js"></script>
 <script src="js/modules/panel-usuario-2.js"></script>
 <script src="js/modules/panel-usuario-3.js"></script>
