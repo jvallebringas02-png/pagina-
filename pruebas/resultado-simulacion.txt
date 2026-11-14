@@ -1,0 +1,104 @@
+
+=== A0. Todo apagado: la página se comporta como antes ===
+  ok     Buscar Personas "Pérez" (camino de siempre) encuentra a los 2 Pérez
+  ok     sin pasar por las capas
+  ok     caja principal "@jperez" va a la IA
+  ok     asistente "@jperez" va a la IA
+
+=== A1. panelPersonas = true (Buscar Personas) ===
+   "Pérez" -> ["u-jose","u-juan"]   (igual que apagado)
+   "Torres" -> ["u-ana","u-maria"]   (igual que apagado)
+   "@jperez" -> ["u-juan"]   (igual que apagado)
+   "Carlos Armas" -> ["u-carlos"]   (DISTINTO de apagado: [])
+   "quien vende laptops" -> ["u-juan","u-maria"]   (igual que apagado)
+   "bicicleta" -> ["u-pedro"]   (igual que apagado)
+  ok     con capas, "Armas" se encuentra solo en Buscar Personas
+  ok     "quien vende laptops" da a Juan (y a María, que vende un celular de la misma categoría: hallazgo 8 de la bitácora 2)
+  ok     "quien vende bicicletas en Callao" da a Pedro
+  ok     "co-caina" bloqueada
+  ok     "xyzqw" sin resultados, sin error
+  ok     la lista trae nombre_completo y .motor (como antes)
+
+=== A2. picker = true (Compartir y Nuevo mensaje) ===
+  ok     Compartir "Pérez" encuentra a los 2
+  ok     Mensajes "Carlos Armas": bloqueado (no se permite Armas)
+  ok     Compartir "María" encuentra a María Torres
+
+=== A3. paginaZona = true (filtro de zona de la página) ===
+   "Torres" + zona local -> ["u-maria"]
+  ok     Zona: "Torres" con zona local no da error y devuelve lista
+   "" + zona local -> ["u-juan","u-maria","u-carlos","u-pedro"] (sin texto: camino de siempre)
+  ok     Zona sin texto no pasa por las capas
+
+=== A4. paginaChat + principal (caja principal) ===
+   @jperez                             SIN IA  ["u-juan"]
+   Juan Pérez                          SIN IA  ["u-juan"]
+   busca quien venda laptops           SIN IA  ["u-juan","u-maria"]
+   usuarios de Callao                  SIN IA  ["u-juan","u-maria","u-carlos","u-pedro"]
+   usuarios de mi zona                 SIN IA  ["u-juan","u-maria","u-carlos","u-pedro"]
+   laptops                             IA      null
+   Juan                                IA      null
+   María                               IA      null
+   videos de gatos                     IA      null
+   qué hora es                         IA      null
+   hola                                IA      null
+   quiero hablar con Carlos            SIN IA  ["u-carlos"]
+   Pedro vende laptops                 IA      null
+   quien vende bicicletas en Callao    SIN IA  ["u-pedro"]
+  ok     principal "@jperez": sin IA y muestra a Juan
+  ok     principal "laptops" (ambigua): IA
+  ok     principal "Juan" (nombre suelto): IA
+  ok     principal "videos de gatos": IA
+
+=== A5. asistente = true ===
+  ok     asistente: sin IA y muestra a Juan (y a María, misma categoría)
+  ok     asistente: conversación sigue a la IA
+   "Pedro vende laptops" -> IA=1
+
+=== A6. panelChat + panel ===
+  ok     panel (chat): sin IA, pinta a Juan en el muro
+  ok     panel (buscador de arriba): sin IA, pinta a Pedro
+  ok     panel: conversación sigue a la IA
+
+=== B1. Texto peligroso o raro ===
+   "a,b)(%_\"\\*<>{}"        -> []
+   "Juan​ Pérez"             -> ["u-juan"]
+   "   "                     -> []
+   "xxxxxxxxxxxxxxxxx..."    -> []
+   "😀😀😀"                  -> []
+   "北京 手机"                   -> []
+   "مرحبا"                   -> []
+   "O'Brien"                 -> []
+   "Juan; DROP TABLE ..."    -> []
+   "<script>alert(1)<..."    -> []
+   "JUAAAAAAN pérez"         -> []
+   (info) "JUAAAAAAN pérez" -> []: las letras repetidas se reducen a 2 ("juaan"), no a 1, así que no encuentra a "juan"
+  ok     "Juan\u200B Pérez" (invisible) encuentra a Juan
+  ok     caracteres peligrosos no rompen la búsqueda (lista, sin error)
+
+=== B2. Sin sesión ===
+  ok     buscarUsuariosPorNombre sin sesión devuelve []
+  ok     caja principal sin sesión: va a la IA como hoy
+
+=== B3. Supabase caído / motor con error ===
+   Supabase caído -> [] (sin lanzar error)
+  ok     con Supabase caído no se rompe
+  ok     motor roto: usa el respaldo viejo y aun así encuentra a Juan
+   motor roto -> ["u-juan"]
+  ok     apagar la entrada única en caliente: mismas personas
+
+=== B4. Dos búsquedas casi a la vez (respuestas tardías) ===
+  ok     la primera búsqueda queda descartada y la segunda sí responde
+
+=== B5. Canal compartido paginaChat: caja principal + chat a la vez ===
+   caso 1 (las dos piden personas): mostradas=[{"nombre":"busca quien venda bicicletas","ids":["u-pedro"]}] contenido="RESULTADOS"
+  ok     caso 1: la última búsqueda se muestra y no queda "buscando…" colgado
+   caso 2 (principal pide personas, el chat va a la IA): mostradas=[{"nombre":"@jperez","ids":["u-juan"]}] contenido="RESULTADOS" IA=1
+  ok     caso 2: la caja principal muestra a Juan y no queda colgada
+
+=== B6. El correo no aparece en las tarjetas ===
+  ok     Rosa se encuentra
+  ok     tarjeta de Compartir no incluye el correo
+   tarjeta: <div class="user-picker-item" data-pu-accion="picker" data-id="u-rosa" data-nombre="Rosa Huamán" data-contexto="compartir"> <img> <div style="flex:1;"> <div class="user-picker-name">Rosa Huamán</div> <div class="user-picker-email">@rosah</div> </div> </div>
+
+TODO BIEN: 36 de 36 comprobaciones
