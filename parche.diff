@@ -1,0 +1,37 @@
+--- a/js/modules/interprete-busqueda-personas.js	2026-11-14 21:52:22.996427822 +0000
++++ b/js/modules/interprete-busqueda-personas.js	2026-11-16 17:40:00.270613509 +0000
+@@ -129,7 +129,7 @@
+         { tipo: 'cambia', re: /^(cambi\w*|trueque\w*|intercambi\w*|permut\w*)$/ }
+     ];
+     var HACE_NO_SOPORTADO = ['compra'];
+-    var RELLENO_BORDE = /^(?:o|y|e|u|de|que|da|dan|con|para|por|a|un|una|unos|unas|el|la|los|las)$/;
++    var RELLENO_BORDE = /^(?:o|y|e|u|de|en|que|da|dan|con|para|por|a|un|una|unos|unas|el|la|los|las)$/; // 14/11: "en" (quedaba suelto en "ofrezca servicios en mi localidad")
+     function anotarHace(ficha, tipo) {
+         var lista = HACE_NO_SOPORTADO.indexOf(tipo) !== -1 ? ficha.hace_no_soportado : ficha.hace;
+         if (lista.indexOf(tipo) === -1) lista.push(tipo);
+@@ -147,6 +147,13 @@
+         while (dejar.length && RELLENO_BORDE.test(normalizar(dejar[dejar.length - 1]))) dejar.pop();
+         return dejar.join(' ') || null;
+     }
++    // "servicios y ropa" / "servicios o laptops": después de "servicios" viene otra cosa que se vende (no otro verbo como "y donen")
++    function sumaOtraCosa(cola) {
++        var m = /^(?:de\s+)?servicios?\s+(?:y|o|e|u)\s+(\S+)/.exec(cola);
++        if (!m) return false;
++        for (var v = 0; v < VERBOS_HACE.length; v++) { if (VERBOS_HACE[v].re.test(m[1])) return false; }
++        return !/^(?:da|dan|den|dar|hace\w*|hagan|tien\w*|teng\w*|ofrec\w*|ofrez\w*|brind\w*|prest\w*)$/.test(m[1]);
++    }
+     var PEDIDOS = /^(compr\w*|vend\w*|venta|busc\w*|quier\w*|necesit\w*|hay|tien\w*|ofrec\w*|regal\w*|cambi\w*|dame|consegu\w*|fabric\w*|arm\w*|tienda|se)$/;
+     var N_PRECIO = '(\\d+(?:[.,]\\d+)*)';
+     var M_PRECIO = '(?:\\s*(?:s\\/\\.?|\\$|soles|sol|dolares|dolar|usd|euros|eur))?';
+@@ -253,6 +260,11 @@
+             if (cola) {
+                 var ini = m.index + m[0].length - cola.length;
+                 ficha.oferta = separarHace(ficha, limpiarNombre(tramoVivo(ini, ini + cola.length)));
++                // 14/11: "que vendan servicios" / "vende servicios" pide SERVICIOS, no "venta o servicio" (si dice "servicios o productos", se deja como estaba)
++                var pal0 = normalizar(prefijo).trim().split(/\s+/), ult0 = pal0[pal0.length - 1] || '', cola0 = normalizar(cola);
++                if (/^vend\w*$/.test(ult0) && /^(?:de\s+)?servicios?(?:\s|$)/.test(cola0) && !/\b(productos?|articulos?|cosas|objetos)\b/.test(cola0) && !sumaOtraCosa(cola0) && ficha.hace.indexOf('servicios') !== -1) {
++                    var iv0 = ficha.hace.indexOf('vende'); if (iv0 !== -1) ficha.hace.splice(iv0, 1);
++                }
+                 // "da clases de piano", "hace reparación de laptops": es un servicio y lo que se ofrece es lo que sigue
+                 if (ficha.oferta) {
+                     var sv = /^(?:clases?|talleres?|asesorias?|reparacion(?:es)?|instalacion(?:es)?|mantenimiento|asistencia tecnica)(?:\s+(?:de|en|para)\s+(.+))?$/.exec(normalizar(ficha.oferta));
