@@ -25,6 +25,22 @@ es('"da clases de inglés" no cambia', f('quien da clases de inglés'), [['servi
 es('"da servicios y regala ropa" no cambia', f('quien da servicios y regala ropa'), [['servicios', 'regala'], 'ropa']);
 es('"donen en mi país" no cambia', f('personas que donen en mi país'), [['regala'], null]);
 
+// ---------- 1b) Zona escrita con errores o con dos lugares (captura de la página de prueba, 16/11/2026) ----------
+var z = function (t) { var r = Int.interpretar(t, {}); return [r.zona, r.nombre, r.intencion]; };
+es('"usuario de mi localidad o cuidad" (captura): zona local, sin nombre', z('buscame usuario de mi localidad o cuidad'), ['local', null, 'filtro']);
+es('"mi localidad o ciudad" bien escrito: zona local, sin nombre', z('buscame usuario de mi localidad o ciudad'), ['local', null, 'filtro']);
+es('"mi cuidad" mal escrito', z('usuarios de mi cuidad'), ['local', null, 'filtro']);
+es('"mi siudad" mal escrito', z('usuario de mi siudad'), ['local', null, 'filtro']);
+es('"mi ciudá" sin la última letra', z('usuarios en mi ciudá'), ['local', null, 'filtro']);
+es('"mi ciudad o pais": gana el país (más amplio)', z('usuarios de mi ciudad o pais'), ['pais', null, 'filtro']);
+es('"mi pais o ciudad": gana el país', z('personas de mi pais o ciudad'), ['pais', null, 'filtro']);
+es('"mi localidad y pais": gana el país', z('usuarios de mi localidad y pais'), ['pais', null, 'filtro']);
+es('"mi ciudad o region": gana la región', z('usuarios de mi ciudad o region'), ['regional', null, 'filtro']);
+es('"mi zona o ciudad": local', z('gente de mi zona o ciudad'), ['local', null, 'filtro']);
+es('"Juan o ciudad" (sin zona) no se toca', z('Juan o ciudad'), [null, 'Juan o ciudad', 'nombre']);
+es('"Juan en mi ciudad" sigue igual', z('Juan en mi ciudad'), ['local', 'Juan', 'nombre']);
+es('"ropa en mi ciudad o pais": zona país y oferta ropa', (function () { var r = Int.interpretar('quien vende ropa en mi ciudad o pais', {}); return [r.zona, r.oferta]; })(), ['pais', 'ropa']);
+
 // ---------- 2) Búsqueda completa con datos de ejemplo ----------
 function stub() { return new Proxy(function () {}, { get: function (t, k) { if (k === Symbol.toPrimitive) return function () { return ''; }; if (k === 'length') return 0; return stub(); }, apply: function () { return stub(); }, construct: function () { return stub(); }, set: function () { return true; } }); }
 var P = function (id, n, a, loc, user, pais) { return { id: id, nombres: n, apellidos: a, localidad_id: loc, pais: pais || 'Perú', nombre_usuario: user, created_at: '2026-09-10T00:00:00Z' }; };
@@ -56,6 +72,8 @@ vm.runInContext('window.BUSQUEDA_CAPAS = { principal: true, panelPersonas: true 
     es('"vendan servicios y donen en mi ciudad": Juan, Pedro y Rosa', await quien('personas que vendan servicios y donen en mi ciudad'), ['u-juan', 'u-pedro', 'u-rosa']);
     es('"servicios en mi país": Juan, Ana y Rosa (Diego es de Chile)', await quien('personas que vendan servicios en mi país'), ['u-ana', 'u-juan', 'u-rosa']);
     es('"donen en Lima": Lucía', await quien('usuarios que donen en Lima'), ['u-lucia']);
+    es('captura: "usuario de mi localidad o cuidad" trae a los 4 de Callao', await quien('buscame usuario de mi localidad o cuidad'), ['u-juan', 'u-pedro', 'u-rosa', 'u-tomas']);
+    es('"usuarios de mi ciudad o pais" trae a todos los de Perú', await quien('usuarios de mi ciudad o pais'), ['u-ana', 'u-juan', 'u-lucia', 'u-pedro', 'u-rosa', 'u-tomas']);
     es('"quien vende laptops" sigue dando a Tomás', await quien('quien vende laptops'), ['u-tomas']);
     console.log(fallos ? ('HAY ' + fallos + ' FALLOS de ' + total + ' pruebas') : ('TODO BIEN: ' + total + ' de ' + total + ' pruebas'));
     process.exit(fallos ? 1 : 0);
