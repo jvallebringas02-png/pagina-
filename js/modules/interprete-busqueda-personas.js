@@ -211,7 +211,19 @@ var InterpreteBusquedaPersonas = (function () {
         if (tomar(/\b(a nivel mundial|en todo el mundo|todo el mundo|mundial(es)?|del mundo)\b/)) ficha.zona = 'mundial';
         else if (tomar(/\b(a nivel nacional|nacional(es)?|en mi pais|de mi pais|mi pais)\b/)) ficha.zona = 'pais';
         else if (tomar(/\b(en mi region|de mi region|mi region|regional(es)?)\b/)) ficha.zona = 'regional';
-        else if (tomar(/\b(a nivel local|de mi ciudad|en mi ciudad|mi ciudad|en la ciudad|de la ciudad|de mi zona|en mi zona|mi zona|mi localidad|cerca de mi)\b/)) ficha.zona = 'local';
+        // 16/11: "ciudad" mal escrita (cuidad, siudad, ciudá) y "localidad" sin la d final también cuentan
+        else if (tomar(/\b(a nivel local|(?:de mi|en mi|mi|en la|de la)\s+(?:ciudad|cuidad|siudad|ciuda)|de mi zona|en mi zona|mi zona|mi localidad|mi localida|cerca de mi)\b/)) ficha.zona = 'local';
+        // 16/11: "mi localidad o ciudad", "mi ciudad o país", "mi país y ciudad": el segundo lugar no es un nombre. Se queda la zona más amplia.
+        if (ficha.zona && ficha.zona !== 'mundial') {
+            var ANCHO = { local: 1, regional: 2, pais: 3 };
+            var tomado = true;
+            while (tomado) {
+                tomado = tomar(/\b(?:o|y|e|u)\s+(?:(?:de|en)\s+)?(?:(?:mi|la|tu)\s+)?(ciudad|cuidad|siudad|ciuda|localidad|localida|zona|region|pais)\b/, function (m) {
+                    var nivel = /^(region)$/.test(m[1]) ? 'regional' : (m[1] === 'pais' ? 'pais' : 'local');
+                    if (ANCHO[nivel] > ANCHO[ficha.zona]) ficha.zona = nivel;
+                });
+            }
+        }
 
         // 1b) precio. Va antes que "lugar" y "qué vende" para que "menos de 500 soles" no se pegue a lo que se vende.
         //     "caro" suelto NO cuenta (es un nombre: "Caro Pérez"); solo "más caro", "caros", "caras".
