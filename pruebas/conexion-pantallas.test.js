@@ -6,14 +6,15 @@ function leer(rel) { return fs.readFileSync(path.join(RAIZ, rel), 'utf8'); }
 var fallos = 0, total = 0;
 function es(desc, real, esperado) { total++; if (JSON.stringify(real) !== JSON.stringify(esperado)) { fallos++; console.log('FALLO  ' + desc + '\n   esperaba: ' + JSON.stringify(esperado) + '\n   salió:    ' + JSON.stringify(real)); } }
 
-// --- index.html: orden de los scripts y interruptores apagados por defecto ---
+// --- index.html: orden de los scripts y existencia de los interruptores ---
 var html = leer('index.html');
 var pos = function (n) { return html.indexOf('js/modules/' + n + '.js'); };
 es('index.html carga limpieza, intención y entrada única, en ese orden', pos('limpieza-busqueda') > 0 && pos('limpieza-busqueda') < pos('intencion-busqueda') && pos('intencion-busqueda') < pos('busqueda-por-capas'), true);
 es('las capas se cargan después del motor de personas y antes del panel', pos('motor-busqueda-personas-datos') < pos('limpieza-busqueda') && pos('busqueda-por-capas') < pos('panel-usuario-1'), true);
 var bloque = (html.match(/window\.BUSQUEDA_CAPAS = (\{[^}]*\});/) || [])[1];
 var porDefecto = bloque ? vm.runInNewContext('(' + bloque + ')') : null;
-es('todos los interruptores existen y vienen apagados', porDefecto && Object.keys(porDefecto).sort().join() + '|' + Object.keys(porDefecto).every(function (k) { return porDefecto[k] === false; }),
+// 16/11: ya no exige que vengan apagados (desde el 14/11 se entregan prendidos); exige que existan los 8 y que cada uno sea true o false.
+es('los 8 interruptores existen y cada uno es true o false', porDefecto && Object.keys(porDefecto).sort().join() + '|' + Object.keys(porDefecto).every(function (k) { return typeof porDefecto[k] === 'boolean'; }),
     'asistente,paginaChat,paginaZona,panel,panelChat,panelPersonas,picker,principal|true');
 
 // --- Entorno simulado con los archivos reales ---
