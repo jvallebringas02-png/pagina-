@@ -42,6 +42,7 @@ function entorno() {
     sb.document = new Proxy({}, { get: function (t, k) { if (k === 'getElementById') return function (id) { return sb.__elementos[id] || stub(); }; return docBase[k]; }, set: function () { return true; } });
     vm.createContext(sb);
     vm.runInContext('var PanelUsuario = {}; var usuarioActual = ' + JSON.stringify(YO) + '; var supabase = null;', sb);
+    vm.runInContext(leer('js/i18n-buscar-personas.js'), sb, { filename: 'i18n-buscar-personas' }); // textos traducidos, como en index.html
     ['interprete-busqueda-personas', 'motor-busqueda-personas', 'motor-busqueda-personas-datos', 'limpieza-busqueda', 'intencion-busqueda', 'busqueda-por-capas', 'panel-usuario-3', 'event-controller'].forEach(function (f) {
         vm.runInContext(leer('js/modules/' + f + '.js'), sb, { filename: f });
     });
