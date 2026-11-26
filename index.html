@@ -606,6 +606,8 @@ html.con-sesion body:not(:has(#userPanelView.active)) footer { display: none; }
 <script src="js/i18n.js"></script>
 <script src="js/i18n-auth.js"></script>
 <script src="js/sesion-auth.js"></script>
+<script src="js/i18n-guia-busqueda.js"></script>
+<script src="js/modules/guia-busqueda.js"></script>
 <script src="js/modules/interprete-busqueda-personas.js"></script>
 <script src="js/modules/motor-busqueda-personas.js"></script>
 <script src="js/modules/motor-busqueda-personas-datos.js"></script>
@@ -619,6 +621,11 @@ html.con-sesion body:not(:has(#userPanelView.active)) footer { display: none; }
 //   4) paginaChat + principal (caja principal)   5) paginaChat + asistente (chat de la página)   6) panelChat + panel (buscador y chat del panel)
 // paginaChat y panelChat deciden CÓMO se busca (limpieza e intérprete); principal, asistente y panel deciden si una frase de personas se muestra SIN gastar IA.
 window.BUSQUEDA_CAPAS = { panelPersonas: true, picker: true, paginaZona: true, paginaChat: true, principal: true, asistente: true, panelChat: true, panel: true };
+// Interruptores de la guía (BITACORA-BUSQUEDA-POR-CAPAS-5.md). Se pueden apagar de a uno con false:
+//   ampliar = más formas de decir lo mismo ("cerca donde vivo", "dime quién es...", "alguien que arregle...", "los más nuevos")
+//   red     = lo que sobra y no parece nombre NO se busca como nombre (se avisa)
+//   guia    = si no entiende, pregunta con botones (solo en Buscar Personas)
+if (window.BusquedaPorCapas && BusquedaPorCapas.interruptores) { BusquedaPorCapas.interruptores.ampliar = true; BusquedaPorCapas.interruptores.red = true; BusquedaPorCapas.interruptores.guia = true; }
 </script>
 <script src="js/modules/panel-usuario-1.js"></script>
 <script src="js/modules/panel-usuario-2.js"></script>
