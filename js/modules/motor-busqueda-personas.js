@@ -278,9 +278,9 @@ var MotorBusquedaPersonas = (function () {
         }
 
         // --- criterios sobre PERSONAS ---
-        if (ficha.usuario) plan.criterios.push(criterio('usuario', tr('usuarioEt', { x: ficha.usuario }), { nivel: 'persona' }));
-        if (ficha.nombre) plan.criterios.push(criterio('nombre', tr('nombreEt', { x: ficha.nombre }), { nivel: 'persona' }));
-        if (ficha.iniciales) plan.criterios.push(criterio('iniciales', tr('inicEt', { x: ficha.iniciales.join(' ').toUpperCase() }), { nivel: 'persona' }));
+        if (ficha.usuario) plan.criterios.push(criterio('usuario', tr('usuarioEt', { x: ficha.usuario }), { nivel: 'persona', valor: ficha.usuario }));
+        if (ficha.nombre) plan.criterios.push(criterio('nombre', tr('nombreEt', { x: ficha.nombre }), { nivel: 'persona', valor: ficha.nombre }));
+        if (ficha.iniciales) plan.criterios.push(criterio('iniciales', tr('inicEt', { x: ficha.iniciales.join(' ').toUpperCase() }), { nivel: 'persona', valor: ficha.iniciales.slice() }));
         if (ficha.rol) {
             var conPub = ROLES_CON_PUBLICACIONES.test(norm(ficha.rol));
             var cr = criterio('rol', tr('quien', { x: ficha.rol }), { nivel: 'persona', conPublicaciones: conPub });
@@ -412,9 +412,10 @@ var MotorBusquedaPersonas = (function () {
         var cLugarP = cPer.filter(function (c) { return c.id === 'lugar' || c.id === 'zona'; })[0];
         var fichaNombre = { nombre: null, usuario: null, iniciales: null };
         cPer.forEach(function (c) {
-            if (c.id === 'nombre') fichaNombre.nombre = c.etiqueta.replace(/^Nombre: /, '');
-            if (c.id === 'usuario') fichaNombre.usuario = norm(c.etiqueta.replace(/^Usuario: @/, ''));
-            if (c.id === 'iniciales') fichaNombre.iniciales = c.etiqueta.replace(/^Iniciales: /, '').toLowerCase().split(' ');
+            // Nov 2026: el valor se lee de c.valor, NO del texto de la etiqueta: la etiqueta se traduce ("Name: ...", "Nom : ...") y quitarle "Nombre: " solo funcionaba en español
+            if (c.id === 'nombre') fichaNombre.nombre = c.valor != null ? c.valor : c.etiqueta.replace(/^Nombre: /, '');
+            if (c.id === 'usuario') fichaNombre.usuario = norm(c.valor != null ? c.valor : c.etiqueta.replace(/^Usuario: @/, ''));
+            if (c.id === 'iniciales') fichaNombre.iniciales = c.valor != null ? c.valor.map(function (x) { return String(x).toLowerCase(); }) : c.etiqueta.replace(/^Iniciales: /, '').toLowerCase().split(' ');
         });
 
         var candidatos = perfiles.filter(function (u) { return !idsConPublicacion || idsConPublicacion[u.id]; });
