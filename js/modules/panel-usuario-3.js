@@ -1309,7 +1309,7 @@ Object.assign(PanelUsuario, {
                 var lista = [];
                 if (r.descartada) { lista.descartada = true; return lista; }
                 lista = (r.personas || []).map(function(p) {
-                    p.nombre_completo = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim() || 'Usuario';
+                    p.nombre_completo = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim() || tBP('usuario');
                     return p;
                 });
                 lista.motor = r;
@@ -1384,7 +1384,7 @@ Object.assign(PanelUsuario, {
             }
 
             return resultados.slice(0, 12).map(function(u) {
-                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                u.nombre_completo = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || tBP('usuario');
                 return u;
             });
         } catch (e) {
@@ -1417,18 +1417,18 @@ Object.assign(PanelUsuario, {
         var rubro = document.getElementById('compartirFiltroRubro').value;
         if (!nivel && !rubro) { this.sugerirPersonasInteresadas(this._categoriaProductoCompartiendo); return; }
         if (nivel && !usuarioActual.localidad_id) {
-            el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no tienes tu localidad definida. Ve a Configuración para definirla, o usa solo el filtro de rubro.</div>';
+            el.innerHTML = '<div class="user-picker-empty">' + eBP('sinLoc') + '</div>';
             return;
         }
-        el.innerHTML = '<div class="user-picker-empty">Buscando...</div>';
+        el.innerHTML = '<div class="user-picker-empty">' + eBP('buscando') + '</div>';
         var candidatos = await this.buscarUsuariosCompartir(rubro || null, nivel);
         var self = this;
         if (!candidatos.length) {
-            el.innerHTML = '<div class="user-picker-empty">😕 No encontré personas con esos filtros.</div>';
+            el.innerHTML = '<div class="user-picker-empty">' + eBP('sinFiltros') + '</div>';
             return;
         }
         el.innerHTML = candidatos.map(function(u) {
-            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || tBP('usuario');
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
             var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 36, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
             return '<div class="user-picker-item" data-pu-accion="picker" data-id="' + self.escHtml(u.id) + '" data-nombre="' + self.escHtml(nombre) + '" data-contexto="compartir">' +
@@ -1513,7 +1513,7 @@ Object.assign(PanelUsuario, {
         var plan = (r && r.plan) || {};
         var criterios = (plan.criterios || []).filter(function(c) { return c.aplicado; });
         if (criterios.length && (plan.tipo === 'busqueda' || plan.tipo === 'nuevos')) {
-            h += '<div style="' + estilo + '">🤖 Entendí: ' + this.escHtml(criterios.map(function(c) { return c.etiqueta; }).join(' · ')) + '</div>';
+            h += '<div style="' + estilo + '">' + eBP('entendi') + ' ' + this.escHtml(criterios.map(function(c) { return c.etiqueta; }).join(' · ')) + '</div>';
         }
         ((r && r.avisos) || []).forEach(function(a) { h += '<div style="' + estilo + '">ℹ️ ' + self.escHtml(a) + '</div>'; });
         return h;
@@ -1531,8 +1531,8 @@ Object.assign(PanelUsuario, {
         }
         var conPublicacion = ((r.plan && r.plan.criterios) || []).some(function(c) { return c.nivel === 'publicacion'; });
         if (r.requiere === 'localidad' || conPublicacion || haySoloZona) {
-            var msg = '<div class="user-picker-empty">' + this.escHtml(r.mensaje || 'No encontré a nadie con esos criterios.') + '</div>';
-            if (r.requiere === 'localidad') msg += '<div style="text-align:center;margin-top:8px;"><button type="button" class="btn-auth" style="width:auto;padding:6px 12px;font-size:12px;" onclick="PanelUsuario.abrirModalConfiguracion()">📍 Define tu localidad</button></div>';
+            var msg = '<div class="user-picker-empty">' + this.escHtml(r.mensaje || tBP('sinRes')) + '</div>';
+            if (r.requiere === 'localidad') msg += '<div style="text-align:center;margin-top:8px;"><button type="button" class="btn-auth" style="width:auto;padding:6px 12px;font-size:12px;" onclick="PanelUsuario.abrirModalConfiguracion()">' + eBP('defineLoc') + '</button></div>';
             el.innerHTML = cab + msg;
             return true;
         }
@@ -1544,7 +1544,7 @@ Object.assign(PanelUsuario, {
     _renderResultadosPersonaPicker: function(usuarios, contexto, el, anexar) {
         var self = this;
         var htmlTarjetas = usuarios.map(function(u) {
-            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || tBP('usuario');
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
             var extraMotor = '';
             if (u.nombre_usuario) extraMotor += '@' + u.nombre_usuario;
@@ -1569,7 +1569,7 @@ Object.assign(PanelUsuario, {
         if (!q || !q.trim().length) {
             if (nivelZona) {
                 // Sin texto pero con zona activa: mostrar personas de esa zona directamente
-                el.innerHTML = '<div class="user-picker-empty">Buscando...</div>';
+                el.innerHTML = '<div class="user-picker-empty">' + eBP('buscando') + '</div>';
                 var motorOkZ = this._motorPersonasListo();
                 var soloZona = await this.buscarUsuariosPorNombre('', nivelZona, motorOkZ, { canal: 'picker-' + contexto });
                 if (soloZona.descartada) return;
@@ -1592,7 +1592,7 @@ Object.assign(PanelUsuario, {
         // 🤖 No hubo coincidencia por nombre: si es el buscador de Compartir, le pedimos
         // criterio a la IA real: puede devolver una búsqueda (categoría y/o localidad), o un mensaje conversacional.
         if (contexto === 'compartir' || contexto === 'nuevoMsj') {
-            el.innerHTML = '<div class="user-picker-empty">🤖 Pensando...</div>';
+            el.innerHTML = '<div class="user-picker-empty">' + eBP('pensando') + '</div>';
             var categoriaContexto = contexto === 'compartir' ? this._categoriaProductoCompartiendo : null;
             var resultado = await this.consultarAsistenteCompartir(q, categoriaContexto);
             if (resultado.tipo === 'mensaje') {
@@ -1602,30 +1602,30 @@ Object.assign(PanelUsuario, {
             var categoriaDetectada = resultado.categoria;
             var nivelZona = resultado.nivel_zona;
             if (nivelZona && !usuarioActual.localidad_id) {
-                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no tienes tu localidad definida, así que no puedo comparar zonas. Ve a Configuración para definirla, o busca por categoría/nombre.</div>';
+                el.innerHTML = '<div class="user-picker-empty">' + eBP('sinLoc') + '</div>';
                 return;
             }
             var candidatos = await this.buscarUsuariosCompartir(categoriaDetectada, nivelZona);
-            var NOMBRES_NIVEL = { local: 'tu misma zona', regional: 'tu misma región', pais: 'tu mismo país' };
+            var NOMBRES_NIVEL = { local: tBP('nvLocal'), regional: tBP('nvRegional'), pais: tBP('nvPais') };
             var etiquetaZona = nivelZona ? NOMBRES_NIVEL[nivelZona] : null;
-            var etiqueta = categoriaDetectada && etiquetaZona ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong> de ' + etiquetaZona
-                : categoriaDetectada ? 'interesadas en <strong>' + this.escHtml(categoriaDetectada) + '</strong>'
-                : 'de ' + etiquetaZona;
+            var etiqueta = categoriaDetectada && etiquetaZona ? tBP('intInDe', { x: '<strong>' + this.escHtml(categoriaDetectada) + '</strong>', y: etiquetaZona })
+                : categoriaDetectada ? tBP('intIn', { x: '<strong>' + this.escHtml(categoriaDetectada) + '</strong>' })
+                : tBP('deZona', { x: etiquetaZona });
             if (candidatos && candidatos.length) {
                 var self2 = this;
-                el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">🤖 No hay nadie con ese nombre, pero encontré personas ' + etiqueta + ':</div>' +
+                el.innerHTML = '<div style="font-size:12px;color:var(--texto-secundario);margin-bottom:6px;">' + tBP('sinNombre', { x: etiqueta }) + '</div>' +
                     candidatos.map(function(u) {
-                        var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+                        var nombre = ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || tBP('usuario');
                         var inicial = nombre.charAt(0).toUpperCase() || 'U';
                         var fotoHtml = self2.avatarHtml(u.foto_perfil, nombre, { tam: 40, clase: 'user-picker-avatar', claseFallback: 'user-picker-avatar' });
                         return '<div class="user-picker-item" data-pu-accion="picker" data-id="' + self2.escHtml(u.id) + '" data-nombre="' + self2.escHtml(nombre) + '" data-contexto="' + self2.escHtml(contexto) + '">' +
                             fotoHtml +
                             '<div style="flex:1;"><div class="user-picker-name">' + self2.escHtml(nombre) + '</div>' +
-                            '<div class="user-picker-email">✨ ' + (categoriaDetectada ? 'Interesado en ' + self2.escHtml(categoriaDetectada) : 'De ' + etiquetaZona) + '</div></div></div>';
+                            '<div class="user-picker-email">✨ ' + (categoriaDetectada ? tBP('interesadoEn', { x: self2.escHtml(categoriaDetectada) }) : tBP('deX', { x: etiquetaZona })) + '</div></div></div>';
                     }).join('');
                 return;
             } else {
-                el.innerHTML = '<div class="user-picker-empty">🤖 Todavía no encontré personas ' + etiqueta + '. Prueba buscando por nombre, o comparte con todos usando "Copiar Enlace".</div>';
+                el.innerHTML = '<div class="user-picker-empty">' + tBP('todaviaNo', { x: etiqueta }) + '</div>';
                 return;
             }
         }
@@ -1770,7 +1770,7 @@ Object.assign(PanelUsuario, {
         }).join('');
         var btnEnviar = document.getElementById('btnEnviarCompartir');
         if (btnEnviar) btnEnviar.disabled = seleccionados.length === 0;
-        if (btnEnviar) btnEnviar.textContent = seleccionados.length ? '📤 Enviar a ' + seleccionados.length + (seleccionados.length === 1 ? ' persona' : ' personas') : '📤 Enviar';
+        if (btnEnviar) btnEnviar.textContent = seleccionados.length ? tBP(seleccionados.length === 1 ? 'enviarA1' : 'enviarAN', { x: seleccionados.length }) : tBP('enviar');
     },
 
     quitarPersonaSeleccionada: function(id) {
@@ -1809,7 +1809,7 @@ Object.assign(PanelUsuario, {
                 await supabase.from('conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', convId);
                 enviados++;
             }
-            this.mostrarToast('✅ Publicación enviada a ' + enviados + (enviados === 1 ? ' persona' : ' personas'));
+            this.mostrarToast(tBP(enviados === 1 ? 'enviada1' : 'enviadaN', { x: enviados }));
             this.cerrarModalCompartir();
         } catch (e) {
             alertEl.className = 'alert alert-error';
@@ -2279,8 +2279,8 @@ Object.assign(PanelUsuario, {
         var rMotor = usuarios && usuarios.motor ? usuarios.motor : null;
         var cabMotor = rMotor ? this._entendiMotorHtml(rMotor, 'padding:4px 4px 0;font-size:12px;color:var(--texto-secundario);') : '';
         if (!usuarios || !usuarios.length) {
-            var textoVacio = rMotor ? this.escHtml(rMotor.mensaje || 'No encontré a nadie con esos criterios.') : 'No encontré a nadie llamado "' + this.escHtml(nombreBuscado) + '".';
-            var btnLoc = (rMotor && rMotor.requiere === 'localidad') ? '<button class="btn-publicar" onclick="PanelUsuario.abrirModalConfiguracion()">📍 Define tu localidad</button> ' : '';
+            var textoVacio = rMotor ? this.escHtml(rMotor.mensaje || tBP('sinRes')) : tBP('noConNadie', { x: '"' + this.escHtml(nombreBuscado) + '"' });
+            var btnLoc = (rMotor && rMotor.requiere === 'localidad') ? '<button class="btn-publicar" onclick="PanelUsuario.abrirModalConfiguracion()">' + eBP('defineLoc') + '</button> ' : '';
             container.innerHTML = cabMotor + '<div class="feed-empty"><div style="font-size:48px;margin-bottom:12px;">👤</div><p>' + textoVacio + '</p>' + btnLoc + '<button class="btn-publicar" onclick="PanelUsuario.cargarFeed()">Volver al inicio</button></div>';
             return;
         }
@@ -2288,7 +2288,7 @@ Object.assign(PanelUsuario, {
         var html = '<div style="padding:10px 4px;font-size:13px;color:var(--texto-secundario);">👤 Personas que coinciden con "' + this.escHtml(nombreBuscado) + '" · <a href="#" onclick="event.preventDefault();PanelUsuario.cargarFeed();">Volver al inicio</a></div>';
         html += cabMotor;
         html += '<div style="background:#fff;border-radius:12px;padding:8px;">' + usuarios.map(function(u) {
-            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || 'Usuario';
+            var nombre = u.nombre_completo || ((u.nombres || '') + ' ' + (u.apellidos || '')).trim() || tBP('usuario');
             var inicial = nombre.charAt(0).toUpperCase() || 'U';
             var fotoHtml = self.avatarHtml(u.foto_perfil, nombre, { tam: 44, claseFallback: 'feed-post-avatar' });
             return '<div style="display:flex;align-items:center;gap:10px;padding:10px;cursor:pointer;" onclick="PanelUsuario.cargarPerfilUsuario(\'' + u.id + '\')">' + fotoHtml + '<div style="min-width:0;"><div style="font-weight:600;">' + self.escHtml(nombre) + '</div>' + (u.nombre_usuario ? '<div style="font-size:12px;color:var(--texto-secundario);">@' + self.escHtml(u.nombre_usuario) + '</div>' : '') + ((u.ofertas || []).map(function(o) { return '<div style="font-size:12px;color:var(--texto-secundario);">🏷️ ' + self.escHtml(o.titulo || '') + (o.ciudad ? ' · ' + self.escHtml(o.ciudad) : '') + '</div>'; }).join('')) + '</div></div>';

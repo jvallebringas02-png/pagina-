@@ -13,11 +13,26 @@ var MotorBusquedaPersonas = (function () {
 
     var LIMITE = 20;
     var MODALIDAD_DE = { vende: 'venta', servicios: 'servicio', regala: 'donacion', cambia: 'trueque' };
-    var NOMBRE_TIPO = { venta: 'venta', servicio: 'servicio', trueque: 'trueque', donacion: 'donación' };
-    var SIN_PUBLICAR = {
-        venta: 'publicaciones en venta', servicio: 'servicios publicados',
-        trueque: 'publicaciones de trueque', donacion: 'donaciones publicadas'
-    };
+    // Textos en el idioma de la página (js/i18n-buscar-personas.js). En español quedan idénticos a los de siempre.
+    var IDI = null; // idioma de la búsqueda en curso (contexto.idioma); null = el idioma actual de la página
+    function setIdi(contexto) { IDI = (contexto && contexto.idioma) || null; }
+    var BPI = null;
+    function tr(clave, vars) {
+        if (!BPI) {
+            if (typeof BuscarPersonasI18n !== 'undefined') BPI = BuscarPersonasI18n;
+            else if (typeof require === 'function') { try { BPI = require('../i18n-buscar-personas.js').BuscarPersonasI18n; } catch (eReq) { BPI = null; } } // pruebas en Node
+        }
+        return BPI ? BPI.t(clave, vars, IDI) : clave;
+    }
+    function idiActual() { tr('vacia'); return IDI || (BPI ? BPI.idioma() : 'es'); }
+    // Objeto que se lee como { clave: texto } pero traduce en cada lectura (así NOMBRE_ZONA[zona] sigue igual en el resto del código)
+    function mapaTr(claves) {
+        var o = {};
+        Object.keys(claves).forEach(function (k) { Object.defineProperty(o, k, { enumerable: true, get: function () { return tr(claves[k]); } }); });
+        return o;
+    }
+    var NOMBRE_TIPO = mapaTr({ venta: 'tVenta', servicio: 'tServ', trueque: 'tTrueq', donacion: 'tDon' });
+    var SIN_PUBLICAR = mapaTr({ venta: 'spVenta', servicio: 'spServ', trueque: 'spTrueq', donacion: 'spDon' });
     // palabra que se ofrece -> categoría de la página (se usa además del texto)
     var CATEGORIA_DE = {
         laptop: 'Tecnología', celular: 'Tecnología', computadora: 'Tecnología', tv: 'Tecnología', television: 'Tecnología',
@@ -209,46 +224,47 @@ var MotorBusquedaPersonas = (function () {
         for (var k in extra) c[k] = extra[k];
         return c;
     }
-    var NOMBRE_ZONA = { local: 'tu ciudad', regional: 'tu región', pais: 'tu país', mundial: 'todo el mundo' };
+    var NOMBRE_ZONA = mapaTr({ local: 'zLoc', regional: 'zReg', pais: 'zPai', mundial: 'zMun' });
 
     function construirPlan(ficha, contexto) {
         contexto = contexto || {};
+        setIdi(contexto);
         var plan = {
             tipo: 'busqueda', criterios: [], avisos: [], limite: LIMITE, orden: ficha && ficha.orden === 'recientes' ? 'recientes' : 'relevancia',
             entendi: '', mensaje: null
         };
-        if (!ficha || ficha.intencion === 'vacia' && !ficha.condicion && !contexto.nivelZona) { plan.tipo = 'vacia'; plan.mensaje = 'Escribe qué o a quién buscas: un nombre, @usuario, lo que vende o un lugar.'; return plan; }
+        if (!ficha || ficha.intencion === 'vacia' && !ficha.condicion && !contexto.nivelZona) { plan.tipo = 'vacia'; plan.mensaje = tr('vacia'); return plan; }
         if (ficha.bloqueada) {
-            plan.tipo = 'bloqueada'; plan.mensaje = 'Esta búsqueda va contra las normas de la página, así que no se realizó.'; return plan;
+            plan.tipo = 'bloqueada'; plan.mensaje = tr('bloqueada'); return plan;
         }
         if (ficha.necesita_segunda_pista) {
-            plan.tipo = 'vacia'; plan.mensaje = 'Con una sola letra no puedo buscar. Agrega otra inicial o parte del nombre.'; return plan;
+            plan.tipo = 'vacia'; plan.mensaje = tr('unaLetra'); return plan;
         }
         if (ficha.intencion === 'nuevos') {
-            plan.tipo = 'nuevos'; plan.criterios.push(criterio('nuevos', 'Personas nuevas', {})); plan.entendi = 'Busqué: personas nuevas'; return plan;
+            plan.tipo = 'nuevos'; plan.criterios.push(criterio('nuevos', tr('nuevos'), {})); plan.entendi = tr('busque', { x: tr('nuevos').toLowerCase() }); return plan;
         }
 
         // "quien compra laptops": la página no guarda lo que alguien quiere comprar; buscar vendedores sería responder otra cosa
         if (ficha.hace_no_soportado && ficha.hace_no_soportado.length && !(ficha.hace && ficha.hace.length)) {
-            plan.tipo = 'vacia'; plan.mensaje = 'La página no guarda lo que alguien quiere comprar, así que no puedo buscar a quien compra. Puedo buscar a quien lo vende.'; return plan;
+            plan.tipo = 'vacia'; plan.mensaje = tr('noCompra'); return plan;
         }
 
         // --- criterios sobre PUBLICACIONES ---
         var tipos = [];
         (ficha.hace || []).forEach(function (h) { if (MODALIDAD_DE[h] && tipos.indexOf(MODALIDAD_DE[h]) === -1) tipos.push(MODALIDAD_DE[h]); });
-        if (tipos.length) plan.criterios.push(criterio('tipo', 'Tipo: ' + tipos.map(function (t) { return NOMBRE_TIPO[t]; }).join(' o '), { nivel: 'publicacion', valores: tipos }));
-        if (ficha.condicion) plan.criterios.push(criterio('condicion', 'De segunda mano', { nivel: 'publicacion', nota: 'por texto: la página no guarda la condición' }));
-        if (ficha.oferta) plan.criterios.push(criterio('oferta', 'Ofrece: ' + ficha.oferta, { nivel: 'publicacion', tokens: tokensOferta(ficha.oferta), grupos: tokensOferta(ficha.oferta).map(function (tk) { return grupoDe(tk, contexto); }) }));
+        if (tipos.length) plan.criterios.push(criterio('tipo', tr('tipo', { x: tipos.map(function (t) { return NOMBRE_TIPO[t]; }).join(tr('o')) }), { nivel: 'publicacion', valores: tipos }));
+        if (ficha.condicion) plan.criterios.push(criterio('condicion', tr('segMano'), { nivel: 'publicacion', nota: tr('nCond') }));
+        if (ficha.oferta) plan.criterios.push(criterio('oferta', tr('ofrece', { x: ficha.oferta }), { nivel: 'publicacion', tokens: tokensOferta(ficha.oferta), grupos: tokensOferta(ficha.oferta).map(function (tk) { return grupoDe(tk, contexto); }) }));
         var pr = ficha.precio;
         if (pr) {
             var filtra = pr.min != null || pr.max != null;
             var partes = [];
-            if (pr.min != null) partes.push('desde ' + pr.min);
-            if (pr.max != null) partes.push('hasta ' + pr.max);
+            if (pr.min != null) partes.push(tr('desde', { x: pr.min }));
+            if (pr.max != null) partes.push(tr('hasta', { x: pr.max }));
             if (pr.moneda) partes.push(pr.moneda);
-            if (pr.orden === 'asc') partes.push('del más barato');
-            if (pr.orden === 'desc') partes.push('del más caro');
-            plan.criterios.push(criterio('precio', 'Precio: ' + partes.join(' '), { nivel: 'publicacion', min: pr.min, max: pr.max, moneda: pr.moneda, orden: pr.orden, filtra: filtra, nota: pr.ambiguo ? 'solo se ordena por precio' : null }));
+            if (pr.orden === 'asc') partes.push(tr('barato'));
+            if (pr.orden === 'desc') partes.push(tr('caro'));
+            plan.criterios.push(criterio('precio', tr('precio', { x: partes.join(' ') }), { nivel: 'publicacion', min: pr.min, max: pr.max, moneda: pr.moneda, orden: pr.orden, filtra: filtra, nota: pr.ambiguo ? tr('nPrecio') : null }));
         }
         var hayPublicacion = plan.criterios.some(function (c) { return c.nivel === 'publicacion'; });
 
@@ -256,36 +272,36 @@ var MotorBusquedaPersonas = (function () {
         var zona = ficha.zona || null;
         if (!zona && !ficha.lugar && contexto.nivelZona) zona = contexto.nivelZona; // botón Local/Regional/País
         if (ficha.lugar) {
-            plan.criterios.push(criterio('lugar', 'En: ' + ficha.lugar, { nivel: hayPublicacion ? 'publicacion' : 'persona', lugar: norm(ficha.lugar) }));
+            plan.criterios.push(criterio('lugar', tr('en', { x: ficha.lugar }), { nivel: hayPublicacion ? 'publicacion' : 'persona', lugar: norm(ficha.lugar), valorEt: ficha.lugar }));
         } else if (zona) {
-            plan.criterios.push(criterio('zona', 'Zona: ' + NOMBRE_ZONA[zona], { nivel: hayPublicacion ? 'publicacion' : 'persona', zona: zona }));
+            plan.criterios.push(criterio('zona', tr('zona', { x: NOMBRE_ZONA[zona] }), { nivel: hayPublicacion ? 'publicacion' : 'persona', zona: zona, valorEt: NOMBRE_ZONA[zona] }));
         }
 
         // --- criterios sobre PERSONAS ---
-        if (ficha.usuario) plan.criterios.push(criterio('usuario', 'Usuario: @' + ficha.usuario, { nivel: 'persona' }));
-        if (ficha.nombre) plan.criterios.push(criterio('nombre', 'Nombre: ' + ficha.nombre, { nivel: 'persona' }));
-        if (ficha.iniciales) plan.criterios.push(criterio('iniciales', 'Iniciales: ' + ficha.iniciales.join(' ').toUpperCase(), { nivel: 'persona' }));
+        if (ficha.usuario) plan.criterios.push(criterio('usuario', tr('usuarioEt', { x: ficha.usuario }), { nivel: 'persona' }));
+        if (ficha.nombre) plan.criterios.push(criterio('nombre', tr('nombreEt', { x: ficha.nombre }), { nivel: 'persona' }));
+        if (ficha.iniciales) plan.criterios.push(criterio('iniciales', tr('inicEt', { x: ficha.iniciales.join(' ').toUpperCase() }), { nivel: 'persona' }));
         if (ficha.rol) {
             var conPub = ROLES_CON_PUBLICACIONES.test(norm(ficha.rol));
-            var cr = criterio('rol', 'Quién: ' + ficha.rol, { nivel: 'persona', conPublicaciones: conPub });
-            if (!conPub) { cr.aplicado = false; cr.nota = 'este tipo de persona no se puede buscar todavía'; }
+            var cr = criterio('rol', tr('quien', { x: ficha.rol }), { nivel: 'persona', conPublicaciones: conPub });
+            if (!conPub) { cr.aplicado = false; cr.nota = tr('nRol'); }
             plan.criterios.push(cr);
         }
         if (ficha.hace_no_soportado && ficha.hace_no_soportado.length) {
-            plan.avisos.push('La página no guarda lo que alguien quiere comprar, así que no se aplicó esa parte.');
+            plan.avisos.push(tr('avisoNoCompra'));
         }
         // "dame el teléfono de juan": se busca a la persona, pero la página no muestra datos de contacto
         if (ficha.pide_dato) {
-            plan.avisos.push('Por privacidad no mostramos teléfonos ni correos. Puedes escribirle un mensaje desde su perfil.');
+            plan.avisos.push(tr('avisoPriv'));
         }
         // solo "compra" y nada más: no hay nada que buscar
-        plan.criterios.forEach(function (c) { if (!c.aplicado && c.nota) plan.avisos.push('No se aplicó "' + c.etiqueta + '": ' + c.nota + '.'); });
+        plan.criterios.forEach(function (c) { if (!c.aplicado && c.nota) plan.avisos.push(tr('noAplico', { x: c.etiqueta, y: c.nota })); });
         if (!plan.criterios.some(function (c) { return c.aplicado; })) {
             plan.tipo = 'vacia';
-            plan.mensaje = plan.avisos.length ? plan.avisos[0] : 'No entendí qué buscas. Prueba con un nombre, @usuario o lo que vende.';
+            plan.mensaje = plan.avisos.length ? plan.avisos[0] : tr('noEntendi');
             return plan;
         }
-        plan.entendi = 'Busqué: ' + plan.criterios.filter(function (c) { return c.aplicado; }).map(function (c) { return c.etiqueta; }).join(' · ');
+        plan.entendi = tr('busque', { x: plan.criterios.filter(function (c) { return c.aplicado; }).map(function (c) { return c.etiqueta; }).join(' · ') });
         return plan;
     }
 
@@ -345,7 +361,7 @@ var MotorBusquedaPersonas = (function () {
             var sinNinguna = tipoC.valores.filter(function (t) { return !validas.some(function (p) { return norm(p.modalidad) === t; }); });
             if (sinNinguna.length === tipoC.valores.length) {
                 var dosTruequeDonacion = sinNinguna.length === 2 && sinNinguna.indexOf('trueque') !== -1 && sinNinguna.indexOf('donacion') !== -1;
-                res.mensaje = 'Todavía no hay ' + (dosTruequeDonacion ? 'publicaciones de trueque o donación' : sinNinguna.map(function (t) { return SIN_PUBLICAR[t]; }).join(' ni ')) + '.';
+                res.mensaje = tr('todaviaHay', { x: dosTruequeDonacion ? tr('spDos') : sinNinguna.map(function (t) { return SIN_PUBLICAR[t]; }).join(tr('ni')) });
                 res.criterioFallido = 'tipo'; return res;
             }
         }
@@ -354,7 +370,7 @@ var MotorBusquedaPersonas = (function () {
         var zonaC = aplicados.filter(function (c) { return c.id === 'zona' && c.zona !== 'mundial'; })[0];
         if (zonaC) {
             var falta = (zonaC.zona === 'local' && !yoUbic.ciudad) || (zonaC.zona === 'regional' && !yoUbic.region && !yoUbic.pais) || (zonaC.zona === 'pais' && !yoUbic.pais);
-            if (falta) { res.requiere = 'localidad'; res.mensaje = 'Define tu localidad en Configuración para buscar en ' + NOMBRE_ZONA[zonaC.zona] + '.'; return res; }
+            if (falta) { res.requiere = 'localidad'; res.mensaje = tr('defLocEn', { x: NOMBRE_ZONA[zonaC.zona] }); return res; }
         }
 
         // ---- publicaciones: se aplica un criterio a la vez y se cuenta lo que queda (así se sabe cuál falló) ----
@@ -379,8 +395,8 @@ var MotorBusquedaPersonas = (function () {
                 if (!actual.length) {
                     res.criterioFallido = c.id;
                     res.mensaje = previos.length
-                        ? 'Hay publicaciones con ' + descripcionCorta(previos) + ', pero ninguna con ' + c.etiqueta + '.'
-                        : 'No hay publicaciones con ' + c.etiqueta + '.';
+                        ? tr('hayPubCon', { x: descripcionCorta(previos), y: c.etiqueta })
+                        : tr('noHayPubCon', { x: c.etiqueta });
                     res.sugerencia = c.id;
                     return res;
                 }
@@ -414,7 +430,7 @@ var MotorBusquedaPersonas = (function () {
             res.pasos.push({ criterio: cNombre.etiqueta, restantes: candidatos.length });
             if (!candidatos.length) {
                 res.criterioFallido = cNombre.id;
-                res.mensaje = antesNombre && cPub.length ? 'Hay personas con ' + descripcionCorta(cPub) + ', pero ninguna con ' + cNombre.etiqueta + '.' : 'No encontré a nadie con ' + cNombre.etiqueta + '.';
+                res.mensaje = antesNombre && cPub.length ? tr('hayPersCon', { x: descripcionCorta(cPub), y: cNombre.etiqueta }) : tr('noConNadie', { x: cNombre.etiqueta });
                 res.sugerencia = cNombre.id; return res;
             }
         }
@@ -424,7 +440,7 @@ var MotorBusquedaPersonas = (function () {
             res.pasos.push({ criterio: cLugarP.etiqueta, restantes: conUbic.length });
             if (!conUbic.length) {
                 res.criterioFallido = cLugarP.id;
-                res.mensaje = 'No encontré personas ' + (cLugarP.id === 'lugar' ? 'en ' + cLugarP.etiqueta.replace(/^En: /, '') : 'de ' + cLugarP.etiqueta.replace(/^Zona: /, '')) + '.';
+                res.mensaje = cLugarP.id === 'lugar' ? tr('noPersEn', { x: cLugarP.valorEt }) : tr('noPersDe', { x: cLugarP.valorEt });
                 res.sugerencia = cLugarP.id; return res;
             }
             candidatos = conUbic.map(function (x) { return x.u; });
@@ -446,7 +462,7 @@ var MotorBusquedaPersonas = (function () {
             var ofertas = porPersona[u.id] || validas.filter(function (p) { return p.usuario_id === u.id; });
             return vistaPersona(u, ubicacionDe(u, datos), ofertas, puntajes[u.id] || 0);
         });
-        if (!res.personas.length) res.mensaje = 'No encontré a nadie con esos criterios.';
+        if (!res.personas.length) res.mensaje = tr('sinRes');
         return res;
     }
 
@@ -467,6 +483,7 @@ var MotorBusquedaPersonas = (function () {
     }
     function buscarBase(texto, datos, contexto) {
         contexto = contexto || {};
+        setIdi(contexto);
         var Interprete = contexto.Interprete || (typeof InterpreteBusquedaPersonas !== 'undefined' ? InterpreteBusquedaPersonas : null);
         if (!Interprete) throw new Error('Falta cargar interprete-busqueda-personas.js antes del motor');
         var ficha = contexto.ficha ? Interprete.sanear(contexto.ficha)
@@ -480,8 +497,7 @@ var MotorBusquedaPersonas = (function () {
 
     // ---------- 4) SALIDAS CUANDO NO HAY RESULTADOS ----------
     var NIVELES_ZONA = ['local', 'regional', 'pais', 'mundial'];
-    var ETIQUETA_SALIDA = { zona: 'Buscar en', precio: 'Sin el filtro de precio', condicion: 'Sin \"segunda mano\"', lugar: 'En cualquier lugar',
-        tipo: 'Sin el tipo (vende, servicios...)' };
+    var ETIQUETA_SALIDA = mapaTr({ zona: 'salZona', precio: 'salPrecio', condicion: 'salCond', lugar: 'salLugar', tipo: 'salTipo' });
     function copiaFicha(f) { return JSON.parse(JSON.stringify(f || {})); }
     // Devuelve hasta 3 búsquedas parecidas que SÍ tienen resultados, cada una con su ficha lista para volver a buscar.
     function alternativas(res, datos, contexto) {
@@ -499,7 +515,7 @@ var MotorBusquedaPersonas = (function () {
             for (var n = NIVELES_ZONA.indexOf(zonaBase) + 1; n < NIVELES_ZONA.length; n++) {
                 var fz = copiaFicha(fBase); fz.zona = NIVELES_ZONA[n];
                 var tz = contar(fz);
-                if (tz > 0) { alts.push({ tipo: 'ampliar', id: 'zona', zona: NIVELES_ZONA[n], etiqueta: 'Buscar en ' + NOMBRE_ZONA[NIVELES_ZONA[n]], total: tz, ficha: fz }); hayAmpliar = true; break; }
+                if (tz > 0) { alts.push({ tipo: 'ampliar', id: 'zona', zona: NIVELES_ZONA[n], etiqueta: tr('buscarEn', { x: NOMBRE_ZONA[NIVELES_ZONA[n]] }), total: tz, ficha: fz }); hayAmpliar = true; break; }
             }
         }
         // 2) quitar de a uno los criterios que más suelen estorbar
@@ -509,17 +525,17 @@ var MotorBusquedaPersonas = (function () {
             var f = fichaSin(fBase, id);
             if (f.intencion === 'vacia') return;
             var t = contar(f);
-            if (t > 0) alts.push({ tipo: 'quitar', id: id, etiqueta: id === 'zona' ? 'En cualquier zona' : ETIQUETA_SALIDA[id], total: t, ficha: f });
+            if (t > 0) alts.push({ tipo: 'quitar', id: id, etiqueta: id === 'zona' ? tr('salZona') : ETIQUETA_SALIDA[id], total: t, ficha: f });
         });
         // 3) \"plomero\" puede ser un nombre o lo que alguien ofrece: se prueba la otra lectura
         if (ficha.nombre && !ficha.oferta && !ficha.usuario && !ficha.iniciales) {
             var fo = copiaFicha(fBase); fo.oferta = fo.nombre; fo.nombre = null; fo.intencion = 'filtro';
             var to = contar(fo);
-            if (to > 0) alts.push({ tipo: 'como_oferta', id: 'oferta', etiqueta: 'Ver quién ofrece \u00ab' + ficha.nombre + '\u00bb', total: to, ficha: fo });
+            if (to > 0) alts.push({ tipo: 'como_oferta', id: 'oferta', etiqueta: tr('verQuien', { x: ficha.nombre }), total: to, ficha: fo });
         } else if (ficha.oferta && !ficha.nombre && !ficha.hace.length) {
             var fn = copiaFicha(fBase); fn.nombre = fn.oferta; fn.oferta = null; fn.intencion = 'nombre';
             var tn = contar(fn);
-            if (tn > 0) alts.push({ tipo: 'como_nombre', id: 'nombre', etiqueta: 'Buscar \u00ab' + ficha.oferta + '\u00bb como nombre de persona', total: tn, ficha: fn });
+            if (tn > 0) alts.push({ tipo: 'como_nombre', id: 'nombre', etiqueta: tr('comoNombre', { x: ficha.oferta }), total: tn, ficha: fn });
         }
         alts.sort(function (a, b) { return b.total - a.total; });
         return alts.slice(0, 3);
@@ -535,7 +551,7 @@ var MotorBusquedaPersonas = (function () {
         function contar(f) {
             try { var b = {}; for (var k in base) b[k] = base[k]; b.ficha = f; var x = buscarBase('', datos, b); return x.requiere ? 0 : (x.total || 0); } catch (e) { return 0; }
         }
-        var g = Guia.decidir(r, { contar: contar, idioma: contexto.idioma });
+        var g = Guia.decidir(r, { contar: contar, idioma: contexto.idioma || idiActual() });
         r.guia = g;
         if (g.paso === 'avisar') {
             if (r.total > 0) r.avisos = (r.avisos || []).concat([g.aviso]); else r.mensaje = g.mensaje;
@@ -547,6 +563,7 @@ var MotorBusquedaPersonas = (function () {
 
     function buscar(texto, datos, contexto) {
         contexto = contexto || {};
+        setIdi(contexto);
         var r = buscarBase(texto, datos, contexto);
         r.alternativas = [];
         var bloqueada = r.ficha && r.ficha.bloqueada;
@@ -560,9 +577,10 @@ var MotorBusquedaPersonas = (function () {
     // ---------- 5) SUGERENCIAS ----------
     // Búsquedas para tocar, armadas con lo que HAY publicado (categorías, tipos, ciudades). Cada una se prueba con el mismo motor
     // y solo se ofrece si da resultados; el número es de personas. Así nunca se sugiere algo que termine en \"no encontré nada\".
-    var TIPOS_SUGERIDOS = [['quien vende', 'Venden'], ['quien da servicios', 'Dan servicios'], ['quien cambia', 'Hacen trueque'], ['quien regala', 'Regalan']];
+    var TIPOS_SUGERIDOS = [['quien vende', 'sVenden'], ['quien da servicios', 'sServicios'], ['quien cambia', 'sTrueque'], ['quien regala', 'sRegalan']];
     function sugerencias(datos, contexto) {
         contexto = contexto || {};
+        setIdi(contexto);
         datos = datos || {};
         var max = contexto.max || 7;
         var base = { Interprete: contexto.Interprete, sinonimos: contexto.sinonimos, palabrasProducto: contexto.palabrasProducto || vocabularioDe(datos) };
@@ -575,15 +593,15 @@ var MotorBusquedaPersonas = (function () {
         });
         var cand = [];
         Object.keys(cats).forEach(function (k) { cand.push({ texto: cats[k], etiqueta: cats[k] }); });
-        TIPOS_SUGERIDOS.forEach(function (t) { cand.push({ texto: t[0], etiqueta: t[1] }); });
-        Object.keys(ciudades).forEach(function (k) { cand.push({ texto: 'en ' + ciudades[k], etiqueta: 'En ' + ciudades[k] }); });
+        TIPOS_SUGERIDOS.forEach(function (t) { cand.push({ texto: t[0], etiqueta: tr(t[1]) }); });
+        Object.keys(ciudades).forEach(function (k) { cand.push({ texto: 'en ' + ciudades[k], etiqueta: tr('enCiudad', { x: ciudades[k] }) }); });
         function probar(c) {
             try { var b = {}; for (var k in base) b[k] = base[k]; var r = buscarBase(c.texto, datos, b); return r.total > 0 && !r.requiere ? { texto: c.texto, etiqueta: c.etiqueta, total: r.total } : null; } catch (e) { return null; }
         }
         var ok = cand.map(probar).filter(Boolean);
         ok.sort(function (a, b) { return b.total - a.total || (a.etiqueta < b.etiqueta ? -1 : 1); });
         var salida = ok.slice(0, max - 1);
-        var nuevos = probar({ texto: 'gente nueva', etiqueta: 'Gente nueva' });
+        var nuevos = probar({ texto: 'gente nueva', etiqueta: tr('genteNueva') });
         if (nuevos) salida.push(nuevos);
         return salida;
     }

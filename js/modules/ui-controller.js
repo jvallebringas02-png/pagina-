@@ -373,16 +373,16 @@ if (resultado.aviso_externo) { html += '<div class="ai-context-banner expandido"
         var activo = function(n) { return nivelZona === n ? 'activo' : ''; };
         var html = '<div class="ai-context-banner">👤 <strong>Búsqueda de personas:</strong> resultados por nombre, iniciales o zona en remarket-db</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px;">' +
-            '<button type="button" id="filtroZona-local-resultados" class="compartir-filtro-zona ' + activo('local') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'local\')">📍 Local</button>' +
-            '<button type="button" id="filtroZona-regional-resultados" class="compartir-filtro-zona ' + activo('regional') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'regional\')">🗺️ Regional</button>' +
-            '<button type="button" id="filtroZona-pais-resultados" class="compartir-filtro-zona ' + activo('pais') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'pais\')">🌎 País</button>' +
+            '<button type="button" id="filtroZona-local-resultados" class="compartir-filtro-zona ' + activo('local') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'local\')">' + eBP('zLocal') + '</button>' +
+            '<button type="button" id="filtroZona-regional-resultados" class="compartir-filtro-zona ' + activo('regional') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'regional\')">' + eBP('zRegional') + '</button>' +
+            '<button type="button" id="filtroZona-pais-resultados" class="compartir-filtro-zona ' + activo('pais') + '" onclick="UIController.filtrarResultadosPersonasPorZona(\'pais\')">' + eBP('zPais') + '</button>' +
             '</div>';
         var rMotor = usuarios.motor || null;
         if (rMotor && typeof PanelUsuario !== 'undefined' && PanelUsuario._entendiMotorHtml) html += PanelUsuario._entendiMotorHtml(rMotor, 'font-size:12px;color:var(--texto-secundario);margin-bottom:6px;');
         if (!usuarios.length) {
-            var textoVacioP = rMotor ? escHtml(rMotor.mensaje || 'No encontré a nadie con esos criterios.') : 'No encontramos a nadie con ese nombre o zona. Prueba con otro nombre, iniciales, o quita el filtro.';
+            var textoVacioP = rMotor ? escHtml(rMotor.mensaje || tBP('sinRes')) : escHtml(tBP('sinRes'));
             html += '<div style="text-align:center;padding:40px;"><p>' + textoVacioP + '</p>' +
-                ((rMotor && rMotor.requiere === 'localidad') ? '<button type="button" class="btn-contactar" onclick="PanelUsuario.abrirModalConfiguracion()">📍 Define tu localidad</button>' : '') + '</div>';
+                ((rMotor && rMotor.requiere === 'localidad') ? '<button type="button" class="btn-contactar" onclick="PanelUsuario.abrirModalConfiguracion()">' + eBP('defineLoc') + '</button>' : '') + '</div>';
         } else {
             var self = this;
             html += usuarios.map(function(u) {
