@@ -454,12 +454,24 @@ var MotorBusquedaPersonas = (function () {
     // buscar('quien vende piano en mi ciudad', datos, { Interprete, nivelZona, sinonimos, palabrasProducto })
     // sinonimos: función opcional (palabra -> lista de palabras iguales), por ejemplo la del buscador principal.
     // palabrasProducto: palabras que son productos; si no se dan, se sacan de las publicaciones (vocabularioDe).
+    // Función que dice si una palabra (minúsculas, sin tildes) es nombre o apellido de algún perfil. La usa la red de seguridad del intérprete.
+    function nombresDe(datos) {
+        var set = {}, yoId = datos && datos.yo && datos.yo.id;
+        ((datos && datos.perfiles) || []).forEach(function (u) {
+            if (!u || u.id === yoId) return;
+            [u.nombres, u.apellidos].forEach(function (campo) {
+                String(campo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[\s'’-]+/).forEach(function (w) { if (w.length >= 3 && /^[a-z]+$/.test(w)) set[w] = true; });
+            });
+        });
+        return function (w) { return set[w] === true; };
+    }
     function buscarBase(texto, datos, contexto) {
         contexto = contexto || {};
         var Interprete = contexto.Interprete || (typeof InterpreteBusquedaPersonas !== 'undefined' ? InterpreteBusquedaPersonas : null);
         if (!Interprete) throw new Error('Falta cargar interprete-busqueda-personas.js antes del motor');
         var ficha = contexto.ficha ? Interprete.sanear(contexto.ficha)
-            : Interprete.interpretar(texto, { pais: datos && datos.yo && datos.yo.pais, palabrasProducto: contexto.palabrasProducto || vocabularioDe(datos), permitirApellidos: contexto.permitirApellidos === true });
+            : Interprete.interpretar(texto, { pais: datos && datos.yo && datos.yo.pais, palabrasProducto: contexto.palabrasProducto || vocabularioDe(datos), permitirApellidos: contexto.permitirApellidos === true,
+                ampliar: contexto.ampliar === true, red: contexto.red === true, esNombreConocido: contexto.red === true ? nombresDe(datos) : undefined });
         var plan = construirPlan(ficha, contexto);
         var r = ejecutar(plan, datos);
         r.ficha = ficha;
@@ -513,6 +525,26 @@ var MotorBusquedaPersonas = (function () {
         return alts.slice(0, 3);
     }
 
+    // La guía (guia-busqueda.js): si la página no entendió, dice qué entendió y ofrece botones. Cada botón es una "alternativa" con su ficha,
+    // así las pantallas que ya dibujan alternativas la muestran sin cambios. Si algo falla, no pasa nada: queda lo de siempre.
+    function aplicarGuia(r, datos, contexto) {
+        var Guia = contexto.Guia || (typeof GuiaBusqueda !== 'undefined' ? GuiaBusqueda : null);
+        if (!Guia && typeof require === 'function') { try { Guia = require('./guia-busqueda.js'); } catch (eReq) { Guia = null; } } // pruebas en Node
+        if (!Guia || typeof Guia.decidir !== 'function') return;
+        var base = { Interprete: contexto.Interprete, sinonimos: contexto.sinonimos, palabrasProducto: contexto.palabrasProducto || vocabularioDe(datos) };
+        function contar(f) {
+            try { var b = {}; for (var k in base) b[k] = base[k]; b.ficha = f; var x = buscarBase('', datos, b); return x.requiere ? 0 : (x.total || 0); } catch (e) { return 0; }
+        }
+        var g = Guia.decidir(r, { contar: contar, idioma: contexto.idioma });
+        r.guia = g;
+        if (g.paso === 'avisar') {
+            if (r.total > 0) r.avisos = (r.avisos || []).concat([g.aviso]); else r.mensaje = g.mensaje;
+        } else if (g.paso === 'preguntar') {
+            r.mensaje = g.mensaje;
+            r.alternativas = g.botones.map(function (b) { return { tipo: 'guia', id: b.id, etiqueta: b.etiqueta, total: b.total, ficha: b.ficha }; });
+        }
+    }
+
     function buscar(texto, datos, contexto) {
         contexto = contexto || {};
         var r = buscarBase(texto, datos, contexto);
@@ -521,6 +553,7 @@ var MotorBusquedaPersonas = (function () {
         if (!r.personas.length && !bloqueada) {
             try { r.alternativas = alternativas(r, datos, contexto); } catch (e) { r.alternativas = []; }
         }
+        if (contexto.guia === true && !bloqueada) { try { aplicarGuia(r, datos, contexto); } catch (eGuia) { r.guia = null; } }
         return r;
     }
 

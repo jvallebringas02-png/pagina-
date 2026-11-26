@@ -10,6 +10,8 @@
 //   zona: 'local' | 'regional' | 'pais' | 'mundial' | null      lugar: texto de un lugar nombrado ("Trujillo") o null
 //   oferta: lo que la persona vende u ofrece ("ropa") o null     rol: 'emprendedores', 'vendedores'... o null
 //   orden: 'recientes' ("nuevo usuario") o null                  intencion: 'nuevos' | 'nombre' | 'usuario' | 'filtro' | 'vacia'
+//   sin_entender: texto que sobró y no parece nombre (solo con contexto.red === true)   no_disponible: algo que la página no tiene ("verificados", "con foto"; solo con contexto.ampliar === true)
+//   guia_n: cuántas preguntas de la guía ya se hicieron (0 a 3)
 //   riesgo.nivel: 'alto' (se bloquea) | 'medio' (se avisa, no se bloquea) | null
 // La lista de riesgo es un FRENO, no una pared: la protección real va al publicar y en los reportes.
 var InterpreteBusquedaPersonas = (function () {
@@ -107,7 +109,8 @@ var InterpreteBusquedaPersonas = (function () {
     function fichaNueva(texto) {
         return { texto: texto, nombre: null, usuario: null, iniciales: null, zona: null, lugar: null, oferta: null, condicion: null, pide_dato: null,
             hace: [], hace_no_soportado: [], precio: null, rol: null, orden: null,
-            riesgo: { nivel: null, motivo: null }, bloqueada: false, necesita_segunda_pista: false, intencion: 'vacia' };
+            riesgo: { nivel: null, motivo: null }, bloqueada: false, necesita_segunda_pista: false, intencion: 'vacia',
+            sin_entender: null, no_disponible: null, guia_n: 0 };
     }
     function numero(s) {
         s = String(s).replace(/[.,](?=\d{3}(\D|$))/g, '').replace(',', '.');
@@ -162,6 +165,40 @@ var InterpreteBusquedaPersonas = (function () {
     var RE_MAX = new RegExp('\\b(?:menos de|menor a|menos que|hasta|maximo|max|no mas de|por debajo de|a menos de|bajo)\\s+' + P_PRECIO + N_PRECIO + M_PRECIO);
     var RE_MIN = new RegExp('\\b(?:mas de|mayor a|desde|minimo|min|por encima de|a partir de)\\s+' + P_PRECIO + N_PRECIO + M_PRECIO);
 
+    // ---------- red de seguridad (contexto.red === true) ----------
+    // Palabras que NUNCA son un nombre de persona (función, verbos de pedido, zona dicha de otra forma...). Si una de ellas sobra, no se busca como nombre.
+    // Un nombre conocido (contexto.esNombreConocido) gana siempre: "Pais" o "Barrio" siguen siendo apellidos si algún perfil los tiene.
+    var NO_NOMBRE = new RegExp('^(?:' + ['cerca', 'lejos', 'donde', 'dnd', 'vivo', 'vive', 'viven', 'viva', 'vivan', 'estoy', 'aqui', 'alla', 'ahi', 'barrio', 'distrito',
+        'zona', 'localidad', 'ciudad', 'pais', 'region', 'vecino', 'vecinos', 'que', 'quien', 'quienes', 'cual', 'cuales', 'como', 'cuando', 'cuanto', 'para', 'por',
+        'con', 'sin', 'sobre', 'algo', 'alguien', 'nadie', 'todo', 'todos', 'todas', 'cosa', 'cosas', 'gente', 'persona', 'personas', 'usuario', 'usuarios', 'perfil',
+        'perfiles', 'verificado', 'verificados', 'foto', 'fotos', 'reputacion', 'favorito', 'favoritos', 'nuevo', 'nuevos', 'vende', 'vender', 'venden', 'compra',
+        'comprar', 'busca', 'buscar', 'busco', 'quiero', 'necesito', 'dime', 'dame', 'muestra', 'muestrame', 'lista', 'listame', 'ver', 'conoces', 'conozco',
+        'arregle', 'arregla', 'arreglar', 'repara', 'repare', 'reparar', 'cocine', 'cocina', 'cocinar', 'haga', 'hace', 'hacer', 'barato', 'barata', 'baratos',
+        'baratas', 'mejor', 'mejores', 'mi', 'mis', 'kiero', 'ayuda', 'ayudar', 'puede', 'pueda', 'puedan', 'tenga', 'tengan', 'tiene', 'tienen', 'sea', 'sean', 'o', 'u', 'cuidad', 'siudad', 'ciuda', 'localida', 'locaidad', 'usaurio', 'usaurios', 'usuaro', 'usuaros', 'usarios', 'usuraio', 'gnete'].join('|') + ')$');
+
+    // Separa lo que sobró en: nombre (lo que parece nombre), sin (lo que no se entendió) y oferta (palabras de producto sueltas).
+    function separarNombre(rest, contexto, vocab, sing) {
+        var orig = rest.split(' ').filter(Boolean);
+        var conoce = typeof contexto.esNombreConocido === 'function' ? function (w) { try { return !!contexto.esNombreConocido(w); } catch (e) { return false; } } : null;
+        var nombres = [], sin = [], prod = [], hayConocido = false, hayMayus = false;
+        orig.forEach(function (w) {
+            var n = normalizar(w).replace(/[^a-z]/g, '');
+            if (!n) { nombres.push(w); return; }
+            if (conoce && conoce(n)) { nombres.push(w); hayConocido = true; return; }
+            if (NO_NOMBRE.test(n)) { sin.push(w); return; }
+            if (vocab.indexOf(sing(n)) !== -1) { prod.push(w); return; }
+            if (/^\p{Lu}/u.test(w)) hayMayus = true;
+            nombres.push(w);
+        });
+        // 3 palabras o más, todas en minúscula y ninguna es un nombre real: es una frase, no un nombre
+        if (conoce && nombres.length >= 3 && !hayConocido && !hayMayus) { sin = sin.concat(nombres); nombres = []; }
+        return { nombre: nombres.join(' '), sin: sin.join(' ') || null, oferta: prod.join(' ') || null };
+    }
+
+    // Verbos de oficio ("alguien que arregle celulares"): raíz -> lo que se ofrece si no dicen qué
+    var OFICIOS = { arregl: 'arreglos', repar: 'reparaciones', cocin: 'cocina', pint: 'pintura', limpi: 'limpieza', cuid: 'cuidado', ensen: 'clases',
+        instal: 'instalaciones', fabric: 'fabricación', disen: 'diseño', traduc: 'traducciones' };
+
     function interpretar(texto, contexto) {
         contexto = contexto || {};
         var original = String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim().slice(0, MAX_LARGO);
@@ -193,6 +230,29 @@ var InterpreteBusquedaPersonas = (function () {
         // 0) @usuario
         tomar(/(?:^|\s)@([a-z0-9_.]{2,30})(?=\s|$)/, function (m) { ficha.usuario = m[1]; });
 
+        // ---- AMPLIAR (contexto.ampliar === true; BITACORA-BUSQUEDA-POR-CAPAS-5.md): más formas de decir lo mismo ----
+        if (contexto.ampliar === true) {
+            // relleno de arranque: "dime quién es Ana", "conoces a Carlos", "muéstrame el perfil de Lucía", "listame", "kiero ver"
+            tomar(/^\s*(?:por favor\s+)?(?:(?:kiero|quiero|quisiera|necesito)\s+ver|dime\s+quien(?:es)?\s+(?:es|son)(?:\s+(?:el|la|los|las))?|conoces\s+a|conoce\s+a|conocen\s+a|muestrame\s+(?:el\s+)?perfil\s+(?:de|del)|ver\s+(?:el\s+)?perfil\s+(?:de|del)|perfil\s+(?:de|del)|list(?:a|ar|ame)|enumera(?:me)?)\s+(?:(?:a|al|de|del)\s+)?(?=\S)/);
+            // lo que la página no tiene: se avisa, no se busca como nombre
+            tomar(/\b(verificad[oa]s?|con fotos?|sin foto|(?:mejor(?:es)?\s+)?reputacion|(?:mejor(?:es)?|bien)\s+(?:valorad|calificad)[oa]s?|que me siguen|quienes me siguen|mis favorit[oa]s|favorit[oa]s|seguidores)\b/,
+                function (m) { ficha.no_disponible = m[1].replace(/\s+/g, ' '); });
+            // orden: "los más nuevos", "los últimos registrados", "se unieron esta semana"
+            tomar(/\b(?:los\s+|las\s+)?(?:mas\s+nuev[oa]s|ultim[oa]s\s+(?:registrad[oa]s|usuarios?)|recien\s+(?:llegad|registrad|unid)[oa]s|(?:que\s+)?se\s+(?:unieron|registraron|sumaron)(?:\s+(?:esta\s+semana|hoy|ayer|hace\s+poco|recientemente))?)\b/,
+                function () { ficha.orden = 'recientes'; });
+            // oficios con verbo: "alguien que arregle celulares", "quien repara laptops", "gente que cocine"
+            tomar(/\b(?:alguien|quien(?:es)?|personas?|gente)\s+(?:que\s+)?(?:me\s+)?(?:pueda\s+|puedan\s+)?(arregl\w+|repar\w+|cocin\w+|pint\w+|limpi\w+|cuid\w+|ensen\w+|instal\w+|fabric\w+|disen\w+|traduc\w+)(?:\s+(.+))?$/,
+                function (m) {
+                    var raiz = Object.keys(OFICIOS).filter(function (k) { return m[1].indexOf(k) === 0; })[0];
+                    var obj = m[2] || '';
+                    if (ficha.hace.indexOf('servicios') === -1) ficha.hace.push('servicios');
+                    if (obj && !/^(?:cosas?|algo|todo|lo que sea|varias cosas)$/.test(obj)) {
+                        var ini = m.index + m[0].length - obj.length;
+                        ficha.oferta = limpiarNombre(tramoVivo(ini, ini + obj.length)) || null;
+                    } else if (!obj && raiz) { ficha.oferta = OFICIOS[raiz]; }
+                });
+        }
+
         // 0b) "con nombre Juan", "llamado Juan Pérez": el nombre se dice de forma explícita y no se mezcla con lo que se vende
         tomar(/\b(?:con nombre|de nombre|llamad[oa]s?|que se llama[n]?)\s+(?:de\s+)?([a-z]+(?: [a-z]+){0,3})(?=\s+(?:en|que|quien|vend\w*|ofrec\w*|por|con)\b|\s*$)/, function (m) {
             var ini = m.index + m[0].indexOf(m[1]);
@@ -213,6 +273,10 @@ var InterpreteBusquedaPersonas = (function () {
         else if (tomar(/\b(en mi region|de mi region|mi region|regional(es)?)\b/)) ficha.zona = 'regional';
         // 16/11: "ciudad" mal escrita (cuidad, siudad, ciudá) y "localidad" sin la d final también cuentan
         else if (tomar(/\b(a nivel local|(?:de mi|en mi|mi|en la|de la)\s+(?:ciudad|cuidad|siudad|ciuda)|de mi zona|en mi zona|mi zona|mi localidad|mi localida|cerca de mi)\b/)) ficha.zona = 'local';
+        // AMPLIAR: "cerca donde vivo", "que viva cerca", "mi barrio", "mis vecinos"... significan la localidad guardada de quien busca
+        if (contexto.ampliar === true && !ficha.zona) {
+            if (tomar(/\b(?:(?:que\s+)?(?:vivan?|viva|vive|residan?)\s+(?:cerca|por\s+aqui|aqui)|cerca\s+(?:de\s+)?(?:donde|dnd)\s+(?:vivo|estoy|resido|me\s+encuentro)|(?:de|en|por)\s+(?:donde|dnd)\s+(?:vivo|estoy|resido)|(?:donde|dnd)\s+(?:vivo|estoy|resido)|cerca\s+de\s+(?:aqui|mi\s+casa)|por\s+aqui(?:\s+cerca)?|por\s+mi\s+casa|aqui\s+nomas|(?:de|en|por)\s+mi\s+(?:barrio|distrito|vecindario|urbanizacion|sector)|mi\s+(?:barrio|distrito|vecindario|urbanizacion)|mis\s+vecinos|vecinos)\b/)) ficha.zona = 'local';
+        }
         // 16/11: "mi localidad o ciudad", "mi ciudad o país", "mi país y ciudad": el segundo lugar no es un nombre. Se queda la zona más amplia.
         if (ficha.zona && ficha.zona !== 'mundial') {
             var ANCHO = { local: 1, regional: 2, pais: 3 };
@@ -355,6 +419,14 @@ var InterpreteBusquedaPersonas = (function () {
         if (palabras.length && palabras.every(function (p) { return vocab.indexOf(sing(p)) !== -1; })) {
             if (!ficha.oferta) ficha.oferta = rest; rest = '';
         }
+        if (contexto.ampliar === true && /^(?:los|las|el|la|un|una|unos|unas)$/i.test(rest)) rest = '';
+        // RED DE SEGURIDAD: lo que sobra y no parece nombre no se busca como nombre
+        if (contexto.red === true && rest && !ficha.nombre && !ficha.usuario && !ficha.iniciales) {
+            var rr = separarNombre(rest, contexto, vocab, sing);
+            rest = rr.nombre;
+            if (rr.sin) ficha.sin_entender = rr.sin;
+            if (rr.oferta && !ficha.oferta) ficha.oferta = rr.oferta;
+        }
         ficha.nombre = rest || ficha.nombre || null;
 
         // 8) si el lugar es el país de quien busca, es la zona "país"
@@ -362,7 +434,7 @@ var InterpreteBusquedaPersonas = (function () {
 
         ficha.intencion = (ficha.nombre || ficha.iniciales) ? 'nombre'
             : (ficha.usuario ? 'usuario'
-            : ((ficha.oferta || ficha.rol || ficha.zona || ficha.lugar || ficha.hace.length || ficha.precio || ficha.condicion) ? 'filtro' : 'vacia'));
+            : ((ficha.oferta || ficha.rol || ficha.zona || ficha.lugar || ficha.hace.length || ficha.precio || ficha.condicion) ? 'filtro' : (ficha.orden === 'recientes' ? 'nuevos' : 'vacia')));
         // Una sola letra sola obliga a dar una segunda pista (evita listar a todos los usuarios)
         if (ficha.iniciales && ficha.iniciales.length === 1 && !ficha.zona && !ficha.lugar && !ficha.oferta && !ficha.rol &&
             !ficha.hace.length && !ficha.precio && !ficha.usuario) ficha.necesita_segunda_pista = true;
@@ -449,6 +521,7 @@ var InterpreteBusquedaPersonas = (function () {
             if (['PEN', 'USD', 'EUR'].indexOf(externa.precio.moneda) !== -1) pr.moneda = externa.precio.moneda;
             if (pr.min !== null || pr.max !== null || pr.orden) f.precio = pr;
         }
+        if (typeof externa.guia_n === 'number' && isFinite(externa.guia_n)) f.guia_n = Math.max(0, Math.min(3, Math.floor(externa.guia_n)));
         f.texto = [f.nombre, f.usuario, f.lugar, f.oferta].filter(Boolean).join(' ');
         f.riesgo = evaluarRiesgo(f.texto);
         if (f.usuario) { var ru = evaluarRiesgo(f.usuario.replace(/[._]+/g, ' ')); if (ru.nivel && f.riesgo.nivel !== 'alto') f.riesgo = ru; }

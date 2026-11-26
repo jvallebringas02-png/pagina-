@@ -26,7 +26,8 @@
 var BusquedaPorCapas = (function () {
     'use strict';
 
-    var interruptores = { entrada: true, limpieza: true, intencion: true };
+    // ampliar / red / guia (BITACORA-BUSQUEDA-POR-CAPAS-5.md): apagados aquí; index.html los enciende. Los lee motor-busqueda-personas-datos.js.
+    var interruptores = { entrada: true, limpieza: true, intencion: true, ampliar: false, red: false, guia: false };
     var VERSION = 1;
 
     function dep(nombre, requerido) {

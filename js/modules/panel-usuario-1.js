@@ -760,7 +760,7 @@ var PanelUsuario = {
             this._alternativasPanelPersonas = alts;
             var sinSalida = !alts.length && !r.requiere && plan.tipo !== 'bloqueada';
             if (alts.length) {
-                h += '<div style="font-size:12px;color:var(--texto-secundario);margin:12px 0 6px;text-align:center;">Pero puedo mostrarte:</div>' +
+                h += (r.guia && r.guia.paso === 'preguntar' ? '' : '<div style="font-size:12px;color:var(--texto-secundario);margin:12px 0 6px;text-align:center;">Pero puedo mostrarte:</div>') +
                     '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">' + alts.map(function(a, i) {
                         return '<button type="button" style="' + self._estiloBotonPanelPersonas + '" onclick="PanelUsuario.usarAlternativaPanelPersonas(' + i + ')">' + self.escHtml(a.etiqueta) + ' <span style="opacity:.6;">(' + a.total + ')</span></button>';
                     }).join('') + '</div>';

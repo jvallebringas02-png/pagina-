@@ -135,7 +135,11 @@ var MotorBusquedaPersonasDatos = (function () {
             var datos = c.datos;
             // el perfil propio puede haber cambiado (localidad nueva) aunque la caché sea vieja
             datos.yo = yo;
-            var r = Motor.buscar(texto, datos, { nivelZona: opciones.nivelZona || null, ficha: opciones.ficha || null, Interprete: opciones.Interprete, sinonimos: opciones.sinonimos || sinonimosPagina(), permitirApellidos: opciones.permitirApellidos === true });
+            // Interruptores de BITACORA-BUSQUEDA-POR-CAPAS-5.md (BusquedaPorCapas.interruptores). La guía (botones) solo en Buscar Personas.
+            var cap = (typeof BusquedaPorCapas !== 'undefined' && BusquedaPorCapas.interruptores) ? BusquedaPorCapas.interruptores : {};
+            var flag = function (k) { return opciones[k] !== undefined ? opciones[k] === true : cap[k] === true; };
+            var r = Motor.buscar(texto, datos, { nivelZona: opciones.nivelZona || null, ficha: opciones.ficha || null, Interprete: opciones.Interprete, sinonimos: opciones.sinonimos || sinonimosPagina(), permitirApellidos: opciones.permitirApellidos === true,
+                ampliar: flag('ampliar'), red: flag('red'), guia: flag('guia') && canal === 'panelPersonas', idioma: opciones.idioma || (typeof idiomaDetectado !== 'undefined' ? idiomaDetectado : 'es'), Guia: opciones.Guia });
             if (c.fallos.length && !(r.personas && r.personas.length)) {
                 r.avisos = (r.avisos || []).concat(['No pude leer todos los datos (' + c.fallos.join(', ') + '). Intenta de nuevo en un momento.']);
             }
